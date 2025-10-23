@@ -299,7 +299,7 @@ export default function AccountValueChart() {
   const panelBg = isDark ? "bg-zinc-950" : "bg-white";
   const mutText = isDark ? "text-zinc-300" : "text-zinc-600";
   const tickFill = isDark ? "#a1a1aa" : "#52525b";
-  const gridStroke = isDark ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.06)";
+  const gridStroke = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
   const refLine = isDark ? "#a1a1aa" : "#9ca3af";
   const chipBorder = isDark ? "border-white/15" : "border-black/15";
   const actBtn = isDark ? "bg-white/10 text-zinc-100" : "bg-black/10 text-zinc-800";
