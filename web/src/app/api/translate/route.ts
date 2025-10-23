@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'forbidden' }, { status: 403 });
     }
     // basic rate-limit by ip
-    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.ip || '0.0.0.0';
+    const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || req.headers.get('x-real-ip') || '0.0.0.0';
     const now = Date.now();
     const entry = rl.get(ip) || { count: 0, ts: now };
     if (now - entry.ts > WINDOW_MS) { entry.count = 0; entry.ts = now; }
@@ -131,6 +131,8 @@ export async function POST(req: NextRequest) {
       if (OPENAI_ORG) defaultHeaders['OpenAI-Organization'] = OPENAI_ORG;
       if (OPENAI_PROJECT) defaultHeaders['OpenAI-Project'] = OPENAI_PROJECT;
 
+      // Extract base URL from effectiveUrl (remove /chat/completions or /responses)
+      const baseURL = effectiveUrl.replace(/\/(chat\/completions|responses)(\b|\/|$)/, '');
       const client = new OpenAI({ apiKey: OPENAI_API_KEY!, baseURL: baseURL, defaultHeaders });
       if (IS_DEV) {
         console.log('[translate][sdk] baseURL', baseURL, 'defaultHeaders', sanitizeHeaders(defaultHeaders));
