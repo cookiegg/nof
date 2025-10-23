@@ -16,8 +16,8 @@ function getSystemTheme(): "dark" | "light" {
 }
 
 export const useTheme = create<ThemeState>((set, get) => ({
-  theme: "dark",
-  resolved: "dark",
+  theme: "system",
+  resolved: getSystemTheme(),
   setTheme: (t) => {
     try { localStorage.setItem("theme", t); } catch {}
     const resolved = t === "system" ? getSystemTheme() : t;
@@ -28,7 +28,7 @@ export const useTheme = create<ThemeState>((set, get) => ({
   },
   init: () => {
     const stored = (typeof window !== "undefined" ? localStorage.getItem("theme") : null) as Theme | null;
-    const pref = stored || "dark"; // default dark
+    const pref = stored || "system"; // default system
     const resolved = pref === "system" ? getSystemTheme() : pref;
     set({ theme: pref, resolved });
     if (typeof document !== "undefined") {
