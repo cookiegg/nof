@@ -10,6 +10,7 @@
     "snapshot:nof1": "node scripts/snapshot-nof1.mjs"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.5.0",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "next": "16.0.0",
