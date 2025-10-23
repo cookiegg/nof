@@ -17,7 +17,7 @@ export default function Home() {
               <TabButton name="持仓" tabKey="positions" />
               <TabButton name="模型对话" tabKey="chat" />
               <TabButton name="成交" tabKey="trades" />
-              <TabButton name="分析" tabKey="analytics" />
+              <TabButton name="分析" disabled />
               <TabButton name="README.md" tabKey="readme" />
             </div>
           </Suspense>

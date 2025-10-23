@@ -1,7 +1,8 @@
 "use client";
 import { useConversations } from "@/lib/api/hooks/useConversations";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { getCachedTranslation, setCachedTranslation, simpleHash } from "@/lib/translate/cache";
 import { getModelName, getModelColor, getModelMeta } from "@/lib/model/meta";
 import { useTheme } from "@/store/useTheme";
 
@@ -37,6 +38,51 @@ export default function ModelChatPanel() {
     ids.sort((a, b) => getModelName(a).localeCompare(getModelName(b)));
     return ids.map((id) => ({ model_id: id, latest: grouped[id][0], history: grouped[id].slice(1) }));
   }, [grouped, qModel]);
+
+  // Prefetch translation for latest-only when content seems English
+  const needTranslate: { key: string; text: string }[] = [];
+  for (const row of list) {
+    const txt = String(row.latest?.content || "");
+    const hasCJK = /[\u4e00-\u9fa5]/.test(txt);
+    if (!hasCJK && txt.trim()) {
+      const tkey = `${row.model_id}:${simpleHash(txt.slice(0, 4096))}`;
+      if (typeof window !== 'undefined' && !getCachedTranslation(tkey)) {
+        needTranslate.push({ key: tkey, text: txt.slice(0, 8000) });
+      }
+    }
+  }
+  const processed = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!needTranslate.length || typeof window === 'undefined') return;
+    // global disable flag if backend not configured/rate-limited
+    const g: any = window as any;
+    if (g.__translateDisabled) return;
+    let cancelled = false;
+    (async () => {
+      for (const it of needTranslate) {
+        if (cancelled) break;
+        if (processed.current.has(it.key)) continue;
+        processed.current.add(it.key);
+        try {
+          const res = await fetch('/api/translate', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text: it.text, key: it.key }) });
+          if (!res.ok) {
+            // disable further attempts in this session to avoid spamming when not configured
+            g.__translateDisabled = true;
+            break;
+          }
+          const j = await res.json();
+          if (j?.disabled) { g.__translateDisabled = true; break; }
+          const zh = j?.translation as string | undefined;
+          if (zh) setCachedTranslation(it.key, zh);
+        } catch {
+          g.__translateDisabled = true;
+          break;
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(needTranslate.map((x) => x.key))]);
 
   if (isLoading) return <div className={`text-xs ${isDark?"text-zinc-500":"text-zinc-600"}`}>加载模型对话中…</div>;
   if (isError) return <div className={`text-xs ${isDark?"text-red-400":"text-red-600"}`}>模型对话接口暂不可用，请稍后重试。</div>;
@@ -97,6 +143,9 @@ function ChatCard({ modelId, content, timestamp, user_prompt, cot_trace, llm_res
   const [open, setOpen] = useState(false);
   const [openHist, setOpenHist] = useState<Record<string, boolean>>({});
   const isDark = useTheme((s) => s.resolved) === 'dark';
+  const tkey = `${modelId}:${simpleHash(String(content || '').slice(0, 4096))}`;
+  const translated = typeof window !== 'undefined' ? getCachedTranslation(tkey) : undefined;
+  const [showZh, setShowZh] = useState<boolean>(true);
   return (
     <div className={`rounded-md border p-3 ${isDark?"":"bg-white"}`} style={{ borderColor: `${color}55`, background: isDark ? `linear-gradient(0deg, ${color}14, transparent)` : `linear-gradient(0deg, ${color}0F, #ffffff)` }}>
       <div className="mb-2 flex items-center justify-between">
@@ -110,11 +159,19 @@ function ChatCard({ modelId, content, timestamp, user_prompt, cot_trace, llm_res
       </div>
       <div className="relative">
         <div className={`whitespace-pre-wrap text-[13px] leading-6 ${isDark?"text-zinc-100":"text-zinc-800"}`} style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}>
-          {content || "(no summary)"}
+          {showZh && translated ? translated : (content || "(no summary)")}
         </div>
         <button className={`absolute bottom-0 right-0 translate-y-5 text-[11px] italic ${isDark?"text-zinc-400 hover:text-zinc-200":"text-zinc-500 hover:text-zinc-700"}`} onClick={() => setOpen(!open)}>
           {open ? "click to collapse" : "click to expand"}
         </button>
+        {translated && (
+          <button
+            className={`absolute bottom-0 left-0 translate-y-5 text-[11px] ${isDark?"text-zinc-400 hover:text-zinc-200":"text-zinc-500 hover:text-zinc-700"}`}
+            onClick={() => setShowZh((v) => !v)}
+          >
+            {showZh ? "显示原文" : "显示中文"}
+          </button>
+        )}
       </div>
       {open && (
         <div className="mt-3 space-y-3 text-[12px]">

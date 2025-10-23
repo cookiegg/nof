@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const UPSTREAM = "https://nof1.ai/api";
+const UPSTREAM = process.env.NOF1_API_BASE_URL || "https://nof1.ai/api";
 
 export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;

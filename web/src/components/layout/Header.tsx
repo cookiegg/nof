@@ -26,9 +26,13 @@ export function Header() {
           <Link href="/leaderboard" className={hoverLink}>
             排行榜
           </Link>
-          <Link href="/models" className={hoverLink}>
+          <span
+            title="待开发"
+            aria-disabled
+            className={`${isDark ? "text-zinc-400" : "text-zinc-500"} cursor-not-allowed select-none`}
+          >
             模型
-          </Link>
+          </span>
           {/* Theme toggle */}
           <div className="ml-2 hidden sm:flex items-center gap-1 text-[11px]">
             <div className={`flex overflow-hidden rounded border ${isDark ? "border-white/15" : "border-black/15"}`}>
