@@ -245,9 +245,9 @@ export default function AccountValueChart() {
 
   const renderEndDot = (id: string) => (p: any) => {
     const { cx, cy, index } = p || {};
-    if (cx == null || cy == null) return null;
-    if (typeof lastIdxById[id] !== "number" || index !== lastIdxById[id]) return null;
-    if (active.size && !active.has(id)) return null;
+    if (cx == null || cy == null) return <></>;
+    if (typeof lastIdxById[id] !== "number" || index !== lastIdxById[id]) return <></>;
+    if (active.size && !active.has(id)) return <></>;
     const icon = getModelIcon(id);
     const color = getModelColor(id);
     const bg = color || "var(--chart-logo-bg)";
