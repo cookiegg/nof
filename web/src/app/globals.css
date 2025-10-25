@@ -30,6 +30,26 @@
   /* Skeleton background by theme */
   --skeleton-bg: rgba(255, 255, 255, 0.10);
   --watermark-color: rgba(255, 255, 255, 0.06);
+
+  /* Chart/UI themed variables (dark defaults) */
+  --panel-bg: #0a0a0a;
+  --panel-border: rgba(255, 255, 255, 0.10);
+  --muted-text: #a1a1aa; /* zinc-400 */
+  --axis-tick: #a1a1aa;
+  --grid-stroke: rgba(255, 255, 255, 0.08);
+  --ref-line: #a1a1aa;
+  --chip-border: rgba(255, 255, 255, 0.15);
+  --btn-active-bg: rgba(255, 255, 255, 0.10);
+  --btn-active-fg: #e4e4e7; /* zinc-200 */
+  --btn-inactive-fg: #d4d4d8; /* zinc-300 */
+  --btn-hover-bg: rgba(255, 255, 255, 0.05);
+  --tooltip-bg: #09090b;
+  --tooltip-border: rgba(255, 255, 255, 0.10);
+  --tooltip-fg: #e4e4e7;
+  /* Header/branding */
+  --brand-accent: #c084fc; /* purple-300 */
+  --header-bg: rgba(0, 0, 0, 0.70);
+  --header-border: rgba(255, 255, 255, 0.10);
 }
 
 @theme inline {
@@ -49,6 +69,29 @@
   --logo-chip-ring: rgba(0, 0, 0, 0.15);
   --skeleton-bg: rgba(0, 0, 0, 0.10);
   --watermark-color: rgba(0, 0, 0, 0.06);
+
+  /* light theme overrides */
+  --panel-bg: #ffffff;
+  --panel-border: rgba(0, 0, 0, 0.10);
+  --muted-text: #52525b; /* zinc-600 */
+  --axis-tick: #52525b;
+  --grid-stroke: rgba(0, 0, 0, 0.08);
+  --ref-line: #9ca3af; /* zinc-400 */
+  --chip-border: rgba(0, 0, 0, 0.15);
+  --btn-active-bg: rgba(0, 0, 0, 0.10);
+  --btn-active-fg: #18181b;
+  --btn-inactive-fg: #52525b;
+  --btn-hover-bg: rgba(0, 0, 0, 0.05);
+  --tooltip-bg: #ffffff;
+  --tooltip-border: rgba(0, 0, 0, 0.12);
+  --tooltip-fg: #18181b;
+  /* apply only in light theme: fallback for too-light line colors */
+  --line-too-light-fallback: #4b5563; /* neutral dark for visibility */
+  --table-row-alt: rgba(0,0,0,0.05);
+  --link-hover: #000000;
+  --brand-accent: #7c3aed; /* purple-600 */
+  --header-bg: rgba(255, 255, 255, 0.70);
+  --header-border: rgba(0, 0, 0, 0.10);
 }
 :root[data-theme="dark"] {
   --background: #0a0a0a;
@@ -59,6 +102,15 @@
   --logo-chip-ring: rgba(255, 255, 255, 0.15);
   --skeleton-bg: rgba(255, 255, 255, 0.10);
   --watermark-color: rgba(255, 255, 255, 0.06);
+  /* apply only in dark theme: fallback for too-dark line colors */
+  --line-too-dark-fallback: #d4d4d8; /* zinc-300 */
+  /* brand-specific stroke overrides */
+  --brand-grok-4-stroke: #ffffff;
+  --table-row-alt: rgba(255,255,255,0.05);
+  --link-hover: #ffffff;
+  --brand-accent: #c084fc; /* purple-300 */
+  --header-bg: rgba(0, 0, 0, 0.70);
+  --header-border: rgba(255, 255, 255, 0.10);
 }
 
 body {
@@ -118,3 +170,7 @@ html, body { height: 100%; overflow: hidden; }
 
 /* Themed skeleton background */
 .skeleton-bg { background: var(--skeleton-bg); }
+
+/* Generic chip buttons that respect theme variables */
+.chip-btn { transition: background-color 160ms ease, color 160ms ease; }
+.chip-btn:hover { background: var(--btn-hover-bg); }

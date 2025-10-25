@@ -7,40 +7,41 @@ export function Header() {
   const theme = useTheme((s) => s.theme);
   const resolved = useTheme((s) => s.resolved);
   const setTheme = useTheme((s) => s.setTheme);
-  const isDark = resolved === "dark";
-  const barCls = `sticky top-0 z-50 w-full border-b ${isDark ? "border-white/10 bg-black/70" : "border-black/10 bg-white/70"} backdrop-blur`;
-  const textCls = isDark ? "text-zinc-200" : "text-zinc-700";
-  const hoverLink = isDark ? "hover:text-white" : "hover:text-black";
-  const brandCls = isDark ? "text-purple-300" : "text-purple-600";
+  const barCls = `sticky top-0 z-50 w-full border-b backdrop-blur`;
+  const textCls = "";
+  const hoverLink = "";
+  const brandCls = "";
 
   return (
-    <header className={barCls}>
-      <div className={`flex h-[var(--header-h)] w-full items-center justify-between px-3 text-xs ${textCls}`}>
-        <Link href="/" className={`font-semibold tracking-wide ${brandCls}`}>
+    <header className={barCls} style={{ background: 'var(--header-bg)', borderColor: 'var(--header-border)' }}>
+      <div className={`flex h-[var(--header-h)] w-full items-center justify-between px-3 text-xs`} style={{ color: 'var(--foreground)' }}>
+        <Link href="/" className={`font-semibold tracking-wide`} style={{ color: 'var(--brand-accent)' }}>
           nof0
         </Link>
         <nav className="flex items-center gap-4 sm:gap-6">
-          <Link href="/" className={hoverLink}>
+          <Link href="/" className={hoverLink} style={{ color: 'inherit' }}>
             实盘
           </Link>
-          <Link href="/leaderboard" className={hoverLink}>
+          <Link href="/leaderboard" className={hoverLink} style={{ color: 'inherit' }}>
             排行榜
           </Link>
           <span
             title="待开发"
             aria-disabled
-            className={`${isDark ? "text-zinc-400" : "text-zinc-500"} cursor-not-allowed select-none`}
+            className={`cursor-not-allowed select-none`}
+            style={{ color: 'var(--muted-text)' }}
           >
             模型
           </span>
           {/* Theme toggle */}
           <div className="ml-2 hidden sm:flex items-center gap-1 text-[11px]">
-            <div className={`flex overflow-hidden rounded border ${isDark ? "border-white/15" : "border-black/15"}`}>
+            <div className={`flex overflow-hidden rounded border`} style={{ borderColor: 'var(--chip-border)' }}>
               {["dark","light","system"].map((t) => (
                 <button
                   key={t}
                   title={t}
-                  className={`px-2 py-1 capitalize ${theme===t ? (isDark?"bg-white/10 text-zinc-100":"bg-black/10 text-zinc-800") : (isDark?"text-zinc-300 hover:bg-white/5":"text-zinc-600 hover:bg-black/5")}`}
+                  className={`px-2 py-1 capitalize chip-btn`}
+                  style={ theme===t ? { background: 'var(--btn-active-bg)', color: 'var(--btn-active-fg)' } : { color: 'var(--btn-inactive-fg)' } }
                   onClick={() => setTheme(t as any)}
                 >
                   {t}

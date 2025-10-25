@@ -9,7 +9,7 @@ import { getModelName } from "@/lib/model/meta";
 import { useTheme } from "@/store/useTheme";
 
 export default function ModelDetailsPanel({ modelId: propModelId }: { modelId?: string }) {
-  const isDark = useTheme((s) => s.resolved) === 'dark';
+  // Use CSS variables via styles instead of theme branching
   const search = useSearchParams();
   const urlModel = search.get("model") || undefined;
   const modelId = (propModelId || urlModel || "").trim();
@@ -37,28 +37,28 @@ export default function ModelDetailsPanel({ modelId: propModelId }: { modelId?: 
 
   const recentTrades = useMemo(() => trades.filter((t) => t.model_id === modelId).slice(-5).reverse(), [trades, modelId]);
 
-  if (!modelId) return <div className="text-xs text-zinc-500">请选择模型（右上筛选的“模型”）。</div>;
+  if (!modelId) return <div className="text-xs" style={{ color: 'var(--muted-text)' }}>请选择模型（右上筛选的“模型”）。</div>;
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <div className={`text-sm font-semibold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>{getModelName(modelId)}</div>
-        <div className={`text-xs ${isDark ? "text-zinc-400" : "text-zinc-500"}`}>模型ID：{modelId}</div>
+        <div className={`text-sm font-semibold`} style={{ color: 'var(--foreground)' }}>{getModelName(modelId)}</div>
+        <div className={`text-xs`} style={{ color: 'var(--muted-text)' }}>模型ID：{modelId}</div>
       </div>
 
-      <div className={`grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] ${isDark ? "text-zinc-300" : "text-zinc-700"}`}>
+      <div className={`grid grid-cols-2 gap-x-4 gap-y-1 text-[11px]`} style={{ color: 'var(--muted-text)' }}>
         <div>净值：<span className="tabular-nums">{fmtUSD(latest?.dollar_equity ?? latest?.equity ?? latest?.account_value)}</span></div>
         <div>累计收益：<span className={pnlClass(latest?.cum_pnl_pct)}>{latest?.cum_pnl_pct != null ? `${latest.cum_pnl_pct.toFixed(2)}%` : '—'}</span></div>
         <div>已实现盈亏：<span className={pnlClass(latest?.realized_pnl)}>{fmtUSD(latest?.realized_pnl)}</span></div>
         <div>未实现盈亏：<span className={pnlClass(latest?.total_unrealized_pnl)}>{fmtUSD(latest?.total_unrealized_pnl)}</span></div>
       </div>
 
-      <div className={`rounded-md border ${isDark ? "border-white/10" : "border-black/10"}`}>
-        <div className={`border-b px-3 py-2 text-xs ${isDark ? "border-white/10 text-zinc-400" : "border-black/10 text-zinc-600"}`}>当前持仓</div>
+      <div className={`rounded-md border`} style={{ borderColor: 'var(--panel-border)' }}>
+        <div className={`border-b px-3 py-2 text-xs`} style={{ borderColor: 'var(--panel-border)', color: 'var(--muted-text)' }}>当前持仓</div>
         <div className="max-h-64 overflow-auto">
           <table className="w-full text-left text-[11px]">
-            <thead className={isDark ? "text-zinc-400" : "text-zinc-600"}>
-              <tr className={`border-b ${isDark ? "border-white/10" : "border-black/10"}`}>
+            <thead style={{ color: 'var(--muted-text)' }}>
+              <tr className={`border-b`} style={{ borderColor: 'var(--panel-border)' }}>
                 <th className="py-1.5 pr-3">方向</th>
                 <th className="py-1.5 pr-3">币种</th>
                 <th className="py-1.5 pr-3">杠杆</th>
@@ -67,11 +67,11 @@ export default function ModelDetailsPanel({ modelId: propModelId }: { modelId?: 
                 <th className="py-1.5 pr-3">未实现盈亏</th>
               </tr>
             </thead>
-            <tbody className={isDark ? "text-zinc-200" : "text-zinc-800"}>
+            <tbody style={{ color: 'var(--foreground)' }}>
               {positions.length ? positions.map((p: any, i: number) => {
                 const side = p.quantity > 0 ? 'LONG' : 'SHORT';
                 return (
-                  <tr key={i} className={`border-b ${isDark ? "border-white/5" : "border-black/5"}`}>
+                  <tr key={i} className={`border-b`} style={{ borderColor: 'color-mix(in oklab, var(--panel-border) 50%, transparent)' }}>
                     <td className="py-1.5 pr-3">{side}</td>
                     <td className="py-1.5 pr-3">{p.symbol}</td>
                     <td className="py-1.5 pr-3">{p.leverage}x</td>
@@ -81,35 +81,35 @@ export default function ModelDetailsPanel({ modelId: propModelId }: { modelId?: 
                   </tr>
                 );
               }) : (
-                <tr><td className={`p-3 text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`} colSpan={6}>暂无持仓</td></tr>
+                <tr><td className={`p-3 text-xs`} style={{ color: 'var(--muted-text)' }} colSpan={6}>暂无持仓</td></tr>
               )}
             </tbody>
           </table>
         </div>
       </div>
 
-      <div className={`rounded-md border ${isDark ? "border-white/10" : "border-black/10"}`}>
-        <div className={`border-b px-3 py-2 text-xs ${isDark ? "border-white/10 text-zinc-400" : "border-black/10 text-zinc-600"}`}>最近成交</div>
+      <div className={`rounded-md border`} style={{ borderColor: 'var(--panel-border)' }}>
+        <div className={`border-b px-3 py-2 text-xs`} style={{ borderColor: 'var(--panel-border)', color: 'var(--muted-text)' }}>最近成交</div>
         <div className="max-h-48 overflow-auto">
           <table className="w-full text-left text-[11px]">
-            <thead className={isDark ? "text-zinc-400" : "text-zinc-600"}>
-              <tr className={`border-b ${isDark ? "border-white/10" : "border-black/10"}`}>
+            <thead style={{ color: 'var(--muted-text)' }}>
+              <tr className={`border-b`} style={{ borderColor: 'var(--panel-border)' }}>
                 <th className="py-1.5 pr-3">币种</th>
                 <th className="py-1.5 pr-3">方向</th>
                 <th className="py-1.5 pr-3">杠杆</th>
                 <th className="py-1.5 pr-3">净盈亏</th>
               </tr>
             </thead>
-            <tbody className={isDark ? "text-zinc-200" : "text-zinc-800"}>
+            <tbody style={{ color: 'var(--foreground)' }}>
               {recentTrades.length ? recentTrades.map((t: any) => (
-                <tr key={t.id} className={`border-b ${isDark ? "border-white/5" : "border-black/5"}`}>
+                <tr key={t.id} className={`border-b`} style={{ borderColor: 'color-mix(in oklab, var(--panel-border) 50%, transparent)' }}>
                   <td className="py-1.5 pr-3">{t.symbol}</td>
                   <td className="py-1.5 pr-3">{t.side?.toUpperCase()}</td>
                   <td className="py-1.5 pr-3">{t.leverage}x</td>
                   <td className={`py-1.5 pr-3 tabular-nums ${pnlClass(t.realized_net_pnl)}`}>{fmtUSD(t.realized_net_pnl)}</td>
                 </tr>
               )) : (
-                <tr><td className={`p-3 text-xs ${isDark ? "text-zinc-500" : "text-zinc-500"}`} colSpan={4}>暂无成交</td></tr>
+                <tr><td className={`p-3 text-xs`} style={{ color: 'var(--muted-text)' }} colSpan={4}>暂无成交</td></tr>
               )}
             </tbody>
           </table>

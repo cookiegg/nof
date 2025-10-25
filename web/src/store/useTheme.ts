@@ -11,7 +11,8 @@ type ThemeState = {
 };
 
 function getSystemTheme(): "dark" | "light" {
-  if (typeof window === "undefined") return "dark";
+  // On SSR, avoid forcing dark to reduce initial mismatch; defer to light.
+  if (typeof window === "undefined") return "light";
   return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
@@ -42,4 +43,3 @@ export const useTheme = create<ThemeState>((set, get) => ({
     }
   },
 }));
-

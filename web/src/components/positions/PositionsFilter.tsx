@@ -6,7 +6,7 @@ import { useTheme } from "@/store/useTheme";
 const SIDES = ["ALL", "LONG", "SHORT"] as const;
 
 export default function PositionsFilter({ models, symbols }: { models: string[]; symbols: string[] }) {
-  const isDark = useTheme((s) => s.resolved) === 'dark';
+  // Use CSS variables in styles instead of theme branching
   const search = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -28,20 +28,21 @@ export default function PositionsFilter({ models, symbols }: { models: string[];
   }
 
   return (
-    <div className={`mb-2 flex flex-wrap items-center gap-2 text-[11px] ${isDark?"text-zinc-300":"text-zinc-700"}`}>
-      <Select label="模型" value={model} options={modelOptions} onChange={(v) => setQuery({ model: v })} isDark={isDark} />
-      <Select label="币种" value={symbol} options={symbolOptions} onChange={(v) => setQuery({ symbol: v })} isDark={isDark} />
-      <Select label="方向" value={side} options={SIDES as unknown as string[]} onChange={(v) => setQuery({ side: v })} isDark={isDark} />
+    <div className={`mb-2 flex flex-wrap items-center gap-2 text-[11px]`} style={{ color: 'var(--muted-text)' }}>
+      <Select label="模型" value={model} options={modelOptions} onChange={(v) => setQuery({ model: v })} />
+      <Select label="币种" value={symbol} options={symbolOptions} onChange={(v) => setQuery({ symbol: v })} />
+      <Select label="方向" value={side} options={SIDES as unknown as string[]} onChange={(v) => setQuery({ side: v })} />
     </div>
   );
 }
 
-function Select({ label, value, options, onChange, isDark }: { label: string; value: string; options: string[]; onChange: (v: string) => void; isDark: boolean }) {
+function Select({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (v: string) => void; }) {
   return (
     <label className="flex items-center gap-1">
-      <span className={isDark?"text-zinc-400":"text-zinc-600"}>{label}</span>
+      <span style={{ color: 'var(--muted-text)' }}>{label}</span>
       <select
-        className={`rounded border px-2 py-1 text-xs ${isDark?"border-white/10 bg-zinc-950 text-zinc-200":"border-black/10 bg-white text-zinc-800"}`}
+        className={`rounded border px-2 py-1 text-xs`}
+        style={{ borderColor: 'var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--foreground)' }}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >

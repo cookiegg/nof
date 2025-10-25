@@ -11,8 +11,7 @@ import clsx from "clsx";
 type SortKey = "equity" | "return_pct" | "num_trades" | "sharpe";
 
 export default function LeaderboardTable() {
-  const resolved = useTheme((s) => s.resolved);
-  const isDark = resolved === "dark";
+  // remove theme branching; rely on CSS variables
   const { rows, isLoading, isError } = useLeaderboard();
   const [sortKey, setSortKey] = useState<SortKey>("equity");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -29,15 +28,15 @@ export default function LeaderboardTable() {
   }, [rows, sortKey, sortDir]);
 
   return (
-    <div className={`rounded-md border ${isDark ? "border-white/10 bg-zinc-950" : "border-black/10 bg-white"} p-3`}>
+    <div className={`rounded-md border p-3`} style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)' }}>
       <div className="mb-2 flex items-center justify-between">
-        <h2 className={`text-sm font-semibold ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>排行榜</h2>
+        <h2 className={`text-sm font-semibold`} style={{ color: 'var(--foreground)' }}>排行榜</h2>
       </div>
       <ErrorBanner message={isError ? "排行榜数据源暂时不可用，请稍后重试。" : undefined} />
       <div className="overflow-x-auto">
         <table className="w-full text-left text-[12px]">
-          <thead className={isDark ? "text-zinc-400" : "text-zinc-600"}>
-            <tr className={`border-b ${isDark ? "border-white/10" : "border-black/10"}`}>
+          <thead style={{ color: 'var(--muted-text)' }}>
+            <tr className={`border-b`} style={{ borderColor: 'var(--panel-border)' }}>
               <Th label="#" />
               <Th label="模型" />
               <ThSort label="净值" active={sortKey === "equity"} dir={sortDir} onClick={() => toggleSort("equity")} />
@@ -46,7 +45,7 @@ export default function LeaderboardTable() {
               <ThSort label="夏普" active={sortKey === "sharpe"} dir={sortDir} onClick={() => toggleSort("sharpe")} />
             </tr>
           </thead>
-          <tbody className={isDark ? "text-zinc-200" : "text-zinc-800"}>
+          <tbody style={{ color: 'var(--foreground)' }}>
             {isLoading ? (
               <>
                 <SkeletonRow cols={6} />
@@ -55,10 +54,14 @@ export default function LeaderboardTable() {
               </>
             ) : (
               data.map((r: LeaderboardRow, idx: number) => (
-                <tr key={r.id} className={clsx("border-b", isDark ? "border-white/5" : "border-black/5", idx === 0 && (isDark ? "bg-white/5" : "bg-black/5"))}> 
+                <tr key={r.id} className={clsx("border-b")}
+                    style={{ borderColor: 'color-mix(in oklab, var(--panel-border) 50%, transparent)', background: idx===0? 'var(--table-row-alt)' : undefined }}> 
                   <td className="py-1.5 pr-3">{idx + 1}</td>
                   <td className="py-1.5 pr-3">
-                    <a className={`inline-flex items-center gap-2 ${isDark ? "hover:text-white" : "hover:text-black"} hover:underline`} href={`/?tab=chat&model=${encodeURIComponent(r.id)}`}>
+                    <a className={`inline-flex items-center gap-2 hover:underline`} style={{ color: 'inherit' }}
+                       onMouseOver={(e)=>{ (e.currentTarget as HTMLElement).style.color = 'var(--link-hover)'; }}
+                       onMouseOut={(e)=>{ (e.currentTarget as HTMLElement).style.color = ''; }}
+                       href={`/?tab=chat&model=${encodeURIComponent(r.id)}`}>
                       {getModelMeta(r.id).icon ? (
                         <img src={getModelMeta(r.id).icon} alt="" className="h-4 w-4 rounded-sm object-contain" />
                       ) : null}
@@ -91,7 +94,7 @@ function Th({ label }: { label: string }) {
 function ThSort({ label, active, dir, onClick }: { label: string; active: boolean; dir: "asc" | "desc"; onClick: () => void }) {
   return (
     <th className="py-1.5 pr-3 text-xs">
-      <button className={clsx("flex items-center gap-1 hover:text-zinc-200", active && "text-zinc-200")} onClick={onClick}>
+      <button className={clsx("flex items-center gap-1")} style={{ color: active ? 'var(--foreground)' : 'var(--muted-text)' }} onClick={onClick}>
         {label}
         {active ? <span className="text-[10px]">{dir === "asc" ? "▲" : "▼"}</span> : null}
       </button>

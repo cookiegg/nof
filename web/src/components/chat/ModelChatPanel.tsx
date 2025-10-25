@@ -12,7 +12,7 @@ export default function ModelChatPanel() {
   const router = useRouter();
   const pathname = usePathname();
   const qModel = (search.get("model") || "ALL").trim();
-  const isDark = useTheme((s) => s.resolved) === 'dark';
+  // use CSS variables for colors instead of theme branching
 
   // Group conversations by model, sorted by time desc
   const grouped = useMemo(() => {
@@ -84,9 +84,9 @@ export default function ModelChatPanel() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(needTranslate.map((x) => x.key))]);
 
-  if (isLoading) return <div className={`text-xs ${isDark?"text-zinc-500":"text-zinc-600"}`}>加载模型对话中…</div>;
-  if (isError) return <div className={`text-xs ${isDark?"text-red-400":"text-red-600"}`}>模型对话接口暂不可用，请稍后重试。</div>;
-  if (!list.length) return <div className={`text-xs ${isDark?"text-zinc-500":"text-zinc-600"}`}>暂无模型对话。</div>;
+  if (isLoading) return <div className={`text-xs`} style={{ color: 'var(--muted-text)' }}>加载模型对话中…</div>;
+  if (isError) return <div className={`text-xs`} style={{ color: 'red' }}>模型对话接口暂不可用，请稍后重试。</div>;
+  if (!list.length) return <div className={`text-xs`} style={{ color: 'var(--muted-text)' }}>暂无模型对话。</div>;
 
   return (
     <div className="space-y-3">
@@ -123,12 +123,12 @@ function fmtTime(t?: number | string) {
 }
 
 function FilterBar({ model, onChange, models }: { model: string; onChange: (v: string) => void; models: string[] }) {
-  const isDark = useTheme((s) => s.resolved) === 'dark';
+  // theme vars only
   const uniq = Array.from(new Set(models));
   return (
-    <div className="mb-1 flex items-center gap-2 text-[12px]">
-      <span className={`font-semibold tracking-wide ${isDark?"text-zinc-300":"text-zinc-700"}`}>FILTER:</span>
-      <select className={`rounded border px-2 py-1 text-xs ${isDark?"border-white/10 bg-zinc-950 text-zinc-200":"border-black/10 bg-white text-zinc-800"}`} value={model} onChange={(e) => onChange(e.target.value)}>
+    <div className="mb-1 flex items-center gap-2 text-[12px]" style={{ color: 'var(--muted-text)' }}>
+      <span className={`font-semibold tracking-wide`}>FILTER:</span>
+      <select className={`rounded border px-2 py-1 text-xs`} style={{ borderColor: 'var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--foreground)' }} value={model} onChange={(e) => onChange(e.target.value)}>
         {uniq.map((m) => (
           <option key={m} value={m}>{m}</option>
         ))}
@@ -147,26 +147,27 @@ function ChatCard({ modelId, content, timestamp, user_prompt, cot_trace, llm_res
   const translated = typeof window !== 'undefined' ? getCachedTranslation(tkey) : undefined;
   const [showZh, setShowZh] = useState<boolean>(true);
   return (
-    <div className={`rounded-md border p-3 ${isDark?"":"bg-white"}`} style={{ borderColor: `${color}55`, background: isDark ? `linear-gradient(0deg, ${color}14, transparent)` : `linear-gradient(0deg, ${color}0F, #ffffff)` }}>
+    <div className={`rounded-md border p-3`} style={{ borderColor: `${color}55`, background: `linear-gradient(0deg, ${color}14, var(--panel-bg))` }}>
       <div className="mb-2 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {getModelMeta(modelId).icon ? (
             <img src={getModelMeta(modelId).icon!} alt="" className="h-5 w-5 rounded-sm object-contain" />
           ) : null}
-          <div className={`text-sm font-semibold ${isDark?"text-zinc-100":"text-zinc-800"}`} style={{ color }}>{getModelName(modelId)}</div>
+          <div className={`text-sm font-semibold`} style={{ color }}>{getModelName(modelId)}</div>
         </div>
-        <div className={`text-[11px] ${isDark?"text-zinc-400":"text-zinc-500"}`}>{fmtTime(timestamp)}</div>
+        <div className={`text-[11px]`} style={{ color: 'var(--muted-text)' }}>{fmtTime(timestamp)}</div>
       </div>
       <div className="relative">
-        <div className={`whitespace-pre-wrap text-[13px] leading-6 ${isDark?"text-zinc-100":"text-zinc-800"}`} style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}>
+        <div className={`whitespace-pre-wrap text-[13px] leading-6`} style={{ color: 'var(--foreground)', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}>
           {showZh && translated ? translated : (content || "(no summary)")}
         </div>
-        <button className={`absolute bottom-0 right-0 translate-y-5 text-[11px] italic ${isDark?"text-zinc-400 hover:text-zinc-200":"text-zinc-500 hover:text-zinc-700"}`} onClick={() => setOpen(!open)}>
+        <button className={`absolute bottom-0 right-0 translate-y-5 text-[11px] italic`} style={{ color: 'var(--muted-text)' }} onClick={() => setOpen(!open)}>
           {open ? "click to collapse" : "click to expand"}
         </button>
         {translated && (
           <button
-            className={`absolute bottom-0 left-0 translate-y-5 text-[11px] ${isDark?"text-zinc-400 hover:text-zinc-200":"text-zinc-500 hover:text-zinc-700"}`}
+            className={`absolute bottom-0 left-0 translate-y-5 text-[11px]`}
+            style={{ color: 'var(--muted-text)' }}
             onClick={() => setShowZh((v) => !v)}
           >
             {showZh ? "显示原文" : "显示中文"}
@@ -176,10 +177,10 @@ function ChatCard({ modelId, content, timestamp, user_prompt, cot_trace, llm_res
       {open && (
         <div className="mt-3 space-y-3 text-[12px]">
           <Section title="USER_PROMPT">
-            <pre className={`${isDark?"text-zinc-200":"text-zinc-800"} whitespace-pre-wrap`}>{user_prompt || "—"}</pre>
+            <pre className={`whitespace-pre-wrap`} style={{ color: 'var(--foreground)' }}>{user_prompt || "—"}</pre>
           </Section>
           <Section title="CHAIN_OF_THOUGHT">
-            <pre className={`${isDark?"text-zinc-200":"text-zinc-800"} whitespace-pre-wrap`}>{formatCot(cot_trace)}</pre>
+            <pre className={`whitespace-pre-wrap`} style={{ color: 'var(--foreground)' }}>{formatCot(cot_trace)}</pre>
           </Section>
           <Section title="TRADING_DECISIONS">
             {renderDecisions(llm_response)}
@@ -189,23 +190,23 @@ function ChatCard({ modelId, content, timestamp, user_prompt, cot_trace, llm_res
 
       {!!history?.length && (
         <div className="mt-4">
-          <div className={`mb-1 text-[11px] font-semibold ${isDark?"text-zinc-400":"text-zinc-600"}`}>历史对话</div>
+          <div className={`mb-1 text-[11px] font-semibold`} style={{ color: 'var(--muted-text)' }}>历史对话</div>
           <div className="space-y-2">
             {history.slice(0, 5).map((h, idx) => {
               const key = String(h.timestamp || idx);
               const isOpen = !!openHist[key];
               return (
-                <div key={key} className={`rounded border p-2 ${isDark?"border-white/10":"border-black/10"}`}>
-                  <div className={`mb-1 flex items-center justify-between text-[11px] ${isDark?"text-zinc-400":"text-zinc-600"}`}>
+                <div key={key} className={`rounded border p-2`} style={{ borderColor: 'var(--panel-border)' }}>
+                  <div className={`mb-1 flex items-center justify-between text-[11px]`} style={{ color: 'var(--muted-text)' }}>
                     <span>{fmtTime(h.timestamp)}</span>
-                    <button className={`text-[11px] italic ${isDark?"hover:text-zinc-200":"hover:text-zinc-700"}`} onClick={() => setOpenHist({ ...openHist, [key]: !isOpen })}>
+                    <button className={`text-[11px] italic`} style={{ color: 'var(--muted-text)' }} onClick={() => setOpenHist({ ...openHist, [key]: !isOpen })}>
                       {isOpen ? "collapse" : "click to expand"}
                     </button>
                   </div>
                   {isOpen && (
                     <div className="space-y-2">
-                      <Section title="USER_PROMPT"><pre className="whitespace-pre-wrap text-zinc-200">{h.user_prompt || "—"}</pre></Section>
-                      <Section title="CHAIN_OF_THOUGHT"><pre className="whitespace-pre-wrap text-zinc-200">{formatCot(h.cot_trace)}</pre></Section>
+                      <Section title="USER_PROMPT"><pre className="whitespace-pre-wrap" style={{ color: 'var(--foreground)' }}>{h.user_prompt || "—"}</pre></Section>
+                      <Section title="CHAIN_OF_THOUGHT"><pre className="whitespace-pre-wrap" style={{ color: 'var(--foreground)' }}>{formatCot(h.cot_trace)}</pre></Section>
                       <Section title="TRADING_DECISIONS">{renderDecisions(h.llm_response)}</Section>
                     </div>
                   )}
@@ -222,7 +223,7 @@ function ChatCard({ modelId, content, timestamp, user_prompt, cot_trace, llm_res
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="mb-1 text-[11px] font-semibold tracking-wide text-zinc-300">{title}</div>
+      <div className="mb-1 text-[11px] font-semibold tracking-wide" style={{ color: 'var(--muted-text)' }}>{title}</div>
       <div>{children}</div>
     </div>
   );
@@ -252,12 +253,12 @@ function renderDecisions(resp: any) {
       });
     }
   }
-  if (!rows.length) return <div className="text-zinc-500">—</div>;
+  if (!rows.length) return <div style={{ color: 'var(--muted-text)' }}>—</div>;
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-left text-[11px]">
-        <thead className="text-zinc-400">
-          <tr className="border-b border-white/10">
+      <table className="w-full text-left text-[11px]" style={{ color: 'var(--foreground)' }}>
+        <thead style={{ color: 'var(--muted-text)' }}>
+          <tr className="border-b" style={{ borderColor: 'var(--panel-border)' }}>
             <th className="py-1.5 pr-3">币种</th>
             <th className="py-1.5 pr-3">动作</th>
             <th className="py-1.5 pr-3">杠杆</th>
@@ -270,7 +271,7 @@ function renderDecisions(resp: any) {
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={i} className="border-b border-white/5">
+            <tr key={i} className="border-b" style={{ borderColor: 'color-mix(in oklab, var(--panel-border) 50%, transparent)' }}>
               <td className="py-1.5 pr-3">{r.coin}</td>
               <td className="py-1.5 pr-3">{String(r.signal || "—").toUpperCase()}</td>
               <td className="py-1.5 pr-3">{r.leverage != null ? `${r.leverage}x` : "—"}</td>

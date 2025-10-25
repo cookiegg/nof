@@ -4,7 +4,6 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { useAccountValueSeries } from "@/lib/api/hooks/useAccountValueSeries";
 import { format } from "date-fns";
 import { getModelColor, getModelName, getModelIcon, resolveCanonicalId } from "@/lib/model/meta";
-import { useTheme } from "@/store/useTheme";
 import { adjustLuminance } from "@/lib/ui/useDominantColors";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
@@ -34,8 +33,6 @@ export default function AccountValueChart() {
   const lastTsRef = useRef<number | null>(null);
   const [active, setActive] = useState<Set<string>>(new Set());
   const [vw, setVw] = useState<number>(0);
-  const resolvedTheme = useTheme((s) => s.resolved);
-  const isDark = resolvedTheme === 'dark';
   const chartRef = useRef<HTMLDivElement | null>(null);
 
   // End-logo size and dynamic right margin (to avoid clipping without huge whitespace)
@@ -103,16 +100,17 @@ export default function AccountValueChart() {
     const lum = relativeLuminance(base);
     if (lum == null) return base;
     const canon = resolveCanonicalId(id);
-    if (isDark && canon === 'grok-4') {
-      return '#ffffff';
+    if (canon === 'grok-4') {
+      // use theme-provided override when available; otherwise fall back to brand base
+      return `var(--brand-grok-4-stroke, ${base})`;
     }
-    if (isDark && lum < 0.06) {
-      // too dark on dark bg → lift to neutral zinc-300 for visibility
-      return '#d4d4d8';
+    if (lum < 0.06) {
+      // In dark theme, replace very dark lines with a readable neutral; in light theme, keep base.
+      return `var(--line-too-dark-fallback, ${base})`;
     }
-    if (!isDark && lum > 0.94) {
-      // too light on light bg → darken a bit
-      return adjustLuminance(base, -0.25);
+    if (lum > 0.94) {
+      // In light theme, replace very light lines with a readable neutral; in dark theme, keep base.
+      return `var(--line-too-light-fallback, ${base})`;
     }
     return base;
   }
@@ -294,39 +292,44 @@ export default function AccountValueChart() {
     );
   };
 
-  // theme-aware classes
-  const panelBorder = isDark ? "border-white/10" : "border-black/10";
-  const panelBg = isDark ? "bg-zinc-950" : "bg-white";
-  const mutText = isDark ? "text-zinc-300" : "text-zinc-600";
-  const tickFill = isDark ? "#a1a1aa" : "#52525b";
-  const gridStroke = isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.08)";
-  const refLine = isDark ? "#a1a1aa" : "#9ca3af";
-  const chipBorder = isDark ? "border-white/15" : "border-black/15";
-  const actBtn = isDark ? "bg-white/10 text-zinc-100" : "bg-black/10 text-zinc-800";
-  const inactBtn = isDark ? "text-zinc-300 hover:bg-white/5" : "text-zinc-600 hover:bg-black/5";
+  // theme via CSS variables to avoid JS-bound colors
+  const tickFill = "var(--axis-tick)" as const;
+  const gridStroke = "var(--grid-stroke)" as const;
+  const refLine = "var(--ref-line)" as const;
 
   return (
-    <div className={`flex h-full min-h-[260px] sm:min-h-[300px] flex-col rounded-md border ${panelBorder} ${panelBg} p-3`}>
+    <div className={`flex h-full min-h-[260px] sm:min-h-[300px] flex-col rounded-md border p-3`}
+         style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)' }}>
       <div className="mb-2 flex items-center justify-between">
-        <div className={`text-xs font-semibold tracking-wider ${mutText}`}>账户总资产</div>
+        <div className={`text-xs font-semibold tracking-wider`} style={{ color: 'var(--muted-text)' }}>账户总资产</div>
         {/* Small top-right range/unit toggles */}
         <div className="hidden sm:flex items-center gap-2 text-[11px]">
-          <div className={`flex overflow-hidden rounded border ${chipBorder}`}>
+          <div className={`flex overflow-hidden rounded border`} style={{ borderColor: 'var(--chip-border)' }}>
             {(["ALL", "72H"] as Range[]).map((r) => (
               <button
                 key={r}
-                className={`px-2 py-1 ${range === r ? actBtn : inactBtn}`}
+                className={`px-2 py-1 chip-btn`}
+                style={
+                  range === r
+                    ? { background: 'var(--btn-active-bg)', color: 'var(--btn-active-fg)' }
+                    : { color: 'var(--btn-inactive-fg)' }
+                }
                 onClick={() => setRange(r)}
               >
                 {r}
               </button>
             ))}
           </div>
-          <div className={`flex overflow-hidden rounded border ${chipBorder}`}>
+          <div className={`flex overflow-hidden rounded border`} style={{ borderColor: 'var(--chip-border)' }}>
             {(["$", "%"] as Mode[]).map((m) => (
               <button
                 key={m}
-                className={`px-2 py-1 ${mode === m ? actBtn : inactBtn}`}
+                className={`px-2 py-1 chip-btn`}
+                style={
+                  mode === m
+                    ? { background: 'var(--btn-active-bg)', color: 'var(--btn-active-fg)' }
+                    : { color: 'var(--btn-inactive-fg)' }
+                }
                 onClick={() => setMode(m)}
               >
                 {m}
@@ -366,7 +369,11 @@ export default function AccountValueChart() {
               />
               <YAxis tickFormatter={(v: number) => (mode === "%" ? `${v.toFixed(1)}%` : `$${Math.round(v).toLocaleString()}`)} tick={{ fill: tickFill, fontSize: 11 }} width={60} domain={["auto", "auto"]} />
               <Tooltip
-                contentStyle={{ background: isDark ? "#09090b" : "#ffffff", border: isDark ? "1px solid rgba(255,255,255,0.1)" : "1px solid rgba(0,0,0,0.12)", color: isDark ? "#e4e4e7" : "#18181b" }}
+                contentStyle={{
+                  background: 'var(--tooltip-bg)',
+                  border: '1px solid var(--tooltip-border)',
+                  color: 'var(--tooltip-fg)'
+                }}
                 labelFormatter={(v) => (v instanceof Date ? format(v, "yyyy-MM-dd HH:mm") : String(v))}
                 formatter={(val: number) => (mode === "%" ? `${Number(val).toFixed(2)}%` : `$${Number(val).toFixed(2)}`)}
               />
@@ -424,11 +431,12 @@ export default function AccountValueChart() {
                     return (
                       <button
                         key={id}
-                        className={`inline-flex min-w-[120px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded border px-2.5 py-2 text-[12px] transition-colors ${
-                          activeOn
-                            ? (isDark ? "border-white/25 bg-white/5 text-zinc-100 hover:bg-white/10" : "border-black/20 bg-black/5 text-zinc-800 hover:bg-black/10")
-                            : (isDark ? "border-white/10 text-zinc-400 hover:bg-white/5" : "border-black/10 text-zinc-500 hover:bg-black/5")
-                        }`}
+                        className={`inline-flex min-w-[120px] flex-shrink-0 flex-col items-center justify-center gap-1 rounded border px-2.5 py-2 text-[12px] chip-btn`}
+                        style={{
+                          borderColor: 'var(--chip-border)',
+                          background: activeOn ? 'var(--btn-active-bg)' : 'transparent',
+                          color: activeOn ? 'var(--btn-active-fg)' : 'var(--btn-inactive-fg)'
+                        }}
                         onClick={() => {
                           setActive((prev) => {
                             if (prev.size === 1 && prev.has(id)) return new Set(models);
@@ -447,7 +455,7 @@ export default function AccountValueChart() {
                           )}
                           <span className="truncate max-w-[9ch]">{getModelName(id)}</span>
                         </div>
-                        <div className={`font-semibold leading-tight ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
+                        <div className={`font-semibold leading-tight`} style={{ color: activeOn ? 'var(--btn-active-fg)' : 'var(--btn-inactive-fg)' }}>
                           {formatValue(lastValById[id])}
                         </div>
                       </button>
@@ -465,11 +473,12 @@ export default function AccountValueChart() {
                     return (
                       <button
                         key={id}
-                        className={`w-full group inline-flex flex-col items-center justify-center gap-1 rounded border px-2.5 py-2 text-[12px] sm:text-[13px] transition-colors ${
-                          activeOn
-                            ? (isDark ? "border-white/25 bg-white/5 text-zinc-100 hover:bg-white/10" : "border-black/20 bg-black/5 text-zinc-800 hover:bg-black/10")
-                            : (isDark ? "border-white/10 text-zinc-400 hover:bg-white/5" : "border-black/10 text-zinc-500 hover:bg-black/5")
-                        }`}
+                        className={`w-full group inline-flex flex-col items-center justify-center gap-1 rounded border px-2.5 py-2 text-[12px] sm:text-[13px] chip-btn`}
+                        style={{
+                          borderColor: 'var(--chip-border)',
+                          background: activeOn ? 'var(--btn-active-bg)' : 'transparent',
+                          color: activeOn ? 'var(--btn-active-fg)' : 'var(--btn-inactive-fg)'
+                        }}
                         onClick={() => {
                           setActive((prev) => {
                             if (prev.size === 1 && prev.has(id)) return new Set(models);
@@ -488,7 +497,7 @@ export default function AccountValueChart() {
                           )}
                           <span className="truncate max-w-[9ch] sm:max-w-none">{getModelName(id)}</span>
                         </div>
-                        <div className={`font-semibold leading-tight ${isDark ? "text-zinc-100" : "text-zinc-800"}`}>
+                        <div className={`font-semibold leading-tight`} style={{ color: activeOn ? 'var(--btn-active-fg)' : 'var(--btn-inactive-fg)' }}>
                           {formatValue(lastValById[id])}
                         </div>
                       </button>
@@ -501,10 +510,10 @@ export default function AccountValueChart() {
           )}
           </>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-zinc-400">
+          <div className="flex h-full flex-col items-center justify-center gap-2 text-sm" style={{ color: 'var(--muted-text)' }}>
             <div>暂无足够的图表数据（需要至少 2 个时间点）。</div>
-            <div className="text-xs text-zinc-500">建议保持页面打开几分钟，我们会按 5 秒节奏累积最新净值点。</div>
-            <div className="text-xs text-zinc-500">
+            <div className="text-xs" style={{ color: 'var(--muted-text)' }}>建议保持页面打开几分钟，我们会按 5 秒节奏累积最新净值点。</div>
+            <div className="text-xs" style={{ color: 'var(--muted-text)' }}>
               调试：<a className="underline" href="/api/nof1/since-inception-values" target="_blank">since-inception-values</a>
               ，<a className="underline" href="/api/nof1/account-totals" target="_blank">account-totals</a>
             </div>

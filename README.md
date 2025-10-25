@@ -57,7 +57,9 @@ npm run snapshot:nof1
 在 `src/lib/model/meta.ts` 统一配置品牌色与白色版图标，风格一致。
 
 ### 主题变量驱动
-`globals.css` 使用 CSS 变量（如 `--watermark-color`、`--skeleton-bg`），避免 SSR/CSR 水合差异。
+`globals.css` 使用 CSS 变量驱动全部主题样式（如 `--panel-bg`、`--muted-text`、`--axis-tick` 等），避免 SSR/CSR 水合差异。
+
+开发规范：请参考 `web/docs/theme.md`，新增组件不要再用 `isDark` 分支判断颜色，统一使用变量与 `.chip-btn` 等通用样式。
 
 ## 目录速览
 
