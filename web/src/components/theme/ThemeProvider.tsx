@@ -4,7 +4,8 @@ import { useTheme } from "@/store/useTheme";
 
 export default function ThemeProvider() {
   const init = useTheme((s) => s.init);
-  useEffect(() => { init(); }, [init]);
+  useEffect(() => {
+    init();
+  }, [init]);
   return null;
 }
-

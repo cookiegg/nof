@@ -19,9 +19,13 @@ export interface ConversationsResponse {
 }
 
 export function useConversations() {
-  const { data, error, isLoading } = useSWR<ConversationsResponse>(endpoints.conversations(), fetcher, {
-    refreshInterval: 15000,
-  });
+  const { data, error, isLoading } = useSWR<ConversationsResponse>(
+    endpoints.conversations(),
+    fetcher,
+    {
+      refreshInterval: 15000,
+    },
+  );
   const items: ConversationItem[] = normalize(data);
   return { items, raw: data, isLoading, isError: !!error };
 }
@@ -34,4 +38,3 @@ function normalize(data?: ConversationsResponse): ConversationItem[] {
   if (Array.isArray((data as any).logs)) return (data as any).logs;
   return [];
 }
-

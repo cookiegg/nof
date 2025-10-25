@@ -10,28 +10,39 @@ function rgbToHex(r: number, g: number, b: number) {
   return `#${to2(r)}${to2(g)}${to2(b)}`;
 }
 
-function clamp01(x: number) { return Math.max(0, Math.min(1, x)); }
+function clamp01(x: number) {
+  return Math.max(0, Math.min(1, x));
+}
 
 export function adjustLuminance(hex: string, amt: number) {
   // amt in [-1, 1]
   try {
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     if (!m) return hex;
-    const r = parseInt(m[1], 16), g = parseInt(m[2], 16), b = parseInt(m[3], 16);
+    const r = parseInt(m[1], 16),
+      g = parseInt(m[2], 16),
+      b = parseInt(m[3], 16);
     const nr = Math.round(clamp01(r / 255 + amt) * 255);
     const ng = Math.round(clamp01(g / 255 + amt) * 255);
     const nb = Math.round(clamp01(b / 255 + amt) * 255);
     return rgbToHex(nr, ng, nb);
-  } catch { return hex; }
+  } catch {
+    return hex;
+  }
 }
 
-export function useDominantColors(iconByKey: Record<string, string | undefined>) {
+export function useDominantColors(
+  iconByKey: Record<string, string | undefined>,
+) {
   const [colors, setColors] = useState<Record<string, string>>({});
   const cacheRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
-    const entries = Object.entries(iconByKey).filter(([, src]) => !!src) as [string, string][];
+    const entries = Object.entries(iconByKey).filter(([, src]) => !!src) as [
+      string,
+      string,
+    ][];
     entries.forEach(([key, src]) => {
       if (cacheRef.current[src]) {
         setColors((prev) => ({ ...prev, [key]: cacheRef.current[src] }));
@@ -53,7 +64,10 @@ export function useDominantColors(iconByKey: Record<string, string | undefined>)
           if (!ctx) throw new Error("no ctx");
           ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
           const { data } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          let r = 0, g = 0, b = 0, n = 0;
+          let r = 0,
+            g = 0,
+            b = 0,
+            n = 0;
           for (let i = 0; i < data.length; i += 4) {
             const a = data[i + 3];
             if (a < 150) continue; // ignore transparent/sem-transparent
@@ -62,7 +76,9 @@ export function useDominantColors(iconByKey: Record<string, string | undefined>)
             b += data[i + 2];
             n++;
           }
-          const hex = n ? rgbToHex(Math.round(r / n), Math.round(g / n), Math.round(b / n)) : "#888888";
+          const hex = n
+            ? rgbToHex(Math.round(r / n), Math.round(g / n), Math.round(b / n))
+            : "#888888";
           cacheRef.current[src] = hex;
           if (!cancelled) setColors((prev) => ({ ...prev, [key]: hex }));
         } catch {
@@ -73,9 +89,10 @@ export function useDominantColors(iconByKey: Record<string, string | undefined>)
         // ignore
       };
     });
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [JSON.stringify(iconByKey)]);
 
   return colors;
 }
-

@@ -28,28 +28,28 @@
   --brand-gpt-5: #10a37f;
 
   /* Skeleton background by theme */
-  --skeleton-bg: rgba(255, 255, 255, 0.10);
+  --skeleton-bg: rgba(255, 255, 255, 0.1);
   --watermark-color: rgba(255, 255, 255, 0.06);
 
   /* Chart/UI themed variables (dark defaults) */
   --panel-bg: #0a0a0a;
-  --panel-border: rgba(255, 255, 255, 0.10);
+  --panel-border: rgba(255, 255, 255, 0.1);
   --muted-text: #a1a1aa; /* zinc-400 */
   --axis-tick: #a1a1aa;
   --grid-stroke: rgba(255, 255, 255, 0.08);
   --ref-line: #a1a1aa;
   --chip-border: rgba(255, 255, 255, 0.15);
-  --btn-active-bg: rgba(255, 255, 255, 0.10);
+  --btn-active-bg: rgba(255, 255, 255, 0.1);
   --btn-active-fg: #e4e4e7; /* zinc-200 */
   --btn-inactive-fg: #d4d4d8; /* zinc-300 */
   --btn-hover-bg: rgba(255, 255, 255, 0.05);
   --tooltip-bg: #09090b;
-  --tooltip-border: rgba(255, 255, 255, 0.10);
+  --tooltip-border: rgba(255, 255, 255, 0.1);
   --tooltip-fg: #e4e4e7;
   /* Header/branding */
   --brand-accent: #c084fc; /* purple-300 */
-  --header-bg: rgba(0, 0, 0, 0.70);
-  --header-border: rgba(255, 255, 255, 0.10);
+  --header-bg: rgba(0, 0, 0, 0.7);
+  --header-border: rgba(255, 255, 255, 0.1);
 }
 
 @theme inline {
@@ -67,18 +67,18 @@
   --chart-logo-ring: rgba(0, 0, 0, 0.25);
   --logo-chip-bg: rgba(0, 0, 0, 0.06);
   --logo-chip-ring: rgba(0, 0, 0, 0.15);
-  --skeleton-bg: rgba(0, 0, 0, 0.10);
+  --skeleton-bg: rgba(0, 0, 0, 0.1);
   --watermark-color: rgba(0, 0, 0, 0.06);
 
   /* light theme overrides */
   --panel-bg: #ffffff;
-  --panel-border: rgba(0, 0, 0, 0.10);
+  --panel-border: rgba(0, 0, 0, 0.1);
   --muted-text: #52525b; /* zinc-600 */
   --axis-tick: #52525b;
   --grid-stroke: rgba(0, 0, 0, 0.08);
   --ref-line: #9ca3af; /* zinc-400 */
   --chip-border: rgba(0, 0, 0, 0.15);
-  --btn-active-bg: rgba(0, 0, 0, 0.10);
+  --btn-active-bg: rgba(0, 0, 0, 0.1);
   --btn-active-fg: #18181b;
   --btn-inactive-fg: #52525b;
   --btn-hover-bg: rgba(0, 0, 0, 0.05);
@@ -87,11 +87,11 @@
   --tooltip-fg: #18181b;
   /* apply only in light theme: fallback for too-light line colors */
   --line-too-light-fallback: #4b5563; /* neutral dark for visibility */
-  --table-row-alt: rgba(0,0,0,0.05);
+  --table-row-alt: rgba(0, 0, 0, 0.05);
   --link-hover: #000000;
   --brand-accent: #7c3aed; /* purple-600 */
-  --header-bg: rgba(255, 255, 255, 0.70);
-  --header-border: rgba(0, 0, 0, 0.10);
+  --header-bg: rgba(255, 255, 255, 0.7);
+  --header-border: rgba(0, 0, 0, 0.1);
 }
 :root[data-theme="dark"] {
   --background: #0a0a0a;
@@ -100,44 +100,85 @@
   --chart-logo-ring: rgba(255, 255, 255, 0.28);
   --logo-chip-bg: rgba(255, 255, 255, 0.06);
   --logo-chip-ring: rgba(255, 255, 255, 0.15);
-  --skeleton-bg: rgba(255, 255, 255, 0.10);
+  --skeleton-bg: rgba(255, 255, 255, 0.1);
   --watermark-color: rgba(255, 255, 255, 0.06);
   /* apply only in dark theme: fallback for too-dark line colors */
   --line-too-dark-fallback: #d4d4d8; /* zinc-300 */
   /* brand-specific stroke overrides */
   --brand-grok-4-stroke: #ffffff;
-  --table-row-alt: rgba(255,255,255,0.05);
+  --table-row-alt: rgba(255, 255, 255, 0.05);
   --link-hover: #ffffff;
   --brand-accent: #c084fc; /* purple-300 */
-  --header-bg: rgba(0, 0, 0, 0.70);
-  --header-border: rgba(255, 255, 255, 0.10);
+  --header-bg: rgba(0, 0, 0, 0.7);
+  --header-border: rgba(255, 255, 255, 0.1);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+  font-family:
+    IBM Plex Mono,
+    monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
 
-html, body { height: 100%; overflow: hidden; }
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
 
 /* Tabular numbers for data-heavy UI */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
-  font-feature-settings: "tnum" 1, "lnum" 1;
+  font-feature-settings:
+    "tnum" 1,
+    "lnum" 1;
+}
+
+/* Terminal-like monospace typography for model chat */
+.terminal-text {
+  font-family:
+    IBM Plex Mono,
+    monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Force UI sans (for headers/nav) */
+.ui-sans {
+  font-family:
+    var(--font-geist-sans),
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    Helvetica Neue,
+    Arial,
+    Noto Sans,
+    Apple Color Emoji,
+    Segoe UI Emoji;
 }
 
 /* Terminal vibe background subtle scanlines */
 /* Disable scanlines by default (light). Only enable in dark theme. */
-.terminal-scan { background: none; }
+.terminal-scan {
+  background: none;
+}
 :root[data-theme="dark"] .terminal-scan {
   background:
     linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-    linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.04));
-  background-size: 100% 2px, 3px 100%;
+    linear-gradient(
+      90deg,
+      rgba(255, 0, 0, 0.04),
+      rgba(0, 255, 0, 0.02),
+      rgba(0, 0, 255, 0.04)
+    );
+  background-size:
+    100% 2px,
+    3px 100%;
 }
 
 /* Reusable logo chip styles */
@@ -149,28 +190,68 @@ html, body { height: 100%; overflow: hidden; }
   border: 1px solid var(--logo-chip-ring);
   border-radius: 6px;
 }
-.logo-chip-sm { width: 16px; height: 16px; }
-.logo-chip-md { width: 20px; height: 20px; }
+.logo-chip-sm {
+  width: 16px;
+  height: 16px;
+}
+.logo-chip-md {
+  width: 20px;
+  height: 20px;
+}
 
 /* Smooth focus/dim transitions for Recharts line groups */
 .recharts-wrapper g.series path {
-  transition: opacity 160ms ease, stroke-width 160ms ease;
+  transition:
+    opacity 160ms ease,
+    stroke-width 160ms ease;
 }
-.recharts-wrapper g.series.dim path { opacity: 0.25; }
-.recharts-wrapper g.series.focused path { opacity: 1; stroke-width: 2.4px; }
+.recharts-wrapper g.series.dim path {
+  opacity: 0.25;
+}
+.recharts-wrapper g.series.focused path {
+  opacity: 1;
+  stroke-width: 2.4px;
+}
 
 /* Remove tap/click highlight around SVG content inside charts */
-.no-tap-highlight { -webkit-tap-highlight-color: transparent; }
-.recharts-wrapper, .recharts-wrapper * { -webkit-tap-highlight-color: transparent; }
-.recharts-wrapper svg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-.recharts-wrapper image, .recharts-wrapper g:focus { outline: none; }
+.no-tap-highlight {
+  -webkit-tap-highlight-color: transparent;
+}
+.recharts-wrapper,
+.recharts-wrapper * {
+  -webkit-tap-highlight-color: transparent;
+}
+.recharts-wrapper svg {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.recharts-wrapper image,
+.recharts-wrapper g:focus {
+  outline: none;
+}
 /* Remove focus ring on Chrome/macOS when clicking the SVG surface */
-.recharts-wrapper .recharts-surface, .recharts-wrapper .recharts-surface:focus, .recharts-wrapper .recharts-surface:focus-visible { outline: none !important; }
-.recharts-wrapper:focus, .recharts-wrapper *:focus { outline: none !important; }
+.recharts-wrapper .recharts-surface,
+.recharts-wrapper .recharts-surface:focus,
+.recharts-wrapper .recharts-surface:focus-visible {
+  outline: none !important;
+}
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none !important;
+}
 
 /* Themed skeleton background */
-.skeleton-bg { background: var(--skeleton-bg); }
+.skeleton-bg {
+  background: var(--skeleton-bg);
+}
 
 /* Generic chip buttons that respect theme variables */
-.chip-btn { transition: background-color 160ms ease, color 160ms ease; }
-.chip-btn:hover { background: var(--btn-hover-bg); }
+.chip-btn {
+  transition:
+    background-color 160ms ease,
+    color 160ms ease;
+}
+.chip-btn:hover {
+  background: var(--btn-hover-bg);
+}

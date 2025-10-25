@@ -1,6 +1,10 @@
-export const BASE_URL = process.env.NEXT_PUBLIC_NOF1_API_BASE_URL || "https://nof1.ai/api";
+export const BASE_URL =
+  process.env.NEXT_PUBLIC_NOF1_API_BASE_URL || "https://nof1.ai/api";
 
-export async function fetcher<T = unknown>(url: string, init?: RequestInit): Promise<T> {
+export async function fetcher<T = unknown>(
+  url: string,
+  init?: RequestInit,
+): Promise<T> {
   const res = await fetch(url, {
     ...init,
     // Ensure no-cache semantics but allow browser caching heuristics

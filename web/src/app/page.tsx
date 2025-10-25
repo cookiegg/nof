@@ -12,7 +12,11 @@ export default function Home() {
           <AccountValueChart />
         </div>
         <div className="lg:col-span-1 h-full overflow-hidden">
-          <Suspense fallback={<div className="mb-2 text-xs text-zinc-500">加载标签…</div>}>
+          <Suspense
+            fallback={
+              <div className="mb-2 text-xs text-zinc-500">加载标签…</div>
+            }
+          >
             <div className="mb-2 flex items-center gap-3 text-xs">
               <TabButton name="持仓" tabKey="positions" />
               <TabButton name="模型对话" tabKey="chat" />
@@ -22,7 +26,9 @@ export default function Home() {
             </div>
           </Suspense>
           <div className="h-[calc(100%-1.5rem)] overflow-y-auto pr-1">
-            <Suspense fallback={<div className="text-xs text-zinc-500">加载数据…</div>}>
+            <Suspense
+              fallback={<div className="text-xs text-zinc-500">加载数据…</div>}
+            >
               <RightTabs />
             </Suspense>
           </div>

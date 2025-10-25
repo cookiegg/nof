@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import ThemeProvider from "@/components/theme/ThemeProvider";
@@ -16,9 +16,16 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const plexMono = IBM_Plex_Mono({
+  variable: "--font-plex-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
 export const metadata: Metadata = {
   title: "nof0 - AI 模型加密货币交易可视化",
-  description: "用真实数据和清晰可视化，回答「哪个模型更会赚」的朴素问题。展示多个 AI 模型的加密货币交易表现对比。",
+  description:
+    "用真实数据和清晰可视化，回答「哪个模型更会赚」的朴素问题。展示多个 AI 模型的加密货币交易表现对比。",
 };
 
 export default function RootLayout({
@@ -39,7 +46,9 @@ export default function RootLayout({
   } catch (_) {}
 })();`}
       </Script>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} ${plexMono.variable} antialiased`}
+      >
         <ThemeProvider />
         <div className="min-h-screen">
           <Header />

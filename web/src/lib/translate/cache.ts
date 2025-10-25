@@ -14,7 +14,9 @@ function load() {
 }
 
 function save() {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(mem)); } catch {}
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(mem));
+  } catch {}
 }
 
 export function getCachedTranslation(key: string): string | undefined {
@@ -33,4 +35,3 @@ export function simpleHash(s: string): string {
   for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
   return (h >>> 0).toString(36);
 }
-

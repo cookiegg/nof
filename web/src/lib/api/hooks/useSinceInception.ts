@@ -19,7 +19,7 @@ export function useSinceInception() {
   const { data, error, isLoading } = useSWR<SinceInceptionResponse>(
     endpoints.sinceInceptionValues(),
     fetcher,
-    { refreshInterval: 10000 }
+    { refreshInterval: 10000 },
   );
   return {
     data,
@@ -29,4 +29,3 @@ export function useSinceInception() {
     isError: !!error,
   };
 }
-

@@ -1,7 +1,10 @@
 "use client";
 import { create } from "zustand";
 
-export type SeriesPoint = { timestamp: number; [modelId: string]: number | undefined };
+export type SeriesPoint = {
+  timestamp: number;
+  [modelId: string]: number | undefined;
+};
 
 type State = {
   seriesMap: Map<number, SeriesPoint>;
@@ -21,6 +24,8 @@ export const useChartStore = create<State>((set, get) => ({
       return { seriesMap: map };
     }),
   clear: () => set({ seriesMap: new Map() }),
-  getSeries: () => Array.from(get().seriesMap.values()).sort((a, b) => a.timestamp - b.timestamp),
+  getSeries: () =>
+    Array.from(get().seriesMap.values()).sort(
+      (a, b) => a.timestamp - b.timestamp,
+    ),
 }));
-

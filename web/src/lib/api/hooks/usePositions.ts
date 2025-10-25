@@ -31,26 +31,31 @@ export interface PositionsByModel {
 }
 
 export function usePositions() {
-  const { data, error, isLoading } = useSWR<{ accountTotals: AccountTotalsRow[] }>(
-    endpoints.accountTotals(),
-    fetcher,
-    {
-      refreshInterval: 5000,
-      dedupingInterval: 2000,
-    }
-  );
+  const { data, error, isLoading } = useSWR<{
+    accountTotals: AccountTotalsRow[];
+  }>(endpoints.accountTotals(), fetcher, {
+    refreshInterval: 5000,
+    dedupingInterval: 2000,
+  });
 
   const positionsByModel: PositionsByModel[] = (() => {
     const rows = data?.accountTotals ?? [];
-    const latestById = new Map<string, AccountTotalsRow & { positions?: Record<string, RawPositionRow> }>();
+    const latestById = new Map<
+      string,
+      AccountTotalsRow & { positions?: Record<string, RawPositionRow> }
+    >();
     for (const row of rows) {
       const id = String((row as any).model_id ?? (row as any).id ?? "");
       if (!id) continue;
       const ts = Number((row as any).timestamp ?? 0);
       const prev = latestById.get(id);
-      if (!prev || Number((prev as any).timestamp ?? 0) <= ts) latestById.set(id, row as any);
+      if (!prev || Number((prev as any).timestamp ?? 0) <= ts)
+        latestById.set(id, row as any);
     }
-    return Array.from(latestById.entries()).map(([id, row]) => ({ id, positions: (row as any).positions ?? {} }));
+    return Array.from(latestById.entries()).map(([id, row]) => ({
+      id,
+      positions: (row as any).positions ?? {},
+    }));
   })();
 
   return { positionsByModel, isLoading, isError: !!error };

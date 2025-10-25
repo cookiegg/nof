@@ -33,13 +33,17 @@ const MODEL_ALIASES: Record<string, string> = {
   "claude sonnet": "claude-sonnet-4-5",
   "claude-sonnet": "claude-sonnet-4-5",
   grok: "grok-4",
-  "grok4": "grok-4",
+  grok4: "grok-4",
   gemini: "gemini-2-5-pro",
   gpt5: "gpt-5",
 };
 
 function normalizeId(id: string): string {
-  return id.toLowerCase().trim().replace(/[\s._]+/g, "-").replace(/-+/g, "-");
+  return id
+    .toLowerCase()
+    .trim()
+    .replace(/[\s._]+/g, "-")
+    .replace(/-+/g, "-");
 }
 
 function resolveCanonicalId(id: string): string | undefined {
@@ -64,7 +68,8 @@ function resolveCanonicalId(id: string): string | undefined {
   if (lower.includes("gemini")) return "gemini-2-5-pro";
   if (lower.includes("grok")) return "grok-4";
   if (lower.includes("deepseek")) return "deepseek-chat-v3.1";
-  if (/(claude).*?(sonnet)/.test(lower) || lower.includes("sonnet")) return "claude-sonnet-4-5";
+  if (/(claude).*?(sonnet)/.test(lower) || lower.includes("sonnet"))
+    return "claude-sonnet-4-5";
   if (lower.includes("qwen")) return "qwen3-max";
   if (/gpt[- ]?5|gpt5/.test(lower)) return "gpt-5";
 
@@ -72,13 +77,48 @@ function resolveCanonicalId(id: string): string | undefined {
 }
 
 const METAS: Record<string, ModelMeta> = {
-  "gpt-5": { id: "gpt-5", name: "GPT‑5", color: BRAND_COLORS["gpt-5"], icon: "/logos_white/GPT_logo.png" },
-  "claude-sonnet-4-5": { id: "claude-sonnet-4-5", name: "Claude Sonnet 4.5", color: BRAND_COLORS["claude-sonnet-4-5"], icon: "/logos_white/Claude_logo.png" },
-  "deepseek-chat-v3.1": { id: "deepseek-chat-v3.1", name: "DeepSeek v3.1", color: BRAND_COLORS["deepseek-chat-v3.1"], icon: "/logos_white/deepseek_logo.png" },
-  "gemini-2-5-pro": { id: "gemini-2-5-pro", name: "Gemini 2.5 Pro", color: BRAND_COLORS["gemini-2-5-pro"], icon: "/logos_white/Gemini_logo.webp" },
-  "grok-4": { id: "grok-4", name: "Grok 4", color: BRAND_COLORS["grok-4"], icon: "/logos_white/Grok_logo.webp" },
-  "qwen3-max": { id: "qwen3-max", name: "Qwen3 Max", color: BRAND_COLORS["qwen3-max"], icon: "/logos_white/qwen_logo.png" },
-  "buynhold_btc": { id: "buynhold_btc", name: "Buy&Hold BTC", color: "#a3e635", icon: "/logos_white/btc.png" },
+  "gpt-5": {
+    id: "gpt-5",
+    name: "GPT‑5",
+    color: BRAND_COLORS["gpt-5"],
+    icon: "/logos_white/GPT_logo.png",
+  },
+  "claude-sonnet-4-5": {
+    id: "claude-sonnet-4-5",
+    name: "Claude Sonnet 4.5",
+    color: BRAND_COLORS["claude-sonnet-4-5"],
+    icon: "/logos_white/Claude_logo.png",
+  },
+  "deepseek-chat-v3.1": {
+    id: "deepseek-chat-v3.1",
+    name: "DeepSeek v3.1",
+    color: BRAND_COLORS["deepseek-chat-v3.1"],
+    icon: "/logos_white/deepseek_logo.png",
+  },
+  "gemini-2-5-pro": {
+    id: "gemini-2-5-pro",
+    name: "Gemini 2.5 Pro",
+    color: BRAND_COLORS["gemini-2-5-pro"],
+    icon: "/logos_white/Gemini_logo.webp",
+  },
+  "grok-4": {
+    id: "grok-4",
+    name: "Grok 4",
+    color: BRAND_COLORS["grok-4"],
+    icon: "/logos_white/Grok_logo.webp",
+  },
+  "qwen3-max": {
+    id: "qwen3-max",
+    name: "Qwen3 Max",
+    color: BRAND_COLORS["qwen3-max"],
+    icon: "/logos_white/qwen_logo.png",
+  },
+  buynhold_btc: {
+    id: "buynhold_btc",
+    name: "Buy&Hold BTC",
+    color: "#a3e635",
+    icon: "/logos_white/btc.png",
+  },
 };
 
 function resolveBrandColor(id: string): string | undefined {

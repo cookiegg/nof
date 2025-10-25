@@ -13,10 +13,15 @@ export interface LeaderboardRow {
   [k: string]: any;
 }
 
-interface LeaderboardResponse { leaderboard: LeaderboardRow[] }
-
-export function useLeaderboard() {
-  const { data, error, isLoading } = useSWR<LeaderboardResponse>(endpoints.leaderboard?.() ?? "/api/nof1/leaderboard", fetcher, { refreshInterval: 15000 });
-  return { rows: data?.leaderboard ?? [], isLoading, isError: !!error };
+interface LeaderboardResponse {
+  leaderboard: LeaderboardRow[];
 }
 
+export function useLeaderboard() {
+  const { data, error, isLoading } = useSWR<LeaderboardResponse>(
+    endpoints.leaderboard?.() ?? "/api/nof1/leaderboard",
+    fetcher,
+    { refreshInterval: 15000 },
+  );
+  return { rows: data?.leaderboard ?? [], isLoading, isError: !!error };
+}

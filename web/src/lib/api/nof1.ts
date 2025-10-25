@@ -8,7 +8,9 @@ export const endpoints = {
   positions: (limit = 1000) => local(`/positions?limit=${limit}`),
   trades: () => local("/trades"),
   accountTotals: (lastHourlyMarker?: number) =>
-    local(`/account-totals${lastHourlyMarker != null ? `?lastHourlyMarker=${lastHourlyMarker}` : ""}`),
+    local(
+      `/account-totals${lastHourlyMarker != null ? `?lastHourlyMarker=${lastHourlyMarker}` : ""}`,
+    ),
   sinceInceptionValues: () => local("/since-inception-values"),
   leaderboard: () => local("/leaderboard"),
   analytics: () => local("/analytics"),

@@ -18,12 +18,27 @@ export default function ReadmePanel() {
     };
   }, []);
 
-  if (error) return <div className={`text-xs`} style={{ color: 'red' }}>{error}</div>;
-  if (!text) return <div className={`text-xs`} style={{ color: 'var(--muted-text)' }}>加载 README.md…</div>;
+  if (error)
+    return (
+      <div className={`text-xs`} style={{ color: "red" }}>
+        {error}
+      </div>
+    );
+  if (!text)
+    return (
+      <div className={`text-xs`} style={{ color: "var(--muted-text)" }}>
+        加载 README.md…
+      </div>
+    );
 
   return (
     <article className="max-w-none text-sm">
-      <pre className={`whitespace-pre-wrap`} style={{ color: 'var(--foreground)' }}>{text}</pre>
+      <pre
+        className={`whitespace-pre-wrap`}
+        style={{ color: "var(--foreground)" }}
+      >
+        {text}
+      </pre>
     </article>
   );
 }

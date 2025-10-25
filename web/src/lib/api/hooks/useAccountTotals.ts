@@ -24,7 +24,7 @@ export function useAccountTotals(lastHourlyMarker?: number) {
     {
       refreshInterval: 5000,
       dedupingInterval: 2000,
-    }
+    },
   );
 
   return {

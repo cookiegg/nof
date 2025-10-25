@@ -22,11 +22,14 @@ function toMs(t: number) {
   return t > 1e12 ? Math.floor(t) : Math.floor(t * 1000);
 }
 
-function ingestTotals(map: Map<number, SeriesPoint>, items: AccountTotalsItem[]) {
+function ingestTotals(
+  map: Map<number, SeriesPoint>,
+  items: AccountTotalsItem[],
+) {
   for (const it of items) {
     if (!it?.model_id || typeof it.timestamp !== "number") continue;
     const ts = toMs(it.timestamp);
-    const v = (it.dollar_equity ?? it.equity ?? it.account_value);
+    const v = it.dollar_equity ?? it.equity ?? it.account_value;
     if (typeof v !== "number") continue;
     const p = map.get(ts) || { timestamp: ts };
     p[it.model_id] = v;
@@ -40,11 +43,13 @@ interface AccountTotalsResponse {
 
 export function useAccountValueSeries() {
   // 1) Full history once
-  const { data: base, error: baseErr, isLoading: baseLoading } = useSWR<AccountTotalsResponse>(
-    endpoints.accountTotals(),
-    fetcher,
-    { refreshInterval: 0 }
-  );
+  const {
+    data: base,
+    error: baseErr,
+    isLoading: baseLoading,
+  } = useSWR<AccountTotalsResponse>(endpoints.accountTotals(), fetcher, {
+    refreshInterval: 0,
+  });
 
   // Track last hourly marker from base
   const lastMarkerRef = useRef<number | null>(null);
@@ -57,7 +62,8 @@ export function useAccountValueSeries() {
   const initialMarker = useMemo(() => {
     let m = -1;
     for (const it of baseItems) {
-      if (typeof it.since_inception_hourly_marker === "number") m = Math.max(m, it.since_inception_hourly_marker);
+      if (typeof it.since_inception_hourly_marker === "number")
+        m = Math.max(m, it.since_inception_hourly_marker);
     }
     return m >= 0 ? m : null;
   }, [baseItems]);
@@ -76,7 +82,11 @@ export function useAccountValueSeries() {
     }
   }, [initialMarker]);
 
-  const { data: inc, error: incErr } = useSWR<AccountTotalsResponse>(incKey, fetcher, { refreshInterval: 5000 });
+  const { data: inc, error: incErr } = useSWR<AccountTotalsResponse>(
+    incKey,
+    fetcher,
+    { refreshInterval: 5000 },
+  );
 
   // Accumulate into store
   const clear = useChartStore((s) => s.clear);
@@ -91,25 +101,31 @@ export function useAccountValueSeries() {
     ingestTotals(tmp, baseItems);
     for (const p of Array.from(tmp.values())) {
       const byModel: Record<string, number> = {};
-      for (const [k, v] of Object.entries(p)) if (k !== "timestamp" && typeof v === "number") byModel[k] = v as number;
+      for (const [k, v] of Object.entries(p))
+        if (k !== "timestamp" && typeof v === "number")
+          byModel[k] = v as number;
       addPoint(p.timestamp, byModel);
     }
   }, [baseItems, clear, addPoint]);
 
   // Merge incremental
   useEffect(() => {
-    const incItems: AccountTotalsItem[] = inc && (inc as any).accountTotals ? (inc as any).accountTotals : [];
+    const incItems: AccountTotalsItem[] =
+      inc && (inc as any).accountTotals ? (inc as any).accountTotals : [];
     if (!incItems.length) return;
     const tmp = new Map<number, SeriesPoint>();
     ingestTotals(tmp, incItems);
     let maxMarker = lastMarkerRef.current ?? -1;
     for (const it of incItems) {
-      if (typeof it.since_inception_hourly_marker === "number") maxMarker = Math.max(maxMarker, it.since_inception_hourly_marker);
+      if (typeof it.since_inception_hourly_marker === "number")
+        maxMarker = Math.max(maxMarker, it.since_inception_hourly_marker);
     }
     if (maxMarker >= 0) lastMarkerRef.current = maxMarker;
     for (const p of Array.from(tmp.values())) {
       const byModel: Record<string, number> = {};
-      for (const [k, v] of Object.entries(p)) if (k !== "timestamp" && typeof v === "number") byModel[k] = v as number;
+      for (const [k, v] of Object.entries(p))
+        if (k !== "timestamp" && typeof v === "number")
+          byModel[k] = v as number;
       addPoint(p.timestamp, byModel);
     }
   }, [inc, addPoint]);
@@ -117,7 +133,8 @@ export function useAccountValueSeries() {
   // Read back series
   const merged = getSessionSeries();
   const idsSet = new Set<string>();
-  for (const p of merged) for (const k of Object.keys(p)) if (k !== "timestamp") idsSet.add(k);
+  for (const p of merged)
+    for (const k of Object.keys(p)) if (k !== "timestamp") idsSet.add(k);
 
   // If still only 1 point, synthesize a baseline one minute earlier
   let out = merged;
@@ -125,7 +142,9 @@ export function useAccountValueSeries() {
     const only = out[0];
     const prevTs = only.timestamp - 60_000;
     const synth: SeriesPoint = { timestamp: prevTs };
-    for (const [k, v] of Object.entries(only)) if (k !== "timestamp" && typeof v === "number") (synth as any)[k] = v as number;
+    for (const [k, v] of Object.entries(only))
+      if (k !== "timestamp" && typeof v === "number")
+        (synth as any)[k] = v as number;
     out = [synth, only];
   }
 

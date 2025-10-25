@@ -23,9 +23,13 @@ export interface TradeRow {
 type TradesResponse = { trades: TradeRow[] };
 
 export function useTrades() {
-  const { data, error, isLoading } = useSWR<TradesResponse>(endpoints.trades(), fetcher, {
-    refreshInterval: 10000,
-  });
+  const { data, error, isLoading } = useSWR<TradesResponse>(
+    endpoints.trades(),
+    fetcher,
+    {
+      refreshInterval: 10000,
+    },
+  );
 
   return {
     trades: data?.trades ?? [],
@@ -33,4 +37,3 @@ export function useTrades() {
     isError: !!error,
   };
 }
-

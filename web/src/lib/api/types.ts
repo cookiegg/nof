@@ -3,4 +3,3 @@ export interface ExitPlan {
   stop_loss?: number;
   invalidation_condition?: string;
 }
-

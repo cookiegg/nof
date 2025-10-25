@@ -11,5 +11,7 @@ export function SkeletonRow({ cols = 6 }: { cols?: number }) {
 }
 
 export function SkeletonBlock({ className = "h-64" }: { className?: string }) {
-  return <div className={`animate-pulse rounded-md skeleton-bg ${className}`} />;
+  return (
+    <div className={`animate-pulse rounded-md skeleton-bg ${className}`} />
+  );
 }

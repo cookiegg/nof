@@ -13,9 +13,12 @@ export interface AnalyticsResponse {
 }
 
 export function useAnalytics() {
-  const { data, error, isLoading } = useSWR<AnalyticsResponse>(endpoints.analytics(), fetcher, {
-    refreshInterval: 15000,
-  });
+  const { data, error, isLoading } = useSWR<AnalyticsResponse>(
+    endpoints.analytics(),
+    fetcher,
+    {
+      refreshInterval: 15000,
+    },
+  );
   return { data, isLoading, isError: !!error };
 }
-
