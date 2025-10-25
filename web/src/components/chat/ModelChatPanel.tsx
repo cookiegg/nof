@@ -4,7 +4,9 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCachedTranslation, setCachedTranslation, simpleHash } from "@/lib/translate/cache";
 import { getModelName, getModelColor, getModelMeta } from "@/lib/model/meta";
-import { useTheme } from "@/store/useTheme";
+// theme handled via CSS variables
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 export default function ModelChatPanel() {
   const { items, isLoading, isError } = useConversations();
@@ -119,7 +121,7 @@ function fmtTime(t?: number | string) {
   const ms = n > 1e12 ? n : n * 1000;
   const d = new Date(ms);
   const pad = (x: number) => String(x).padStart(2, "0");
-  return `${d.getMonth() + 1}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 }
 
 function FilterBar({ model, onChange, models }: { model: string; onChange: (v: string) => void; models: string[] }) {
@@ -142,45 +144,57 @@ function ChatCard({ modelId, content, timestamp, user_prompt, cot_trace, llm_res
   const color = getModelColor(modelId);
   const [open, setOpen] = useState(false);
   const [openHist, setOpenHist] = useState<Record<string, boolean>>({});
-  const isDark = useTheme((s) => s.resolved) === 'dark';
+
   const tkey = `${modelId}:${simpleHash(String(content || '').slice(0, 4096))}`;
   const translated = typeof window !== 'undefined' ? getCachedTranslation(tkey) : undefined;
   const [showZh, setShowZh] = useState<boolean>(true);
   return (
-    <div className={`rounded-md border p-3`} style={{ borderColor: `${color}55`, background: `linear-gradient(0deg, ${color}14, var(--panel-bg))` }}>
-      <div className="mb-2 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {getModelMeta(modelId).icon ? (
-            <img src={getModelMeta(modelId).icon!} alt="" className="h-5 w-5 rounded-sm object-contain" />
-          ) : null}
-          <div className={`text-sm font-semibold`} style={{ color }}>{getModelName(modelId)}</div>
-        </div>
-        <div className={`text-[11px]`} style={{ color: 'var(--muted-text)' }}>{fmtTime(timestamp)}</div>
+    <div className="relative pl-8">
+      {/* left icon column */}
+      <div className="absolute left-0 top-1">
+        {getModelMeta(modelId).icon ? (
+          <img src={getModelMeta(modelId).icon!} alt="" className="h-5 w-5 rounded-sm object-contain" />
+        ) : (
+          <span style={{ color }} className="text-lg leading-none">✦</span>
+        )}
       </div>
-      <div className="relative">
-        <div className={`whitespace-pre-wrap text-[13px] leading-6`} style={{ color: 'var(--foreground)', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}>
+
+      {/* header line: model name + timestamp */}
+      <div className="mb-2 flex items-center justify-between">
+        <div className={`text-sm font-extrabold uppercase tracking-wide`} style={{ color }}>{getModelName(modelId)}</div>
+        <div className={`text-[11px] tabular-nums`} style={{ color: 'var(--muted-text)' }}>{fmtTime(timestamp)}</div>
+      </div>
+
+      {/* bubble */}
+      <div className="relative rounded-md border px-3 py-2"
+           style={{ borderColor: `${color}66`, background: `linear-gradient(0deg, ${color}10, var(--panel-bg))` }}>
+        <div className={`whitespace-pre-wrap text-[13px] leading-6`}
+             style={{ color: 'var(--foreground)', fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace' }}>
           {showZh && translated ? translated : (content || "(no summary)")}
         </div>
-        <button className={`absolute bottom-0 right-0 translate-y-5 text-[11px] italic`} style={{ color: 'var(--muted-text)' }} onClick={() => setOpen(!open)}>
+        <button className={`absolute bottom-0 right-0 translate-y-5 text-[11px] italic`}
+                style={{ color: 'var(--muted-text)' }} onClick={() => setOpen(!open)}>
           {open ? "click to collapse" : "click to expand"}
         </button>
         {translated && (
-          <button
-            className={`absolute bottom-0 left-0 translate-y-5 text-[11px]`}
-            style={{ color: 'var(--muted-text)' }}
-            onClick={() => setShowZh((v) => !v)}
-          >
+          <button className={`absolute bottom-0 left-0 translate-y-5 text-[11px]`}
+                  style={{ color: 'var(--muted-text)' }} onClick={() => setShowZh((v) => !v)}>
             {showZh ? "显示原文" : "显示中文"}
           </button>
         )}
       </div>
+
       {open && (
         <div className="mt-3 space-y-3 text-[12px]">
           <Section title="USER_PROMPT">
-            <pre className={`whitespace-pre-wrap`} style={{ color: 'var(--foreground)' }}>{user_prompt || "—"}</pre>
+            <MarkdownBlock text={user_prompt} />
           </Section>
           <Section title="CHAIN_OF_THOUGHT">
-            <pre className={`whitespace-pre-wrap`} style={{ color: 'var(--foreground)' }}>{formatCot(cot_trace)}</pre>
+            {typeof cot_trace === 'string' ? (
+              <MarkdownBlock text={cot_trace} />
+            ) : (
+              <pre className={`whitespace-pre-wrap`} style={{ color: 'var(--foreground)' }}>{formatCot(cot_trace)}</pre>
+            )}
           </Section>
           <Section title="TRADING_DECISIONS">
             {renderDecisions(llm_response)}
@@ -205,8 +219,8 @@ function ChatCard({ modelId, content, timestamp, user_prompt, cot_trace, llm_res
                   </div>
                   {isOpen && (
                     <div className="space-y-2">
-                      <Section title="USER_PROMPT"><pre className="whitespace-pre-wrap" style={{ color: 'var(--foreground)' }}>{h.user_prompt || "—"}</pre></Section>
-                      <Section title="CHAIN_OF_THOUGHT"><pre className="whitespace-pre-wrap" style={{ color: 'var(--foreground)' }}>{formatCot(h.cot_trace)}</pre></Section>
+                      <Section title="USER_PROMPT"><MarkdownBlock text={h.user_prompt} /></Section>
+                      <Section title="CHAIN_OF_THOUGHT">{typeof h.cot_trace === 'string' ? <MarkdownBlock text={h.cot_trace} /> : <pre className="whitespace-pre-wrap" style={{ color: 'var(--foreground)' }}>{formatCot(h.cot_trace)}</pre>}</Section>
                       <Section title="TRADING_DECISIONS">{renderDecisions(h.llm_response)}</Section>
                     </div>
                   )}
@@ -223,8 +237,8 @@ function ChatCard({ modelId, content, timestamp, user_prompt, cot_trace, llm_res
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="mb-1 text-[11px] font-semibold tracking-wide" style={{ color: 'var(--muted-text)' }}>{title}</div>
-      <div>{children}</div>
+      <div className="mb-1 text-[11px] font-semibold tracking-wide uppercase" style={{ color: 'var(--muted-text)' }}>▼ {title}</div>
+      <div className="rounded border p-2" style={{ borderColor: 'var(--panel-border)' }}>{children}</div>
     </div>
   );
 }
@@ -250,40 +264,28 @@ function renderDecisions(resp: any) {
         risk: (v as any).risk_usd,
         invalid: (v as any).invalidation_condition,
         confidence: (v as any).confidence,
+        quantity: (v as any).quantity,
       });
     }
   }
   if (!rows.length) return <div style={{ color: 'var(--muted-text)' }}>—</div>;
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full text-left text-[11px]" style={{ color: 'var(--foreground)' }}>
-        <thead style={{ color: 'var(--muted-text)' }}>
-          <tr className="border-b" style={{ borderColor: 'var(--panel-border)' }}>
-            <th className="py-1.5 pr-3">币种</th>
-            <th className="py-1.5 pr-3">动作</th>
-            <th className="py-1.5 pr-3">杠杆</th>
-            <th className="py-1.5 pr-3">目标价</th>
-            <th className="py-1.5 pr-3">止损价</th>
-            <th className="py-1.5 pr-3">风险USD</th>
-            <th className="py-1.5 pr-3">置信度</th>
-            <th className="py-1.5 pr-3">失效条件</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <tr key={i} className="border-b" style={{ borderColor: 'color-mix(in oklab, var(--panel-border) 50%, transparent)' }}>
-              <td className="py-1.5 pr-3">{r.coin}</td>
-              <td className="py-1.5 pr-3">{String(r.signal || "—").toUpperCase()}</td>
-              <td className="py-1.5 pr-3">{r.leverage != null ? `${r.leverage}x` : "—"}</td>
-              <td className="py-1.5 pr-3">{r.target ?? "—"}</td>
-              <td className="py-1.5 pr-3">{r.stop ?? "—"}</td>
-              <td className="py-1.5 pr-3">{r.risk ?? "—"}</td>
-              <td className="py-1.5 pr-3">{r.confidence != null ? (r.confidence * 100).toFixed(0) + '%' : '—'}</td>
-              <td className="py-1.5 pr-3">{r.invalid ?? "—"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="space-y-2">
+      {rows.map((r, i) => (
+        <div key={i} className="flex items-center justify-between rounded border px-3 py-2"
+             style={{ borderColor: 'var(--panel-border)', color: 'var(--foreground)' }}>
+          <div className="min-w-0">
+            <div className="text-sm font-semibold uppercase tracking-wide">{String(r.coin || '').toUpperCase()}</div>
+            <div className="text-[11px] tabular-nums" style={{ color: 'var(--muted-text)' }}>QUANTITY: {r.quantity ?? '—'}</div>
+          </div>
+          <div>
+            <span className="rounded border px-2 py-0.5 text-[11px] font-semibold"
+                  style={{ borderColor: 'color-mix(in oklab, var(--panel-border) 70%, transparent)', color: '#4f46e5', background: 'color-mix(in oklab, #4f46e5 10%, transparent)' }}>
+              {String(r.signal || '—').toUpperCase()} {r.confidence != null ? `${Math.round(r.confidence * 100)}%` : ''}
+            </span>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }
