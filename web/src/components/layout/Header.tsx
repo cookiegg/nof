@@ -42,14 +42,9 @@ export function Header() {
           >
             排行榜
           </Link>
-          <span
-            title="待开发"
-            aria-disabled
-            className={`cursor-not-allowed select-none`}
-            style={{ color: "var(--muted-text)" }}
-          >
+          <Link href="/models" className={hoverLink} style={{ color: "inherit" }}>
             模型
-          </span>
+          </Link>
           {/* Theme toggle */}
           <div className="ml-2 hidden sm:flex items-center gap-1 text-[11px]">
             <div

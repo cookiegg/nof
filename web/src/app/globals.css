@@ -127,7 +127,9 @@ body {
 html,
 body {
   height: 100%;
-  overflow: hidden;
+  /* 允许页面自然纵向滚动，避免详情页/排行榜被裁切；横向默认隐藏 */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 /* Tabular numbers for data-heavy UI */

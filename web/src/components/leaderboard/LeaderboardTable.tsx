@@ -171,7 +171,7 @@ export default function LeaderboardTable({
                         onMouseOut={(e) => {
                           (e.currentTarget as HTMLElement).style.color = "";
                         }}
-                        href={`/?tab=chat&model=${encodeURIComponent(r.id)}`}
+                        href={`/models/${encodeURIComponent(r.id)}`}
                       >
                         <ModelLogoChip modelId={r.id} size="sm" />
                         {getModelName(r.id)}

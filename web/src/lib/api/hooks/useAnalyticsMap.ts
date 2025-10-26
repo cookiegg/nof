@@ -20,6 +20,12 @@ export interface AnalyticsRow {
   signals_breakdown_table?: {
     avg_confidence?: number; // 0-1
     median_confidence?: number; // 0-1
+    avg_leverage?: number; // average effective leverage, if provided by analytics
+    median_leverage?: number;
+    avg_leverage_long?: number;
+  };
+  overall_trades_overview_table?: {
+    avg_convo_leverage?: number; // 用户指定：用于“平均杠杆”的权威口径
   };
 }
 
