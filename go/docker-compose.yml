@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  nof0-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: nof0-api
+    ports:
+      - "8888:8888"
+    volumes:
+      - ../mcp/data:/data:ro
+    environment:
+      - DataPath=/data
+    restart: unless-stopped
+    networks:
+      - nof0-network
+
+networks:
+  nof0-network:
+    driver: bridge

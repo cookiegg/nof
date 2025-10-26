@@ -1,0 +1,178 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+coverage.txt
+coverage.html
+*.coverprofile
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Build output
+bin/
+dist/
+build/
+_build/
+*.app
+
+# Compiled Object files
+*.o
+*.a
+*.lib
+
+# Profiling data
+*.prof
+*.pprof
+cpu.prof
+mem.prof
+block.prof
+
+# IDE - JetBrains
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# IDE - VS Code
+.vscode/
+*.code-workspace
+
+# IDE - Vim
+*.swp
+*.swo
+*~
+.*.swp
+.*.swo
+
+# IDE - Emacs
+*~
+\#*\#
+.\#*
+
+# IDE - Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# OS - macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# OS - Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# OS - Linux
+*~
+
+# Logs
+*.log
+logs/
+log/
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+.env.*.local
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# Debug files
+debug
+debug.test
+__debug_bin
+
+# Go specific
+go.sum.backup
+go.mod.backup
+
+# goreleaser
+dist/
+*.snap
+
+# Air (live reload)
+tmp/
+.air.toml
+
+# Delve debugger
+__debug_bin*
+
+# Performance monitoring
+*.pprof
+
+# Certificates and keys (security)
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+
+# Configuration with secrets
+config.local.yaml
+config.production.yaml
+secrets.yaml
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Redis dumps
+dump.rdb
+
+# Test cache
+.cache/
+testdata/output/
+
+# Documentation build
+docs/_build/
+site/
+
+# Generated files
+*.gen.go
+*_gen.go
+mock_*.go
+*.mock.go
+
+# Goctl generated (if regenerating)
+# Uncomment if you want to regenerate code from .api files
+# internal/handler/
+# internal/logic/
+# internal/types/
+
+# Project specific
+# Add any project-specific files or directories here
+
+# Archived documentation
+.archive/
+
+# Server logs
+server.log
+
+# Coverage reports (keep coverage.out for CI)
+coverage.html
+go/nof0-api

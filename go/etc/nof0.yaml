@@ -1,0 +1,13 @@
+Name: nof0
+Host: 0.0.0.0
+Port: 8888
+DataPath: ../mcp/data
+
+# CORS settings
+Cors:
+  AllowOrigins: ['*']
+  AllowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+  AllowHeaders: ['Content-Type', 'Authorization']
+  ExposeHeaders: ['Content-Length']
+  AllowCredentials: false
+  MaxAge: 3600

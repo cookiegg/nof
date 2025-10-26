@@ -1,0 +1,41 @@
+# Binaries
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Test files
+*.test
+
+# Output
+*.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docs (not needed in container)
+README.md
+API.md
+QUICKSTART.md
+PROJECT_SUMMARY.md
+
+# Scripts (not needed in container)
+start.sh
+test-endpoints.sh
+Makefile
+
+# Logs
+*.log
+logs/
