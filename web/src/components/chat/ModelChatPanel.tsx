@@ -422,7 +422,7 @@ function MarkdownBlock({ text }: { text?: string }) {
           a: (props) => (
             <a {...props} style={{ color: "var(--brand-accent)" }} />
           ),
-          code: ({ inline, children, ...props }) =>
+          code: ({ inline, children, ...props }: any) =>
             inline ? (
               <code
                 className="px-1"
