@@ -267,10 +267,11 @@ export default function AccountValueChart() {
 
   const renderEndDot = (id: string) => (p: any) => {
     const { cx, cy, index } = p || {};
-    if (cx == null || cy == null) return <></>;
+    if (cx == null || cy == null) return <g key={`empty-${id}-${index}`} />;
     if (typeof lastIdxById[id] !== "number" || index !== lastIdxById[id])
-      return <></>;
-    if (active.size && !active.has(id)) return <></>;
+      return <g key={`empty-${id}-${index}`} />;
+    if (active.size && !active.has(id))
+      return <g key={`empty-${id}-${index}`} />;
     const icon = getModelIcon(id);
     const color = getModelColor(id);
     const bg = color || "var(--chart-logo-bg)";
