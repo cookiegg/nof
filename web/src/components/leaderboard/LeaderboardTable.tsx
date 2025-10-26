@@ -64,11 +64,8 @@ export default function LeaderboardTable({
         borderColor: "var(--panel-border)",
       }}
     >
-      <div className="mb-2 flex items-center justify-between">
-        <h2
-          className={`ui-sans text-sm font-semibold`}
-          style={{ color: "var(--foreground)" }}
-        >
+      <div className="mb-2">
+        <h2 className={`ui-sans text-sm font-semibold`} style={{ color: "var(--foreground)" }}>
           排行榜
         </h2>
       </div>

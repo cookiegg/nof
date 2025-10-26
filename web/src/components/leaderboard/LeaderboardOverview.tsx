@@ -1,6 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import LeaderboardTable from "@/components/leaderboard/LeaderboardTable";
+import { useState } from "react";
 import { useLeaderboard } from "@/lib/api/hooks/useLeaderboard";
 import { useAccountTotals } from "@/lib/api/hooks/useAccountTotals";
 import { usePositions } from "@/lib/api/hooks/usePositions";
@@ -10,11 +11,8 @@ import CoinIcon from "@/components/shared/CoinIcon";
 import { fmtUSD } from "@/lib/utils/formatters";
 import { useLatestEquityMap } from "@/lib/api/hooks/useModelSnapshots";
 
-export default function LeaderboardOverview({
-  mode = "overall",
-}: {
-  mode?: "overall" | "advanced";
-}) {
+export default function LeaderboardOverview({ mode: _mode }: { mode?: "overall" | "advanced" }) {
+  const [tab, setTab] = useState<"overall" | "advanced">(_mode || "overall");
   const { rows } = useLeaderboard();
   const { map: equityMap } = useLatestEquityMap();
   const rowsWithEq = rows.map((r) => ({
@@ -61,8 +59,17 @@ export default function LeaderboardOverview({
 
   return (
     <div className="space-y-3">
+      {/* 控制区：左侧边缘对齐，位于表格上方 */}
+      <div className="flex items-center gap-2">
+        <TabButton active={tab === "overall"} onClick={() => setTab("overall")}>
+          总体统计
+        </TabButton>
+        <TabButton active={tab === "advanced"} onClick={() => setTab("advanced")}>
+          高级分析
+        </TabButton>
+      </div>
       {/* 排行榜表格 */}
-      <LeaderboardTable mode={mode} />
+      <LeaderboardTable mode={tab} />
 
       {/* 摘要区块 */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -74,6 +81,22 @@ export default function LeaderboardOverview({
       {/* 条形图：各模型账户价值 */}
       {!!rows?.length && <Bars rows={rowsWithEq} />}
     </div>
+  );
+}
+
+function TabButton({ active, onClick, children }: { active?: boolean; onClick?: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className="ui-sans rounded-md border px-3 py-1 text-xs"
+      style={{
+        background: active ? "var(--panel-bg)" : "transparent",
+        borderColor: "var(--panel-border)",
+        color: active ? "var(--foreground)" : "var(--muted-text)",
+      }}
+    >
+      {children}
+    </button>
   );
 }
 
