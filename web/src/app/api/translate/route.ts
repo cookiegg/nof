@@ -266,7 +266,7 @@ export async function POST(req: NextRequest) {
     }
 
     if (!translation) {
-      let tryUrl = effectiveUrl;
+      const tryUrl = effectiveUrl;
       let upstream = await fetch(tryUrl, {
         method: "POST",
         headers,

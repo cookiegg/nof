@@ -33,7 +33,7 @@ export function CoinIcon({
       <span className="inline-block text-[11px]">{String(symbol || "")}</span>
     ) as any;
   const cls = size <= 16 ? "logo-chip logo-chip-sm" : "logo-chip logo-chip-md";
-  // eslint-disable-next-line @next/next/no-img-element
+   
   return (
     <span
       className={`${cls} overflow-hidden`}

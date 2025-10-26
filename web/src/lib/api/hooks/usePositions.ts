@@ -34,7 +34,7 @@ export function usePositions() {
   const { data, error, isLoading } = useSWR<{
     accountTotals: AccountTotalsRow[];
   }>(endpoints.accountTotals(), fetcher, {
-    refreshInterval: 5000,
+    refreshInterval: 10000, // Reduced from 5s to 10s to minimize Fast Origin Transfer costs
     dedupingInterval: 2000,
   });
 

@@ -43,7 +43,7 @@ export function ModelLogoChip({
         style={{ ...style, borderRadius: Math.max(6, Math.floor(px / 2)) }}
       />
     );
-  // eslint-disable-next-line @next/next/no-img-element
+   
   return (
     <span style={style}>
       <img

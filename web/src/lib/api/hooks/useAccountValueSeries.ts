@@ -85,7 +85,7 @@ export function useAccountValueSeries() {
   const { data: inc, error: incErr } = useSWR<AccountTotalsResponse>(
     incKey,
     fetcher,
-    { refreshInterval: 5000 },
+    { refreshInterval: 10000 }, // Reduced from 5s to 10s to minimize Fast Origin Transfer costs
   );
 
   // Accumulate into store

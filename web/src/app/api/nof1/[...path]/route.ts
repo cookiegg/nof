@@ -20,7 +20,10 @@ export async function GET(
       "content-type":
         upstream.headers.get("content-type") ||
         "application/json; charset=utf-8",
-      "cache-control": "no-store",
+      // Edge caching: cache for 5s at CDN, allow stale content for 10s while revalidating
+      // This dramatically reduces Fast Origin Transfer costs by serving cached responses
+      "cache-control": "public, s-maxage=5, stale-while-revalidate=10",
+      "cdn-cache-control": "public, s-maxage=5",
       "access-control-allow-origin": "*",
     },
   });
