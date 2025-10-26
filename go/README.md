@@ -1,292 +1,435 @@
-# NOF0 Alpha Arena API - Go Implementation
+# NOF0 - AI Trading Arena Platform
 
-高性能Go语言实现的NOF1 Alpha Arena后端API,提供AI交易模型的实时数据、分析和排行榜服务。
+> **终极目标**: 完整复刻 [NOF1.ai](https://nof1.ai) Alpha Arena，打造开源的AI交易竞技平台
+> **当前阶段**: 后端基础设施 | **状态**: 生产就绪
 
-## 项目概述
+<div align="center">
 
-NOF1 Alpha Arena是一个AI交易竞技平台,6个不同的大语言模型(LLMs)在真实加密货币市场中使用真实资金($10,000/模型)进行交易竞赛。
+**[NOF1 官网](https://nof1.ai) • [项目路线图](#roadmap) • [快速开始](#quick-start) • [技术文档](#tech-stack)**
 
-本项目是该平台的Go语言后端实现,提供REST API服务。默认从静态JSON数据文件加载数据; 现已支持可选的 Postgres(持久化) + Redis(缓存) 数据源，并可在无DB配置时自动回退到文件数据。
+</div>
 
-## 特性
+---
 
-- ✅ **完整API实现** - 7个端点,100%覆盖mcp/data接口
-- ✅ **类型安全** - 完整的Go类型定义,与JSON数据完全匹配
-- ✅ **高性能** - 响应时间 < 200ms (大部分 < 10ms)
-- ✅ **全面测试** - 单元测试 + 集成测试,数据层88%覆盖率
-- ✅ **CORS支持** - 跨域资源共享已配置
-- ✅ **结构化日志** - 使用go-zero日志框架
-- ✅ **易于部署** - 单二进制文件,配置简单
+## 项目简介
 
-## 技术栈
+**给非技术用户**: NOF0 是一个让6个AI模型在真实加密货币市场中进行交易竞赛的平台。每个AI从$10,000起步，实时展示谁赚的多、谁亏的惨。本项目复刻 nof1.ai 的完整功能，让任何人都能部署自己的AI交易竞技场。
 
-- **框架**: [go-zero](https://go-zero.dev/) - 微服务框架
-- **路由**: REST API
-- **测试**: Go testing + [testify](https://github.com/stretchr/testify)
-- **日志**: go-zero logx
-- **配置**: YAML
+**给技术用户**: 高性能Go后端 + React前端 + AI Agent交易引擎的完整实现。当前已完成后端API层（7个端点，<10ms响应），支持文件/数据库双模式数据源。前端复刻和AI Agent集成进行中。
+
+---
+
+## 项目愿景 {#roadmap}
+
+### 终极目标
+完整开源复刻 [NOF1.ai](https://nof1.ai) Alpha Arena，包含三大核心模块：
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  NOF0 Full-Stack AI Trading Arena                          │
+├─────────────────────────────────────────────────────────────┤
+│  [Frontend]       │  React + Recharts + 实时仪表盘         │
+│  [Backend]        │  Go-Zero + REST API + WebSocket        │
+│  [AI Agents]      │  6x LLM交易引擎 + 策略回测              │
+│  [Data Layer]     │  Postgres + Redis + 实时行情流         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 当前进度
+
+| 模块 | 功能 | 状态 | 完成度 |
+|------|------|------|--------|
+| **前端** | 页面布局 & 路由 | 完成 | 90% |
+| | 实时价格滚动条 | 完成 | 100% |
+| | 模型详情页 & 图表 | 完成 | 95% |
+| | WebSocket 实时更新 | 进行中 | 30% |
+| **后端** | REST API (7端点) | 完成 | 100% |
+| | 文件数据源 | 完成 | 100% |
+| | Postgres + Redis | 完成 | 100% |
+| | WebSocket 推送 | 规划中 | 0% |
+| **AI Agent** | 交易策略引擎 | 规划中 | 0% |
+| | LLM 集成 (6模型) | 规划中 | 0% |
+| | 回测框架 | 规划中 | 0% |
+| **数据层** | 数据库 Schema | 完成 | 100% |
+| | 实时行情接入 | 规划中 | 0% |
+| | 数据导入工具 | 完成 | 100% |
+
+---
+
+## 当前版本: 后端 API v1.1 {#quick-start}
+
+本仓库 `go/` 目录是后端实现，提供完整的 REST API 服务。
+
+### 核心特性
+
+| 特性 | 说明 | 指标 |
+|------|------|------|
+| **高性能** | 优化的数据加载 | 响应时间 <10ms (90%) |
+| **类型安全** | 完整Go类型系统 | 27字段Trade, 11+字段Account |
+| **全面测试** | 单元+集成测试 | 数据层88%覆盖率 |
+| **双模式数据源** | 文件/数据库自动切换 | Postgres+Redis 可选 |
+| **生产就绪** | CORS + 日志 + 监控 | 单二进制部署 |
+
+### 技术栈 {#tech-stack}
+
+<table>
+<tr>
+<td width="50%">
+
+**后端框架**
+- [Go-Zero](https://go-zero.dev/) - 微服务框架
+- [pgx/v5](https://github.com/jackc/pgx) - Postgres驱动
+- [go-redis](https://github.com/redis/go-redis) - Redis客户端
+
+</td>
+<td width="50%">
+
+**前端技术** *(web/目录)*
+- React 18 + TypeScript
+- Recharts 图表库
+- TanStack Query 数据管理
+
+</td>
+</tr>
+</table>
+
+---
 
 ## 快速开始
 
-### 前置要求
-
-- Go 1.21+
-- 访问 `mcp/data` 目录(包含JSON数据文件)
-
-### 安装和构建
+### 方式一: 使用文件数据源 (推荐入门)
 
 ```bash
-# 克隆仓库
+# 1. 克隆仓库并进入后端目录
 cd go
 
-# 安装依赖
+# 2. 安装依赖
 go mod download
 
-# 构建
+# 3. 构建并运行
 go build -o nof0-api ./nof0.go
-```
-
-### 运行服务器
-
-```bash
-# 使用默认配置
 ./nof0-api -f etc/nof0.yaml
 ```
 
-服务器将在 `http://0.0.0.0:8888` 启动
+服务启动在 `http://localhost:8888`
 
-### 测试API
-
+**测试 API**:
 ```bash
-# 获取加密货币价格
+# 实时价格
 curl http://localhost:8888/api/crypto-prices
 
-# 获取排行榜
+# AI排行榜
 curl http://localhost:8888/api/leaderboard
 
-# 获取交易历史
+# 交易历史
 curl http://localhost:8888/api/trades
-
-# 获取特定模型分析
-curl http://localhost:8888/api/analytics/qwen3-max
 ```
 
-## API端点
+### 方式二: 使用 Docker Compose (含数据库)
 
-| 端点 | 方法 | 说明 | 响应时间 |
-|------|------|------|---------|
-| /api/crypto-prices | GET | 实时加密货币价格 | ~2ms |
-| /api/leaderboard | GET | AI模型排行榜 | ~1ms |
-| /api/trades | GET | 交易历史记录 | ~10ms |
-| /api/since-inception-values | GET | 历史净值数据 | ~1ms |
-| /api/account-totals | GET | 账户状态(含持仓) | ~152ms |
-| /api/analytics | GET | 综合分析数据 | ~2ms |
-| /api/analytics/:modelId | GET | 模型特定分析 | ~2ms |
+```bash
+# 启动 Postgres + Redis + API
+docker-compose up -d
 
-完整API文档: [mcp/data/api-endpoints.json](../mcp/data/api-endpoints.json)
+# 运行数据迁移
+make migrate-up
+
+# 导入历史数据 (可选)
+go run cmd/importer/main.go -dsn "postgres://nof0:nof0@localhost:5432/nof0?sslmode=disable"
+```
+
+### 前置要求
+
+- **最小配置**: Go 1.22+
+- **完整配置**: Go 1.22+ + Docker + Postgres 16 + Redis 7
+
+---
+
+## API 端点
+
+### 核心接口
+
+<table>
+<tr><th>端点</th><th>说明</th><th>响应时间</th><th>示例</th></tr>
+<tr>
+  <td><code>/api/crypto-prices</code></td>
+  <td>实时加密货币价格</td>
+  <td>~2ms</td>
+  <td>
+
+```json
+{
+  "prices": {
+    "BTCUSDT": {"price": 68234.5, "timestamp": 1735228800000}
+  }
+}
+```
+  </td>
+</tr>
+<tr>
+  <td><code>/api/leaderboard</code></td>
+  <td>AI模型排行榜</td>
+  <td>~1ms</td>
+  <td>
+
+```json
+{
+  "leaderboard": [
+    {"model_id": "qwen3-max", "equity": 12456.78, "sharpe": 1.23}
+  ]
+}
+```
+  </td>
+</tr>
+<tr>
+  <td><code>/api/trades</code></td>
+  <td>完整交易历史</td>
+  <td>~10ms</td>
+  <td>27字段Trade数组</td>
+</tr>
+<tr>
+  <td><code>/api/account-totals</code></td>
+  <td>账户+持仓详情</td>
+  <td>~150ms</td>
+  <td>含positions map</td>
+</tr>
+<tr>
+  <td><code>/api/analytics/:id</code></td>
+  <td>模型分析数据</td>
+  <td>~2ms</td>
+  <td>模型级别统计</td>
+</tr>
+</table>
+
+**完整文档**: [API端点规范](../mcp/data/api-endpoints.json)
+
+---
 
 ## 测试
 
-### 运行所有单元测试
-
 ```bash
+# 运行所有单元测试
 ./scripts/run-tests.sh
-```
 
-输出示例:
-```
-✓ All unit tests passed!
-Data Layer Coverage: 88.0%
-```
-
-### 运行集成测试
-
-```bash
+# 运行集成测试
 ./scripts/run-integration-tests.sh
+
+# 查看覆盖率
+go test -cover ./internal/data/
 ```
 
-### 查看详细测试文档
+**测试指标**:
+- 数据层覆盖率: 88%
+- 集成测试: 100% API端点
+- 详细文档: [TEST_README.md](TEST_README.md)
 
-- [TEST_README.md](TEST_README.md) - 完整测试指南
-- [TESTING_SUMMARY.md](TESTING_SUMMARY.md) - 测试总结报告
+---
 
 ## 项目结构
 
 ```
-go/
-├── nof0.go                    # 主入口
-├── etc/nof0.yaml             # 配置文件
-├── internal/
-│   ├── config/               # 配置定义
-│   ├── handler/              # HTTP处理器
-│   ├── logic/                # 业务逻辑
-│   ├── svc/                  # 服务上下文(统一 DataSource)
-│   ├── types/                # 类型定义(27字段Trade等)
-│   ├── data/                 # 文件数据加载器(JSON)
-│   └── repo/                 # Postgres+Redis 数据源(含缓存)
-├── test/                     # 集成测试
-├── scripts/                  # 自动化脚本
-│   ├── run-tests.sh          # 单元测试运行器
-│   └── run-integration-tests.sh  # 集成测试运行器
-├── TEST_README.md            # 测试文档
-├── TESTING_SUMMARY.md        # 测试总结
-└── README.md                 # 本文件
+nof0/
+├── go/                       # [后端] (本README所在)
+│   ├── nof0.go               # 主入口
+│   ├── internal/
+│   │   ├── handler/          # HTTP路由处理
+│   │   ├── logic/            # 业务逻辑层
+│   │   ├── data/             # 文件数据源 (JSON)
+│   │   ├── repo/             # DB数据源 (Postgres+Redis)
+│   │   ├── model/            # 数据库Model层
+│   │   └── types/            # Go类型定义
+│   ├── cmd/importer/         # 数据导入工具
+│   ├── migrations/           # 数据库迁移脚本
+│   └── test/                 # 集成测试套件
+│
+├── web/                      # [前端] (React)
+│   ├── src/
+│   │   ├── components/       # UI组件
+│   │   ├── pages/            # 页面路由
+│   │   └── lib/              # 工具函数
+│   └── public/
+│
+├── mcp/                      # [数据源]
+│   └── data/                 # JSON静态数据
+│
+└── agents/                   # [AI交易引擎] (规划中)
+    ├── strategies/           # 交易策略
+    └── llm/                  # LLM集成
 ```
-
-## 性能指标
-
-基于MacBook Pro M1的基准测试:
-
-```
-BenchmarkLoadCryptoPrices-10      16948    72055 ns/op     2KB
-BenchmarkLoadLeaderboard-10       14379    79728 ns/op     3.6KB
-BenchmarkLoadTrades-10              489  2537390 ns/op   532KB
-BenchmarkLoadAccountTotals-10        22 49924642 ns/op  10.3MB
-BenchmarkLoadAnalytics-10          3050   402275 ns/op   108KB
-```
-
-## 配置
-
-配置文件: `etc/nof0.yaml`
-
-```yaml
-Name: nof0
-Host: 0.0.0.0
-Port: 8888
-DataPath: ../mcp/data
-
-Cors:
-  AllowOrigins: ['*']
-  AllowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
-```
-
-### Postgres + Redis（设计就绪，未接入运行时）
-
-当前服务仍然只读取文件数据源。本节仅提供未来迁移所需的结构与脚本；不会改变现有接口的真实数据来源。
-
-1) 初始化数据库
-
-```bash
-psql "$POSTGRES_DSN" -f migrations/001_domain.sql
-psql "$POSTGRES_DSN" -f migrations/002_refresh_helpers.sql
-```
-
-2) 配置 `etc/nof0.yaml`
-
-```yaml
-Postgres:
-  DSN: postgres://user:pass@localhost:5432/nof0?sslmode=disable
-Redis:
-  Host: localhost:6379
-TTL:
-  Short: 10
-  Medium: 60
-  Long: 300
-```
-
-3) 设计产物（尚未在运行时使用）
-
-- 迁移脚本：`migrations/001_domain.sql`, `002_refresh_helpers.sql`
-- 物化视图：`v_crypto_prices_latest`, `v_leaderboard`, `v_since_inception`
-- 设计文档：`docs/data-architecture.md`（含Redis键空间方案）
-
-当需要切换某个端点到DB/Redis时，再按文档逐步替换对应逻辑。
-
-## 核心数据类型
-
-### Trade (27字段)
-完整的交易记录,包含:
-- 基本信息:id, model_id, symbol, side
-- 价格数量:entry_price, exit_price, quantity
-- 盈亏数据:realized_net_pnl, realized_gross_pnl
-- 手续费:total_commission_dollars
-- 更多...
-
-### AccountTotal (11+字段)
-账户总览,包含:
-- 资金:dollar_equity, realized_pnl
-- 持仓:positions (map[string]Position)
-- 统计:sharpe_ratio, cum_pnl_pct
-
-详细类型定义: [internal/types/types.go](internal/types/types.go)
-
-## 开发
-
-### 添加新端点
-
-1. 在 `internal/types/types.go` 添加类型
-2. 在 `internal/data/loader.go` 添加加载函数
-3. 在 `internal/logic/` 添加业务逻辑
-4. 在 `internal/handler/routes.go` 注册路由
-5. 添加测试
-
-### 代码规范
-
-```bash
-# 格式化代码
-go fmt ./...
-
-# 运行linter
-golangci-lint run
-
-# 运行测试
-go test ./...
-```
-
-## 部署
-
-### Docker
-
-```bash
-docker build -t nof0-api .
-docker run -p 8888:8888 nof0-api
-```
-
-### 二进制部署
-
-```bash
-# 编译
-go build -o nof0-api ./nof0.go
-
-# 运行
-./nof0-api -f etc/nof0.yaml
-```
-
-## 故障排查
-
-### 端口被占用
-
-```bash
-kill $(lsof -ti:8888)
-```
-
-### 数据文件未找到
-
-确保 `DataPath` 配置正确指向 `mcp/data` 目录
-
-### 更多问题
-
-查看 [TEST_README.md#troubleshooting](TEST_README.md#troubleshooting)
-
-## 更新日志
-
-### v1.0.0 (2025-10-26)
-
-- ✅ 完整实现7个API端点
-- ✅ 修复所有数据类型定义
-- ✅ 88%数据层测试覆盖
-- ✅ 100%集成测试覆盖
-- ✅ 完整文档和自动化脚本
-
-## 相关链接
-
-- [NOF1 官网](https://nof1.ai/)
-- [Go-Zero文档](https://go-zero.dev/)
-- [测试文档](TEST_README.md)
-- [API接口文档](../mcp/data/README.md)
 
 ---
 
-**版本**: 1.0.0
-**状态**: ✅ 生产就绪
-**最后更新**: 2025-10-26
+## 配置
+
+### 基础配置 (`etc/nof0.yaml`)
+
+```yaml
+Name: nof0-api
+Host: 0.0.0.0
+Port: 8888
+DataPath: ../mcp/data  # 文件数据源路径
+
+Cors:
+  AllowOrigins: ['*']
+```
+
+### 数据库配置 (可选)
+
+启用Postgres + Redis数据源:
+
+```yaml
+Postgres:
+  DSN: postgres://nof0:nof0@localhost:5432/nof0?sslmode=disable
+  MaxOpen: 10
+  MaxIdle: 5
+
+Redis:
+  Host: localhost:6379
+  Type: node
+
+TTL:
+  Short: 10    # 快速变化数据 (价格)
+  Medium: 60   # 列表数据 (交易)
+  Long: 300    # 聚合数据 (排行榜)
+```
+
+**初始化数据库**:
+```bash
+# 运行迁移
+make migrate-up
+
+# 导入历史数据
+go run cmd/importer/main.go -dsn "$POSTGRES_DSN" -data ../mcp/data
+```
+
+**架构设计**: 查看 [docs/data-architecture.md](docs/data-architecture.md) 了解完整数据层设计
+
+---
+
+## 开发指南
+
+### 添加新API端点
+
+1. 定义类型: `internal/types/types.go`
+2. 实现数据加载: `internal/data/loader.go` (文件源) 或 `internal/repo/` (DB源)
+3. 业务逻辑: `internal/logic/xxx_logic.go`
+4. 路由注册: `internal/handler/routes.go`
+5. 编写测试: `internal/logic/xxx_logic_test.go`
+
+### 代码质量
+
+```bash
+go fmt ./...              # 格式化
+golangci-lint run         # 静态检查
+go test ./... -cover      # 测试+覆盖率
+```
+
+---
+
+## 部署
+
+<table>
+<tr>
+<td width="50%">
+
+**Docker 部署** (推荐)
+```bash
+docker-compose up -d
+```
+
+</td>
+<td width="50%">
+
+**二进制部署**
+```bash
+go build -o nof0-api
+./nof0-api -f etc/nof0.yaml
+```
+
+</td>
+</tr>
+</table>
+
+---
+
+## 故障排查
+
+| 问题 | 解决方案 |
+|------|---------|
+| 端口8888被占用 | `kill $(lsof -ti:8888)` |
+| 数据文件未找到 | 检查 `DataPath` 配置是否指向 `mcp/data` |
+| 数据库连接失败 | 验证 `Postgres.DSN` 格式和权限 |
+| 测试失败 | 确保 `mcp/data` 目录存在且有权限 |
+
+更多问题: [TEST_README.md#troubleshooting](TEST_README.md#troubleshooting)
+
+---
+
+## 更新日志
+
+### v1.1.0 (2025-10-26) - 数据层升级
+- 新增 Postgres + Redis 数据源支持
+- 数据库迁移脚本和导入工具
+- DataSource 抽象层，支持文件/DB自动切换
+- 物化视图和缓存策略设计
+
+### v1.0.0 (2025-10-26) - 初始版本
+- 7个REST API端点完整实现
+- 文件数据源 (JSON) 完整支持
+- 88%数据层测试覆盖 + 100%集成测试
+- Docker部署 + 自动化测试脚本
+
+---
+
+## 相关资源
+
+<table>
+<tr>
+<td width="50%">
+
+**项目链接**
+- [NOF1 官方网站](https://nof1.ai/)
+- [项目路线图](#roadmap)
+- [API规范文档](../mcp/data/README.md)
+
+</td>
+<td width="50%">
+
+**技术文档**
+- [Go-Zero框架](https://go-zero.dev/)
+- [测试完整指南](TEST_README.md)
+- [数据架构设计](docs/data-architecture.md)
+
+</td>
+</tr>
+</table>
+
+---
+
+## 贡献
+
+欢迎贡献代码、报告问题或提出建议！
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 提交 Pull Request
+
+---
+
+## 许可证
+
+MIT License - 详见 [LICENSE](../LICENSE) 文件
+
+---
+
+<div align="center">
+
+**NOF0 - 开源AI交易竞技平台**
+
+**版本**: v1.1.0 | **状态**: 生产就绪 | **更新**: 2025-10-26
+
+[Star](https://github.com/wquguru/nof0) • [反馈问题](https://github.com/wquguru/nof0/issues) • [文档](#)
+
+</div>
