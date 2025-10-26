@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Use Edge Runtime to completely eliminate Fast Origin Transfer costs on Vercel
+// This runs the API route on Vercel's Edge Network instead of Serverless Functions
+// On non-Vercel platforms, Next.js will gracefully degrade to Node.js runtime
+export const runtime = "edge";
+
 const UPSTREAM = process.env.NOF1_API_BASE_URL || "https://nof1.ai/api";
 
 export async function GET(
