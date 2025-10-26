@@ -21,31 +21,38 @@ export function Header() {
       }}
     >
       <div
-        className={`ui-sans flex h-[var(--header-h)] w-full items-center justify-between px-3 text-xs`}
+        className={`ui-sans relative flex h-[var(--header-h)] w-full items-center px-3 text-xs`}
         style={{ color: "var(--foreground)" }}
       >
-        <Link
-          href="/"
-          className={`font-semibold tracking-wide ui-sans`}
-          style={{ color: "var(--brand-accent)" }}
+        {/* 左：品牌 */}
+        <div className="flex min-w-0 flex-1">
+          <Link
+            href="/"
+            className={`font-semibold tracking-wide ui-sans`}
+            style={{ color: "var(--brand-accent)" }}
+          >
+            nof0
+          </Link>
+        </div>
+
+        {/* 中：主导航（绝对居中） */}
+        <nav
+          className="ui-sans absolute left-1/2 -translate-x-1/2 flex items-center gap-6"
+          aria-label="Primary"
         >
-          nof0
-        </Link>
-        <nav className="ui-sans flex items-center gap-4 sm:gap-6">
           <Link href="/" className={hoverLink} style={{ color: "inherit" }}>
             实盘
           </Link>
-          <Link
-            href="/leaderboard"
-            className={hoverLink}
-            style={{ color: "inherit" }}
-          >
+          <Link href="/leaderboard" className={hoverLink} style={{ color: "inherit" }}>
             排行榜
           </Link>
           <Link href="/models" className={hoverLink} style={{ color: "inherit" }}>
             模型
           </Link>
-          {/* Theme toggle */}
+        </nav>
+
+        {/* 右：主题切换占位，保证中间绝对定位不受挤压 */}
+        <div className="flex min-w-0 flex-1 justify-end">
           <div className="ml-2 hidden sm:flex items-center gap-1 text-[11px]">
             <div
               className={`flex overflow-hidden rounded border`}
@@ -71,7 +78,7 @@ export function Header() {
               ))}
             </div>
           </div>
-        </nav>
+        </div>
       </div>
     </header>
   );

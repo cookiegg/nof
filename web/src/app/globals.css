@@ -59,6 +59,20 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* Ticker loop animation for overflowing price list (mobile friendly) */
+.ticker-track {
+  animation: ticker-scroll 22s linear infinite;
+  will-change: transform;
+}
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
 /* explicit theme overrides via data-theme */
 :root[data-theme="light"] {
   --background: #ffffff;

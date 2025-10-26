@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useCryptoPrices } from "@/lib/api/hooks/useCryptoPrices";
 import { fmtUSD } from "@/lib/utils/formatters";
 import { useTheme } from "@/store/useTheme";
@@ -8,6 +8,9 @@ const ORDER = ["BTC", "ETH", "SOL", "BNB", "DOGE", "XRP"] as const;
 
 export default function PriceTicker() {
   const { prices } = useCryptoPrices();
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const [loop, setLoop] = useState(false);
   // use CSS variables instead of theme branching
   const list = useMemo(() => {
     const vals = Object.values(prices);
@@ -15,6 +18,21 @@ export default function PriceTicker() {
       Boolean,
     ) as typeof vals;
   }, [prices]);
+
+  useEffect(() => {
+    const wrap = wrapRef.current;
+    const track = trackRef.current;
+    if (!wrap || !track) return;
+    const check = () => {
+      const need = track.scrollWidth > wrap.clientWidth + 8;
+      setLoop(need);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(wrap);
+    ro.observe(track);
+    return () => ro.disconnect();
+  }, [list]);
 
   return (
     <div
@@ -24,23 +42,39 @@ export default function PriceTicker() {
         background: "var(--panel-bg)",
       }}
     >
-      <div
-        className={`terminal-text flex h-full items-center gap-x-6 gap-y-1 px-3 text-xs leading-relaxed`}
-        style={{ color: "var(--foreground)" }}
-      >
-        {list.map((p) => (
-          <span
-            key={p.symbol}
-            className={`tabular-nums`}
-            style={{ color: "var(--muted-text)" }}
+      <div ref={wrapRef} className="h-full overflow-hidden px-3">
+        {loop ? (
+          <div className="relative h-full">
+            <div
+              ref={trackRef}
+              className="ticker-track absolute left-0 top-0 flex h-full items-center gap-6 whitespace-nowrap text-xs leading-relaxed"
+              style={{ color: "var(--foreground)" }}
+            >
+              {renderItems(list)}
+              {renderItems(list)}
+            </div>
+          </div>
+        ) : (
+          <div
+            ref={trackRef}
+            className="terminal-text flex h-full items-center gap-6 whitespace-nowrap text-xs leading-relaxed"
+            style={{ color: "var(--foreground)", overflowX: "auto" as any }}
           >
-            <b className={`mr-1`} style={{ color: "var(--foreground)" }}>
-              {p.symbol}
-            </b>
-            {fmtUSD(p.price)}
-          </span>
-        ))}
+            {renderItems(list)}
+          </div>
+        )}
       </div>
     </div>
   );
+}
+
+function renderItems(list: { symbol: string; price: number }[]) {
+  return list.map((p) => (
+    <span key={`${p.symbol}-${Math.random()}`} className={`tabular-nums`} style={{ color: "var(--muted-text)" }}>
+      <b className={`mr-1`} style={{ color: "var(--foreground)" }}>
+        {p.symbol}
+      </b>
+      {fmtUSD(p.price)}
+    </span>
+  ));
 }
