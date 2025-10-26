@@ -34,6 +34,8 @@ func TestDataConsistency(t *testing.T) {
 	t.Run("AccountTotals", testAccountTotalsConsistency)
 	t.Run("Analytics", testAnalyticsConsistency)
 	t.Run("ModelAnalytics", testModelAnalyticsConsistency)
+	t.Run("Positions", testPositionsConsistency)
+	t.Run("Conversations", testConversationsConsistency)
 }
 
 func testCryptoPricesConsistency(t *testing.T) {
@@ -236,6 +238,80 @@ func loadJSONFileRaw(t *testing.T, filename string, v interface{}) {
 
 	err = json.Unmarshal(content, v)
 	require.NoError(t, err, "Failed to unmarshal file %s", filename)
+}
+
+func testPositionsConsistency(t *testing.T) {
+	var fileData struct {
+		AccountTotals []types.PositionsByModel `json:"accountTotals"`
+	}
+	loadJSONFileRaw(t, "positions.json", &fileData)
+
+	apiData := getFromAPI[types.PositionsResponse](t, "/positions")
+
+	assert.Equal(t, len(fileData.AccountTotals), len(apiData.AccountTotals),
+		"Positions count should match")
+
+	// Create map for easier comparison
+	fileMap := make(map[string]types.PositionsByModel)
+	for _, modelPos := range fileData.AccountTotals {
+		fileMap[modelPos.ModelId] = modelPos
+	}
+
+	for _, apiModelPos := range apiData.AccountTotals {
+		fileModelPos, exists := fileMap[apiModelPos.ModelId]
+		require.True(t, exists, "Model %s should exist in file data", apiModelPos.ModelId)
+
+		assert.Equal(t, len(fileModelPos.Positions), len(apiModelPos.Positions),
+			"Position count for %s should match", apiModelPos.ModelId)
+
+		// Validate each position
+		for symbol, apiPos := range apiModelPos.Positions {
+			filePos, exists := fileModelPos.Positions[symbol]
+			require.True(t, exists, "Position for %s should exist in model %s",
+				symbol, apiModelPos.ModelId)
+
+			assert.Equal(t, filePos.EntryOid, apiPos.EntryOid)
+			assert.Equal(t, filePos.RiskUsd, apiPos.RiskUsd)
+			assert.Equal(t, filePos.Confidence, apiPos.Confidence)
+			assert.Equal(t, filePos.Symbol, apiPos.Symbol)
+			assert.Equal(t, filePos.EntryPrice, apiPos.EntryPrice)
+			assert.Equal(t, filePos.Quantity, apiPos.Quantity)
+		}
+	}
+}
+
+func testConversationsConsistency(t *testing.T) {
+	var fileData struct {
+		Conversations []types.Conversation `json:"conversations"`
+	}
+	loadJSONFileRaw(t, "conversations.json", &fileData)
+
+	apiData := getFromAPI[types.ConversationsResponse](t, "/conversations")
+
+	assert.Equal(t, len(fileData.Conversations), len(apiData.Conversations),
+		"Conversations count should match")
+
+	// Create map for easier comparison
+	fileMap := make(map[string]types.Conversation)
+	for _, conv := range fileData.Conversations {
+		fileMap[conv.ModelId] = conv
+	}
+
+	for _, apiConv := range apiData.Conversations {
+		fileConv, exists := fileMap[apiConv.ModelId]
+		require.True(t, exists, "Conversation for model %s should exist", apiConv.ModelId)
+
+		assert.Equal(t, len(fileConv.Messages), len(apiConv.Messages),
+			"Message count for %s should match", apiConv.ModelId)
+
+		// Validate first few messages
+		for i := 0; i < len(fileConv.Messages) && i < 3; i++ {
+			assert.Equal(t, fileConv.Messages[i].Role, apiConv.Messages[i].Role,
+				"Message %d role should match for %s", i, apiConv.ModelId)
+			assert.Equal(t, fileConv.Messages[i].Content, apiConv.Messages[i].Content,
+				"Message %d content should match for %s", i, apiConv.ModelId)
+		}
+	}
 }
 
 func getFromAPI[T any](t *testing.T, endpoint string) T {

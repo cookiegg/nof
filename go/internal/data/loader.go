@@ -137,6 +137,38 @@ func (dl *DataLoader) loadJSONFile(filename string, v interface{}) error {
 	return json.Unmarshal(data, v)
 }
 
+// LoadPositions loads positions from JSON file
+func (dl *DataLoader) LoadPositions() (*types.PositionsResponse, error) {
+	var data struct {
+		AccountTotals []types.PositionsByModel `json:"accountTotals"`
+	}
+	err := dl.loadJSONFile("positions.json", &data)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.PositionsResponse{
+		AccountTotals: data.AccountTotals,
+		ServerTime:    getCurrentTimestamp(),
+	}, nil
+}
+
+// LoadConversations loads conversations from JSON file
+func (dl *DataLoader) LoadConversations() (*types.ConversationsResponse, error) {
+	var data struct {
+		Conversations []types.Conversation `json:"conversations"`
+	}
+	err := dl.loadJSONFile("conversations.json", &data)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.ConversationsResponse{
+		Conversations: data.Conversations,
+		ServerTime:    getCurrentTimestamp(),
+	}, nil
+}
+
 // getCurrentTimestamp returns current timestamp in milliseconds
 func getCurrentTimestamp() int64 {
 	return time.Now().UnixMilli()

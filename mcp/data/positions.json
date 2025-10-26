@@ -1,0 +1,185 @@
+{
+  "accountTotals": [
+    {
+      "model_id": "gpt-5",
+      "positions": {
+        "BTC": {
+          "entry_oid": 204614807391,
+          "risk_usd": 300,
+          "confidence": 0.62,
+          "exit_plan": {
+            "profit_target": 102321.7,
+            "stop_loss": 109362.4,
+            "invalidation_condition": "Close if a 4h candle closes > 111193.74 (20EMA + 1xATR14) AND the 4h MACD histogram turns >= 0."
+          },
+          "entry_time": 1760740073,
+          "symbol": "BTC",
+          "entry_price": 107067.9,
+          "margin": 935.231196,
+          "leverage": 15,
+          "quantity": -0.13,
+          "current_price": 106969.5,
+          "unrealized_pnl": 12.72892,
+          "closed_pnl": -6.26
+        },
+        "ETH": {
+          "entry_oid": 204612596778,
+          "risk_usd": 600,
+          "confidence": 0.63,
+          "exit_plan": {
+            "profit_target": 3668.17,
+            "stop_loss": 3957.79,
+            "invalidation_condition": "Close if a 4h candle closes > 4036.82 (20EMA + 1xATR14) AND the 4h MACD histogram turns >= 0."
+          },
+          "entry_time": 1760739867,
+          "symbol": "ETH",
+          "entry_price": 3860,
+          "margin": 1235.436031,
+          "leverage": 20,
+          "quantity": -6.21,
+          "current_price": 3854.15,
+          "unrealized_pnl": 37.26,
+          "closed_pnl": -10.79
+        }
+      }
+    },
+    {
+      "model_id": "claude-sonnet-4-5",
+      "positions": {
+        "SOL": {
+          "entry_oid": 204600508921,
+          "risk_usd": 500,
+          "confidence": 0.6,
+          "exit_plan": {
+            "profit_target": 171.889,
+            "stop_loss": 193.567,
+            "invalidation_condition": "Close if a 4h candle closes > 195.958 (20EMA + 1xATR14) AND the 4h MACD histogram turns >= 0."
+          },
+          "entry_time": 1760738682,
+          "symbol": "SOL",
+          "entry_price": 185.5,
+          "margin": 850.25,
+          "leverage": 18,
+          "quantity": -45.8,
+          "current_price": 183.2,
+          "unrealized_pnl": 105.34,
+          "closed_pnl": -5.12
+        },
+        "XRP": {
+          "entry_oid": 204600432746,
+          "risk_usd": 600,
+          "confidence": 0.64,
+          "exit_plan": {
+            "profit_target": 2.19783,
+            "stop_loss": 2.41611,
+            "invalidation_condition": "Close if a 4h candle closes > 2.455 (20EMA + 1xATR14) AND the 4h MACD histogram turns >= 0."
+          },
+          "entry_time": 1760738675,
+          "symbol": "XRP",
+          "entry_price": 2.339594,
+          "margin": 1670.575901,
+          "leverage": 12,
+          "quantity": -7716,
+          "current_price": 2.31705,
+          "unrealized_pnl": 174.3401,
+          "closed_pnl": -8.12
+        }
+      }
+    },
+    {
+      "model_id": "deepseek-chat-v3.1",
+      "positions": {
+        "BTC": {
+          "entry_oid": 204615123456,
+          "risk_usd": 400,
+          "confidence": 0.68,
+          "exit_plan": {
+            "profit_target": 103000,
+            "stop_loss": 108500,
+            "invalidation_condition": "Close if a 4h candle closes > 110000 (20EMA + 1xATR14) AND the 4h MACD histogram turns >= 0."
+          },
+          "entry_time": 1760741200,
+          "symbol": "BTC",
+          "entry_price": 106800,
+          "margin": 1200.5,
+          "leverage": 15,
+          "quantity": 0.17,
+          "current_price": 107100,
+          "unrealized_pnl": 51.0,
+          "closed_pnl": 0
+        }
+      }
+    },
+    {
+      "model_id": "qwen3-max",
+      "positions": {
+        "ETH": {
+          "entry_oid": 204616789012,
+          "risk_usd": 350,
+          "confidence": 0.58,
+          "exit_plan": {
+            "profit_target": 3950,
+            "stop_loss": 3800,
+            "invalidation_condition": "Close if a 4h candle closes < 3780 (20EMA - 1xATR14) AND the 4h MACD histogram turns <= 0."
+          },
+          "entry_time": 1760742000,
+          "symbol": "ETH",
+          "entry_price": 3875,
+          "margin": 800.25,
+          "leverage": 18,
+          "quantity": 3.72,
+          "current_price": 3890,
+          "unrealized_pnl": 55.8,
+          "closed_pnl": 0
+        },
+        "BNB": {
+          "entry_oid": 204617890123,
+          "risk_usd": 250,
+          "confidence": 0.55,
+          "exit_plan": {
+            "profit_target": 720,
+            "stop_loss": 650,
+            "invalidation_condition": "Close if a 4h candle closes < 645 (20EMA - 1xATR14)."
+          },
+          "entry_time": 1760742500,
+          "symbol": "BNB",
+          "entry_price": 680,
+          "margin": 550.0,
+          "leverage": 15,
+          "quantity": 12.15,
+          "current_price": 685,
+          "unrealized_pnl": 60.75,
+          "closed_pnl": 0
+        }
+      }
+    },
+    {
+      "model_id": "grok-4",
+      "positions": {}
+    },
+    {
+      "model_id": "gemini-2.5-pro",
+      "positions": {
+        "DOGE": {
+          "entry_oid": 204618901234,
+          "risk_usd": 200,
+          "confidence": 0.52,
+          "exit_plan": {
+            "profit_target": 0.22,
+            "stop_loss": 0.185,
+            "invalidation_condition": "Close if a 4h candle closes < 0.183 (20EMA - 1xATR14)."
+          },
+          "entry_time": 1760743000,
+          "symbol": "DOGE",
+          "entry_price": 0.195,
+          "margin": 450.0,
+          "leverage": 10,
+          "quantity": 23000,
+          "current_price": 0.198,
+          "unrealized_pnl": 69.0,
+          "closed_pnl": 0
+        }
+      }
+    }
+  ]
+}

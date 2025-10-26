@@ -254,3 +254,104 @@ func BenchmarkLoadAnalytics(b *testing.B) {
 		_, _ = loader.LoadAnalytics()
 	}
 }
+
+func TestLoadPositions(t *testing.T) {
+	loader := NewDataLoader(testDataPath)
+
+	resp, err := loader.LoadPositions()
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Validate structure
+	assert.NotNil(t, resp.AccountTotals)
+	assert.NotZero(t, resp.ServerTime)
+
+	// Validate positions
+	hasPositions := false
+	for _, modelPos := range resp.AccountTotals {
+		assert.NotEmpty(t, modelPos.ModelId, "ModelId should not be empty")
+		assert.NotNil(t, modelPos.Positions, "Positions map should not be nil")
+
+		if len(modelPos.Positions) > 0 {
+			hasPositions = true
+			for symbol, pos := range modelPos.Positions {
+				assert.NotEmpty(t, symbol, "Symbol should not be empty")
+				assert.Equal(t, symbol, pos.Symbol, "Symbol key should match position symbol")
+				assert.NotZero(t, pos.EntryOid, "EntryOid should be set")
+				assert.Greater(t, pos.RiskUsd, 0.0, "RiskUsd should be positive")
+				assert.GreaterOrEqual(t, pos.Confidence, 0.0, "Confidence should be >= 0")
+				assert.LessOrEqual(t, pos.Confidence, 1.0, "Confidence should be <= 1")
+				assert.NotZero(t, pos.EntryTime, "EntryTime should be set")
+				assert.Greater(t, pos.EntryPrice, 0.0, "EntryPrice should be positive")
+				assert.Greater(t, pos.Leverage, 0.0, "Leverage should be positive")
+				assert.NotZero(t, pos.Quantity, "Quantity should not be zero")
+			}
+		}
+	}
+
+	assert.True(t, hasPositions, "At least one model should have positions")
+}
+
+func TestLoadConversations(t *testing.T) {
+	loader := NewDataLoader(testDataPath)
+
+	resp, err := loader.LoadConversations()
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Validate structure
+	assert.NotNil(t, resp.Conversations)
+	assert.NotZero(t, resp.ServerTime)
+	assert.Greater(t, len(resp.Conversations), 0, "Should have at least one conversation")
+
+	// Validate conversations
+	for _, conv := range resp.Conversations {
+		assert.NotEmpty(t, conv.ModelId, "ModelId should not be empty")
+		assert.NotNil(t, conv.Messages, "Messages should not be nil")
+		assert.Greater(t, len(conv.Messages), 0, "Should have at least one message")
+
+		for _, msg := range conv.Messages {
+			assert.NotEmpty(t, msg.Role, "Message role should not be empty")
+			assert.Contains(t, []string{"system", "user", "assistant"}, msg.Role,
+				"Message role should be system, user, or assistant")
+			assert.NotEmpty(t, msg.Content, "Message content should not be empty")
+		}
+	}
+
+	// Validate expected models
+	expectedModels := map[string]bool{
+		"gpt-5": false, "claude-sonnet-4-5": false, "deepseek-chat-v3.1": false,
+		"qwen3-max": false, "grok-4": false, "gemini-2.5-pro": false,
+	}
+
+	for _, conv := range resp.Conversations {
+		if _, exists := expectedModels[conv.ModelId]; exists {
+			expectedModels[conv.ModelId] = true
+		}
+	}
+
+	foundCount := 0
+	for _, found := range expectedModels {
+		if found {
+			foundCount++
+		}
+	}
+
+	assert.Greater(t, foundCount, 0, "Should have conversations for at least some models")
+}
+
+func BenchmarkLoadPositions(b *testing.B) {
+	loader := NewDataLoader(testDataPath)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = loader.LoadPositions()
+	}
+}
+
+func BenchmarkLoadConversations(b *testing.B) {
+	loader := NewDataLoader(testDataPath)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		_, _ = loader.LoadConversations()
+	}
+}

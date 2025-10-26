@@ -257,3 +257,33 @@ type TradesResponse struct {
 	Trades     []Trade `json:"trades"`
 	ServerTime int64   `json:"serverTime"`
 }
+
+type PositionsRequest struct {
+	Limit int `form:"limit,optional,default=1000"`
+}
+
+type PositionsByModel struct {
+	ModelId   string              `json:"model_id"`
+	Positions map[string]Position `json:"positions"`
+}
+
+type PositionsResponse struct {
+	AccountTotals []PositionsByModel `json:"accountTotals"`
+	ServerTime    int64              `json:"serverTime"`
+}
+
+type ConversationMessage struct {
+	Role      string      `json:"role"`
+	Content   string      `json:"content"`
+	Timestamp interface{} `json:"timestamp,omitempty"`
+}
+
+type Conversation struct {
+	ModelId  string                `json:"model_id"`
+	Messages []ConversationMessage `json:"messages"`
+}
+
+type ConversationsResponse struct {
+	Conversations []Conversation `json:"conversations"`
+	ServerTime    int64          `json:"serverTime"`
+}

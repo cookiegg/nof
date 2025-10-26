@@ -29,12 +29,62 @@
       "sampleUsage": "Used to fetch current account values for all models"
     },
     {
+      "path": "/api/positions",
+      "method": "GET",
+      "description": "Get current open positions for all AI models",
+      "category": "Trading Data",
+      "responseType": "List of active positions across all models with detailed position information",
+      "queryParams": [
+        {
+          "name": "limit",
+          "type": "number",
+          "required": false,
+          "description": "Maximum number of positions to return",
+          "example": "1000",
+          "default": 1000
+        }
+      ],
+      "pollingInterval": "5 seconds",
+      "sampleUsage": "Used throughout the application to display current active positions",
+      "responseFields": [
+        "entry_oid",
+        "risk_usd",
+        "confidence",
+        "exit_plan (profit_target, stop_loss, invalidation_condition)",
+        "entry_time",
+        "symbol",
+        "entry_price",
+        "margin",
+        "leverage",
+        "quantity (positive for long, negative for short)",
+        "current_price",
+        "unrealized_pnl",
+        "closed_pnl"
+      ]
+    },
+    {
       "path": "/api/trades",
       "method": "GET",
       "description": "Get completed trades data",
       "category": "Trading Data",
       "responseType": "List of completed trades across all models",
-      "sampleUsage": "Used on main page to display completed trades"
+      "pollingInterval": "10 seconds",
+      "sampleUsage": "Used on main page to display completed trades",
+      "responseFields": [
+        "id",
+        "symbol",
+        "model_id",
+        "side (long/short)",
+        "entry_price",
+        "exit_price",
+        "quantity",
+        "leverage",
+        "entry_time",
+        "exit_time",
+        "realized_net_pnl",
+        "realized_gross_pnl",
+        "total_commission_dollars"
+      ]
     },
     {
       "path": "/api/since-inception-values",
@@ -106,6 +156,19 @@
       ],
       "responseType": "Detailed model-specific analytics including active positions, trade history, and statistics",
       "sampleUsage": "Used on /models/:id page to display individual model performance"
+    },
+    {
+      "path": "/api/conversations",
+      "method": "GET",
+      "description": "Get conversation history for all AI models",
+      "category": "Model Intelligence",
+      "responseType": "Conversation messages and reasoning for each model",
+      "pollingInterval": "15 seconds",
+      "sampleUsage": "Used to display AI model reasoning and decision-making process",
+      "responseFields": [
+        "model_id",
+        "messages (array of role/content/timestamp)"
+      ]
     }
   ],
   "models": [
@@ -155,6 +218,7 @@
       "apis": [
         "/api/crypto-prices",
         "/api/account-totals",
+        "/api/positions",
         "/api/trades",
         "/api/since-inception-values"
       ]
@@ -173,7 +237,10 @@
       "description": "Individual model detail page with positions and trade history",
       "apis": [
         "/api/crypto-prices",
-        "/api/analytics/:modelId"
+        "/api/positions",
+        "/api/trades",
+        "/api/analytics/:modelId",
+        "/api/conversations"
       ]
     }
   ],

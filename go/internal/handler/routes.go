@@ -49,6 +49,16 @@ func RegisterHandlers(server *rest.Server, serverCtx *svc.ServiceContext) {
 				Path:    "/trades",
 				Handler: TradesHandler(serverCtx),
 			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/positions",
+				Handler: PositionsHandler(serverCtx),
+			},
+			{
+				Method:  http.MethodGet,
+				Path:    "/conversations",
+				Handler: ConversationsHandler(serverCtx),
+			},
 		},
 		rest.WithPrefix("/api"),
 	)
