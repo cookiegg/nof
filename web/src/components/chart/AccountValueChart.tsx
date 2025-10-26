@@ -48,6 +48,8 @@ export default function AccountValueChart() {
   const [active, setActive] = useState<Set<string>>(new Set());
   const [vw, setVw] = useState<number>(0);
   const chartRef = useRef<HTMLDivElement | null>(null);
+  const [shouldAnimate, setShouldAnimate] = useState(true);
+  const percentBaseRef = useRef<Record<string, number>>({});
 
   // End-logo size and dynamic right margin (to avoid clipping without huge whitespace)
   // Rendered size = base * 2/3. Targets: ~14px (<380), ~18px (<640), ~28px (<1024)
@@ -59,25 +61,6 @@ export default function AccountValueChart() {
 
   const cssSafe = (s: string) => s.toLowerCase().replace(/[^a-z0-9_-]+/g, "-");
 
-  const clearFocus = () => {
-    const root = chartRef.current;
-    if (!root) return;
-    root.querySelectorAll("g.series").forEach((g) => {
-      g.classList.remove("dim");
-      g.classList.remove("focused");
-    });
-  };
-
-  const focusSeries = (id: string) => {
-    const root = chartRef.current;
-    if (!root) return;
-    const safe = cssSafe(id);
-    const all = root.querySelectorAll("g.series");
-    all.forEach((g) => g.classList.add("dim"));
-    const target = root.querySelector(`g.series.series-${safe}`);
-    if (target) target.classList.add("focused");
-  };
-
   // Initialize cutoff time on client side to avoid hydration mismatch
   useEffect(() => {
     cutoffTimeRef.current = Date.now() - 72 * 3600 * 1000;
@@ -88,9 +71,19 @@ export default function AccountValueChart() {
     const upd = () =>
       setVw(typeof window !== "undefined" ? window.innerWidth : 0);
     upd();
-    window.addEventListener("resize", upd);
-    return () => window.removeEventListener("resize", upd);
+    let timeout: ReturnType<typeof setTimeout>;
+    const debouncedUpd = () => {
+      clearTimeout(timeout);
+      timeout = setTimeout(upd, 150);
+    };
+    window.addEventListener("resize", debouncedUpd);
+    return () => {
+      clearTimeout(timeout);
+      window.removeEventListener("resize", debouncedUpd);
+    };
   }, []);
+
+  // No periodic timer: only keep a subtle, continuous halo at the endcap
 
   function hexToRGB(hex: string): { r: number; g: number; b: number } | null {
     const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex.trim());
@@ -179,28 +172,35 @@ export default function AccountValueChart() {
     if (nextRows.length !== dataRows.length) {
       setDataRows(nextRows);
       setIds(nextIds);
+      // Disable animation after initial load to improve performance
+      if (nextRows.length > 50 && shouldAnimate) {
+        setShouldAnimate(false);
+      }
     }
-  }, [series]);
+  }, [series, shouldAnimate]);
 
   const { data, models } = useMemo(() => {
-    let points = [...dataRows];
+    let points = dataRows;
     // Filter by range
     if (range === "72H" && points.length) {
       const cutoff = cutoffTimeRef.current;
       points = points.filter((p) => (p.timestamp as Date).getTime() >= cutoff);
     }
-    // Percent mode normalization
+    // Percent mode normalization - cache base values
     if (mode === "%") {
-      const bases: Record<string, number> = {};
-      for (const id of ids) {
-        for (const p of points) {
-          const v = p[id];
-          if (typeof v === "number") {
-            bases[id] = v;
-            break;
+      // Only recalculate bases if not cached
+      if (Object.keys(percentBaseRef.current).length === 0 && points.length > 0) {
+        for (const id of ids) {
+          for (const p of points) {
+            const v = p[id];
+            if (typeof v === "number") {
+              percentBaseRef.current[id] = v;
+              break;
+            }
           }
         }
       }
+      const bases = percentBaseRef.current;
       points = points.map((p) => {
         const cp: ChartDataPoint = { ...p } as any;
         for (const id of ids) {
@@ -212,6 +212,9 @@ export default function AccountValueChart() {
         }
         return cp;
       });
+    } else {
+      // Clear cache when switching back to dollar mode
+      percentBaseRef.current = {};
     }
     // Downsample for 72H range to keep chart performant
     if (range === "72H" && points.length > MAX_POINTS_72H) {
@@ -259,9 +262,13 @@ export default function AccountValueChart() {
     if (typeof v !== "number") return "--";
     if (mode === "%") return `${v >= 0 ? "+" : ""}${v.toFixed(1)}%`;
     try {
-      return `$${Math.round(v).toLocaleString()}`;
+      return `$${Number(v).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
     } catch {
-      return `$${Math.round(v)}`;
+      const n = Math.round(Number(v) * 100) / 100;
+      return `$${n}`;
     }
   };
 
@@ -280,14 +287,23 @@ export default function AccountValueChart() {
         ? adjustLuminance(bg, -0.15)
         : "var(--chart-logo-ring)";
     const size = endLogoSize; // logo size to 2/3
-    const haloR = Math.round(endLogoBaseSize / 3); // halo to 1/3 of previous radius
+    // Halo radius reduced to 2/3 of previous setting
+    const haloR = Math.round((endLogoBaseSize / 3) * (2 / 3));
+    const valueStr = formatValue(lastValById[id]);
+    const isVisible = active.size ? active.has(id) : true;
+    const showValueChip = isVisible; // 始终展示可见系列的数值
+    const fontSize = vw < 380 ? 11 : vw < 640 ? 12 : 13;
+    // Rough width estimate for mono-ish font
+    const chipPadX = 8;
+    const charW = Math.round(fontSize * 0.62);
+    const chipTextW = valueStr.length * charW;
+    const chipH = fontSize + 8;
+    const chipW = chipTextW + chipPadX * 2;
     return (
       <g
         key={`${id}-dot-${index}`}
         transform={`translate(${cx}, ${cy})`}
         style={{ cursor: "pointer" }}
-        onMouseEnter={() => focusSeries(id)}
-        onMouseLeave={() => clearFocus()}
       >
         <g
           style={{
@@ -297,13 +313,14 @@ export default function AccountValueChart() {
             transition: "transform 160ms ease",
           }}
         >
-          {/* soft pulse halo (reduced) */}
+          {/* continuous soft pulse halo at endcap */}
           <circle
             r={haloR}
             className="animate-ping"
             fill={color}
             opacity={0.075}
           />
+          {/* hover-only extra halo removed per new requirement */}
           {/* theme-aware solid chip behind logo for contrast */}
           <circle
             r={Math.round(size * 0.55)}
@@ -330,6 +347,36 @@ export default function AccountValueChart() {
             <circle r={Math.max(6, Math.round(size * 0.38))} fill={color} />
           )}
         </g>
+        {/* right value chip */}
+        {showValueChip && (
+          <g
+            key={`chip-${id}-${valueStr}`}
+            transform={`translate(${Math.round(size * 0.7) + 8}, ${-Math.round(
+              chipH / 2,
+            )})`}
+            style={{ pointerEvents: "none" }}
+          >
+            <rect
+              rx={6}
+              ry={6}
+              width={chipW}
+              height={chipH}
+              fill={color}
+              opacity={0.9}
+            />
+            <text
+              x={chipW / 2}
+              y={Math.round(chipH * 0.68)}
+              textAnchor="middle"
+              fontSize={fontSize}
+              className="tabular-nums"
+              fill="#fff"
+              fontWeight={700}
+            >
+              {valueStr}
+            </text>
+          </g>
+        )}
       </g>
     );
   };
@@ -414,7 +461,7 @@ export default function AccountValueChart() {
             <div className="min-h-0 flex-1">
               <div
                 ref={chartRef}
-                className="relative h-full w-full no-tap-highlight select-none"
+                className="chart-container relative h-full w-full no-tap-highlight select-none"
                 tabIndex={-1}
                 onMouseDown={(e) => {
                   // Prevent Chrome from focusing the SVG on click, which shows a focus ring
@@ -426,11 +473,24 @@ export default function AccountValueChart() {
                     data={data}
                     margin={{
                       top: 8,
-                      right: chartRightMargin,
+                      right: (() => {
+                        // Increase right margin if value chip could overflow
+                        const visibleIds = models.filter((m) =>
+                          active.size ? active.has(m) : true,
+                        );
+                        let maxW = 0;
+                        for (const m of visibleIds) {
+                          const s = formatValue(lastValById[m]);
+                          const fs = vw < 380 ? 11 : vw < 640 ? 12 : 13;
+                          const cW = Math.round(fs * 0.62);
+                          const est = s.length * cW + 16 + Math.round(endLogoSize * 0.7) + 10; // text + padding + logo gap
+                          if (est > maxW) maxW = est;
+                        }
+                        return Math.max(chartRightMargin, maxW);
+                      })(),
                       bottom: 8,
                       left: 0,
                     }}
-                    onMouseLeave={() => clearFocus()}
                   >
                     <CartesianGrid stroke={gridStroke} strokeDasharray="3 3" />
                     <XAxis
@@ -488,8 +548,8 @@ export default function AccountValueChart() {
                         className={`series series-${cssSafe(id)}`}
                         stroke={getStrokeColor(id)}
                         strokeWidth={1.8}
-                        isAnimationActive
-                        animationDuration={700}
+                        isAnimationActive={shouldAnimate}
+                        animationDuration={shouldAnimate ? 400 : 0}
                         animationEasing="ease-out"
                         name={getModelName(id)}
                         hide={active.size ? !active.has(id) : false}

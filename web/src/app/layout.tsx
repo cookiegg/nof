@@ -34,10 +34,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
-      {/* Earliest possible theme resolution to avoid FOUC/mismatch */}
-      <Script id="theme-init" strategy="beforeInteractive">
-        {`(function(){
+    <html lang="zh-CN" suppressHydrationWarning>
+      {/* Move early theme script into <head> so Next.js can order it correctly */}
+      <head>
+        <Script id="theme-init" strategy="beforeInteractive">
+          {`(function(){
   try {
     var pref = localStorage.getItem('theme') || 'system';
     var sys = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
@@ -45,7 +46,8 @@ export default function RootLayout({
     document.documentElement.dataset.theme = resolved;
   } catch (_) {}
 })();`}
-      </Script>
+        </Script>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${plexMono.variable} antialiased`}
       >

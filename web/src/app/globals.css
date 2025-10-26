@@ -48,6 +48,10 @@
   --tooltip-fg: #e4e4e7;
   /* Header/branding */
   --brand-accent: #c084fc; /* purple-300 */
+
+  /* Chart series hover states */
+  --series-opacity-normal: 1;
+  --series-opacity-dimmed: 0.2;
   --header-bg: rgba(0, 0, 0, 0.7);
   --header-border: rgba(255, 255, 255, 0.1);
 }
@@ -270,4 +274,18 @@ body {
 }
 .chip-btn:hover {
   background: var(--btn-hover-bg);
+}
+
+/* Endcap value chip pop-in on update */
+/* endcap value chip now static; only keep subtle ping via Tailwind's animate-ping */
+
+/* Chart series hover optimization - use CSS instead of JS DOM manipulation */
+.recharts-surface g.series {
+  opacity: var(--series-opacity-normal);
+  transition: opacity 200ms ease;
+}
+
+/* When chart container is hovered and has a focused series */
+.chart-container:has(g.series:hover) g.series:not(:hover) {
+  opacity: var(--series-opacity-dimmed);
 }
