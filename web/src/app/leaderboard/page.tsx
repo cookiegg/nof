@@ -5,7 +5,7 @@ import LeaderboardOverview from "@/components/leaderboard/LeaderboardOverview";
 export default function LeaderboardPage() {
   const [tab, setTab] = useState<"overall" | "analytics">("overall");
   return (
-    <main className="min-h-screen w-full p-3">
+    <main className="min-h-screen w-full px-3 py-3 sm:px-4 sm:py-4 lg:px-8 lg:py-6">
       <div className="mb-3 flex items-center gap-2">
         <TabButton active={tab === "overall"} onClick={() => setTab("overall")}>
           总体统计
@@ -17,11 +17,13 @@ export default function LeaderboardPage() {
           高级分析
         </TabButton>
       </div>
-      {tab === "overall" ? (
-        <LeaderboardOverview mode="overall" />
-      ) : (
-        <LeaderboardOverview mode="advanced" />
-      )}
+      <div className="mx-auto w-full max-w-7xl">
+        {tab === "overall" ? (
+          <LeaderboardOverview mode="overall" />
+        ) : (
+          <LeaderboardOverview mode="advanced" />
+        )}
+      </div>
     </main>
   );
 }

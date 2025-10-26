@@ -58,7 +58,7 @@ export default function LeaderboardTable({
 
   return (
     <div
-      className={`rounded-md border p-3`}
+      className={`rounded-md border px-3 py-2 sm:px-3 sm:py-3`}
       style={{
         background: "var(--panel-bg)",
         borderColor: "var(--panel-border)",
@@ -76,7 +76,7 @@ export default function LeaderboardTable({
         message={isError ? "排行榜数据源暂时不可用，请稍后重试。" : undefined}
       />
       <div className="overflow-x-auto">
-        <table className="w-full text-left text-[12px]">
+        <table className="w-full text-left text-[11px]">
           <thead className="ui-sans" style={{ color: "var(--muted-text)" }}>
             <tr
               className={`border-b`}
@@ -156,16 +156,14 @@ export default function LeaderboardTable({
                 ) => (
                   <tr
                     key={r.id}
-                    className={clsx("border-b")}
-                    style={{
-                      borderColor:
-                        "color-mix(in oklab, var(--panel-border) 50%, transparent)",
-                      background:
-                        idx === 0 ? "var(--table-row-alt)" : undefined,
-                    }}
+                  className={clsx("border-b")}
+                  style={{
+                    borderColor:
+                      "color-mix(in oklab, var(--panel-border) 50%, transparent)",
+                  }}
                   >
-                    <td className="py-1.5 pr-3">{idx + 1}</td>
-                    <td className="py-1.5 pr-3">
+                    <td className="py-1 pr-2 lg:pr-3">{idx + 1}</td>
+                    <td className="py-1 pr-2 lg:pr-3">
                       <a
                         className={`inline-flex items-center gap-2 hover:underline`}
                         style={{ color: "inherit" }}
@@ -182,12 +180,12 @@ export default function LeaderboardTable({
                         {getModelName(r.id)}
                       </a>
                     </td>
-                    <td className="py-1.5 pr-3 tabular-nums">
+                    <td className="py-1 pr-2 lg:pr-3 tabular-nums">
                       {fmtUSD(r.equity)}
                     </td>
                     <td
                       className={clsx(
-                        "py-1.5 pr-3 tabular-nums",
+                        "py-1 pr-2 lg:pr-3 tabular-nums",
                         pnlClass(r.return_pct),
                       )}
                     >
@@ -197,21 +195,21 @@ export default function LeaderboardTable({
                       <>
                         <td
                           className={clsx(
-                            "py-1.5 pr-3 tabular-nums",
+                            "py-1 pr-2 lg:pr-3 tabular-nums",
                             pnlClass(r.total_pnl),
                           )}
-                        >
+                          >
                           {renderTotalPnl(r.total_pnl)}
                         </td>
-                        <td className="py-1.5 pr-3 tabular-nums">
+                        <td className="py-1 pr-2 lg:pr-3 tabular-nums">
                           {renderFees(r.id, r.total_fees_paid)}
                         </td>
-                        <td className="py-1.5 pr-3 tabular-nums">
+                        <td className="py-1 pr-2 lg:pr-3 tabular-nums">
                           {renderWinRate(r.id, r.win_rate, r.num_trades)}
                         </td>
                         <td
                           className={clsx(
-                            "py-1.5 pr-3 tabular-nums",
+                            "py-1 pr-2 lg:pr-3 tabular-nums",
                             pnlClass(r.win_dollars),
                           )}
                         >
@@ -219,28 +217,28 @@ export default function LeaderboardTable({
                         </td>
                         <td
                           className={clsx(
-                            "py-1.5 pr-3 tabular-nums",
+                            "py-1 pr-2 lg:pr-3 tabular-nums",
                             pnlClass(r.lose_dollars),
                           )}
                         >
                           {renderExtreme(false, r.lose_dollars)}
                         </td>
-                        <td className="py-1.5 pr-3 tabular-nums">
+                        <td className="py-1 pr-2 lg:pr-3 tabular-nums">
                           {r.avg_confidence != null
                             ? `${(r.avg_confidence * 100).toFixed(1)}%`
                             : "—"}
                         </td>
-                        <td className="py-1.5 pr-3 tabular-nums">
+                        <td className="py-1 pr-2 lg:pr-3 tabular-nums">
                           {r.median_confidence != null
                             ? `${(r.median_confidence * 100).toFixed(1)}%`
                             : "—"}
                         </td>
                       </>
                     ) : null}
-                    <td className="py-1.5 pr-3 tabular-nums">
+                    <td className="py-1 pr-2 lg:pr-3 tabular-nums">
                       {r.num_trades ?? "—"}
                     </td>
-                    <td className="py-1.5 pr-3 tabular-nums">
+                    <td className="py-1 pr-2 lg:pr-3 tabular-nums">
                       {renderSharpe(r.id, r.sharpe)}
                     </td>
                   </tr>
@@ -273,7 +271,7 @@ export default function LeaderboardTable({
         <div className="opacity-80">{useSharpeHint()}</div>
       </div>
     );
-    const muted = n < 5;
+    const muted = n < 3;
     return (
       <Tooltip content={content}>
         <span

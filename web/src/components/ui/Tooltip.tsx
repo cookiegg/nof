@@ -27,6 +27,8 @@ export default function Tooltip({
   const closeTimer = useRef<any>(null);
   const raf = useRef<number | null>(null);
   const [coarse, setCoarse] = useState(false);
+  const EDGE = 12; // 视口边距
+  const MAXW = 420; // 桌面最大宽度
 
   useEffect(() => {
     try {
@@ -38,7 +40,7 @@ export default function Tooltip({
   }, []);
 
   useEffect(() => {
-    const onDoc = (e: MouseEvent | TouchEvent) => {
+    const onDoc = (e: MouseEvent | TouchEvent | PointerEvent) => {
       if (!rootRef.current) return;
       const t = e.target as Node;
       if (
@@ -47,11 +49,19 @@ export default function Tooltip({
       )
         setOpen(false);
     };
-    document.addEventListener("click", onDoc);
-    document.addEventListener("touchstart", onDoc);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    // 捕获阶段尽早关闭，避免被其它组件阻止冒泡
+    document.addEventListener("pointerdown", onDoc, { capture: true });
+    document.addEventListener("click", onDoc, { capture: true });
+    document.addEventListener("touchstart", onDoc, { capture: true });
+    document.addEventListener("keydown", onKey);
     return () => {
-      document.removeEventListener("click", onDoc);
-      document.removeEventListener("touchstart", onDoc);
+      document.removeEventListener("pointerdown", onDoc, { capture: true } as any);
+      document.removeEventListener("click", onDoc, { capture: true } as any);
+      document.removeEventListener("touchstart", onDoc, { capture: true } as any);
+      document.removeEventListener("keydown", onKey);
     };
   }, []);
 
@@ -61,8 +71,13 @@ export default function Tooltip({
       if (trackPointer && pointer.current && !coarse) {
         const { x, y } = pointer.current;
         const offset = 18;
-        const top = Math.max(6, y - offset);
-        const left = Math.min(Math.max(6, x), window.innerWidth - 6);
+        const top = Math.max(EDGE, y - offset);
+        const w = tipRef.current?.offsetWidth || MAXW;
+        const half = w / 2;
+        const left = Math.min(
+          Math.max(EDGE + half, x),
+          window.innerWidth - (EDGE + half),
+        );
         setPos({ top, left });
       } else {
         const el = rootRef.current;
@@ -85,7 +100,7 @@ export default function Tooltip({
             break;
           case "top":
           default:
-            top = r.top - 8;
+            top = Math.max(EDGE, r.top - 8);
             left = r.left + r.width / 2;
         }
         setPos({ top, left });
@@ -127,8 +142,13 @@ export default function Tooltip({
             raf.current = requestAnimationFrame(() => {
               const { x, y } = pointer.current!;
               const offset = 18;
-              const top = Math.max(6, y - offset);
-              const left = Math.min(Math.max(6, x), window.innerWidth - 6);
+              const top = Math.max(EDGE, y - offset);
+              const w = tipRef.current?.offsetWidth || MAXW;
+              const half = w / 2;
+              const left = Math.min(
+                Math.max(EDGE + half, x),
+                window.innerWidth - (EDGE + half),
+              );
               setPos({ top, left });
             });
           }
@@ -136,7 +156,10 @@ export default function Tooltip({
       }}
       onFocus={() => setOpen(true)}
       onBlur={() => setOpen(false)}
-      onClick={() => setOpen((v) => !v)}
+      onClick={() => {
+        // 触屏点击用于开/关；桌面点击不改变状态
+        if (coarse) setOpen((v) => !v);
+      }}
       onTouchStart={() => {
         if (longPress.current) clearTimeout(longPress.current);
         longPress.current = setTimeout(() => setOpen(true), 350);
@@ -172,10 +195,12 @@ export default function Tooltip({
                 background: "var(--tooltip-bg)",
                 borderColor: "var(--tooltip-border)",
                 color: "var(--tooltip-fg)",
-                maxWidth: 300,
+                maxWidth: `min(${MAXW}px, calc(100vw - ${EDGE * 2}px))`,
+                width: "max-content",
                 whiteSpace: "normal",
                 wordBreak: "break-word",
                 overflowWrap: "anywhere",
+                lineHeight: 1.4,
               }}
               role="tooltip"
               onMouseLeave={() => {

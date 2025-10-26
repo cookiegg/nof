@@ -4,7 +4,7 @@ import LeaderboardTable from "@/components/leaderboard/LeaderboardTable";
 import { useLeaderboard } from "@/lib/api/hooks/useLeaderboard";
 import { useAccountTotals } from "@/lib/api/hooks/useAccountTotals";
 import { usePositions } from "@/lib/api/hooks/usePositions";
-import { getModelName, getModelColor } from "@/lib/model/meta";
+import { getModelName, getModelColor, getModelIcon } from "@/lib/model/meta";
 import { ModelLogoChip } from "@/components/shared/ModelLogo";
 import CoinIcon from "@/components/shared/CoinIcon";
 import { fmtUSD } from "@/lib/utils/formatters";
@@ -166,7 +166,10 @@ function ActivePositions({ symbols }: { symbols: string[] }) {
 }
 
 function Bars({ rows }: { rows: { id: string; equity: number }[] }) {
-  const max = Math.max(...rows.map((r) => Number(r.equity || 0)), 1);
+  const FULL = 120; // 固定容器高度
+  // 自适应刻度：向上取整到最近的 2k 档，并至少 12k
+  const maxEq = Math.max(...rows.map((r) => Number(r.equity || 0)), 1);
+  const SCALE = Math.max(12000, Math.ceil(maxEq / 2000) * 2000);
   return (
     <div
       className="rounded-md border p-3"
@@ -178,35 +181,54 @@ function Bars({ rows }: { rows: { id: string; equity: number }[] }) {
       <div className="ui-sans text-xs" style={{ color: "var(--muted-text)" }}>
         账户价值
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-6">
+      <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6 md:grid-cols-6">
         {rows.map((r) => {
           const color = getModelColor(r.id);
-          const h = Math.max(
-            6,
-            Math.round((Number(r.equity || 0) / max) * 120),
-          );
+          const eq = Number(r.equity || 0);
+          const pct = Math.max(0, Math.min(eq / SCALE, 1));
+          const fill = Math.max(2, Math.round(pct * FULL));
+          const icon = getModelIcon(r.id);
+          const ICON = 16; // logo 直径
           return (
-            <div key={r.id} className="flex flex-col items-center gap-2">
-              <div
-                className="w-10 rounded-sm border"
-                style={{
-                  height: h,
-                  background: color,
-                  borderColor:
-                    "color-mix(in oklab, var(--panel-border) 60%, transparent)",
-                }}
-              />
-              <div
-                className="ui-sans text-[11px]"
-                style={{ color: "var(--muted-text)" }}
-              >
-                {getModelName(r.id)}
-              </div>
-              <div
-                className="tabular-nums text-[11px]"
-                style={{ color: "var(--foreground)" }}
-              >
+            <div key={r.id} className="flex flex-col items-center gap-1">
+              <div className="tabular-nums text-[11px]" style={{ color: "var(--foreground)" }}>
                 {fmtUSD(r.equity)}
+              </div>
+              <div className="relative w-10" style={{ height: FULL }}>
+                <div
+                  className="absolute inset-0 rounded-sm border"
+                  style={{
+                    background:
+                      "color-mix(in oklab, var(--panel-border) 22%, transparent)",
+                    borderColor:
+                      "color-mix(in oklab, var(--panel-border) 60%, transparent)",
+                  }}
+                />
+                <div
+                  className="absolute bottom-0 left-0 right-0 rounded-b-sm"
+                  style={{
+                    height: fill,
+                    background: color,
+                  }}
+                />
+                {icon && fill >= ICON + 6 ? (
+                  <div
+                    className="absolute bottom-1 left-1/2 -translate-x-1/2 overflow-hidden rounded-sm"
+                    style={{ width: ICON, height: ICON }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={icon}
+                      alt=""
+                      width={ICON}
+                      height={ICON}
+                      style={{ objectFit: "contain", filter: "brightness(0) invert(1)" }}
+                    />
+                  </div>
+                ) : null}
+              </div>
+              <div className="ui-sans text-[11px] text-center" style={{ color: "var(--muted-text)" }}>
+                {getModelName(r.id)}
               </div>
             </div>
           );
