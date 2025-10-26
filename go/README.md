@@ -1,64 +1,16 @@
-# NOF0 - AI Trading Arena Platform
+# NOF0 Backend - Go API Server
 
-> **终极目标**: 完整复刻 [NOF1.ai](https://nof1.ai) Alpha Arena，打造开源的AI交易竞技平台
-> **当前阶段**: 后端基础设施 | **状态**: 生产就绪
+> 高性能Go语言实现的NOF0 Alpha Arena后端API，提供AI交易模型的实时数据、分析和排行榜服务
 
-<div align="center">
-
-**[NOF1 官网](https://nof1.ai) • [项目路线图](#roadmap) • [快速开始](#quick-start) • [技术文档](#tech-stack)**
-
-</div>
+**[返回项目主页](../README.md)** | **状态**: 生产就绪 | **版本**: v1.1.0
 
 ---
 
-## 项目简介
+## 概述
 
-**给非技术用户**: NOF0 是一个让6个AI模型在真实加密货币市场中进行交易竞赛的平台。每个AI从$10,000起步，实时展示谁赚的多、谁亏的惨。本项目复刻 nof1.ai 的完整功能，让任何人都能部署自己的AI交易竞技场。
-
-**给技术用户**: 高性能Go后端 + React前端 + AI Agent交易引擎的完整实现。当前已完成后端API层（7个端点，<10ms响应），支持文件/数据库双模式数据源。前端复刻和AI Agent集成进行中。
-
----
-
-## 项目愿景 {#roadmap}
-
-### 终极目标
-完整开源复刻 [NOF1.ai](https://nof1.ai) Alpha Arena，包含三大核心模块：
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│  NOF0 Full-Stack AI Trading Arena                          │
-├─────────────────────────────────────────────────────────────┤
-│  [Frontend]       │  React + Recharts + 实时仪表盘         │
-│  [Backend]        │  Go-Zero + REST API + WebSocket        │
-│  [AI Agents]      │  6x LLM交易引擎 + 策略回测              │
-│  [Data Layer]     │  Postgres + Redis + 实时行情流         │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 当前进度
-
-| 模块 | 功能 | 状态 | 完成度 |
-|------|------|------|--------|
-| **前端** | 页面布局 & 路由 | 完成 | 90% |
-| | 实时价格滚动条 | 完成 | 100% |
-| | 模型详情页 & 图表 | 完成 | 95% |
-| | WebSocket 实时更新 | 进行中 | 30% |
-| **后端** | REST API (7端点) | 完成 | 100% |
-| | 文件数据源 | 完成 | 100% |
-| | Postgres + Redis | 完成 | 100% |
-| | WebSocket 推送 | 规划中 | 0% |
-| **AI Agent** | 交易策略引擎 | 规划中 | 0% |
-| | LLM 集成 (6模型) | 规划中 | 0% |
-| | 回测框架 | 规划中 | 0% |
-| **数据层** | 数据库 Schema | 完成 | 100% |
-| | 实时行情接入 | 规划中 | 0% |
-| | 数据导入工具 | 完成 | 100% |
-
----
-
-## 当前版本: 后端 API v1.1 {#quick-start}
-
-本仓库 `go/` 目录是后端实现，提供完整的 REST API 服务。
+NOF0后端是基于Go-Zero框架的微服务API，为前端提供7个REST端点。支持双模式数据源：
+- **文件模式**: 从JSON文件快速加载（开发/演示）
+- **数据库模式**: Postgres + Redis（生产环境）
 
 ### 核心特性
 
@@ -225,36 +177,27 @@ go test -cover ./internal/data/
 
 ---
 
-## 项目结构
+## 后端目录结构
 
 ```
-nof0/
-├── go/                       # [后端] (本README所在)
-│   ├── nof0.go               # 主入口
-│   ├── internal/
-│   │   ├── handler/          # HTTP路由处理
-│   │   ├── logic/            # 业务逻辑层
-│   │   ├── data/             # 文件数据源 (JSON)
-│   │   ├── repo/             # DB数据源 (Postgres+Redis)
-│   │   ├── model/            # 数据库Model层
-│   │   └── types/            # Go类型定义
-│   ├── cmd/importer/         # 数据导入工具
-│   ├── migrations/           # 数据库迁移脚本
-│   └── test/                 # 集成测试套件
-│
-├── web/                      # [前端] (React)
-│   ├── src/
-│   │   ├── components/       # UI组件
-│   │   ├── pages/            # 页面路由
-│   │   └── lib/              # 工具函数
-│   └── public/
-│
-├── mcp/                      # [数据源]
-│   └── data/                 # JSON静态数据
-│
-└── agents/                   # [AI交易引擎] (规划中)
-    ├── strategies/           # 交易策略
-    └── llm/                  # LLM集成
+go/
+├── nof0.go                   # 主入口文件
+├── etc/nof0.yaml             # 配置文件
+├── internal/
+│   ├── handler/              # HTTP路由处理器
+│   ├── logic/                # 业务逻辑层
+│   ├── data/                 # 文件数据源 (JSON)
+│   ├── repo/                 # DB数据源 (Postgres+Redis)
+│   ├── model/                # 数据库Model层（自动生成）
+│   ├── types/                # API类型定义
+│   ├── config/               # 配置结构
+│   └── svc/                  # 服务上下文
+├── cmd/importer/             # 数据导入CLI工具
+├── migrations/               # 数据库迁移脚本
+├── test/                     # 集成测试套件
+└── scripts/                  # 自动化脚本
+    ├── run-tests.sh          # 单元测试
+    └── run-integration-tests.sh
 ```
 
 ---
@@ -383,53 +326,24 @@ go build -o nof0-api
 
 ## 相关资源
 
-<table>
-<tr>
-<td width="50%">
+**项目文档**:
+- [项目主页](../README.md) - 完整项目愿景和路线图
+- [测试指南](TEST_README.md) - 单元测试和集成测试
+- [数据架构](docs/data-architecture.md) - 数据库设计文档
+- [API规范](../mcp/data/README.md) - 数据格式说明
 
-**项目链接**
+**技术参考**:
+- [Go-Zero 框架](https://go-zero.dev/)
 - [NOF1 官方网站](https://nof1.ai/)
-- [项目路线图](#roadmap)
-- [API规范文档](../mcp/data/README.md)
-
-</td>
-<td width="50%">
-
-**技术文档**
-- [Go-Zero框架](https://go-zero.dev/)
-- [测试完整指南](TEST_README.md)
-- [数据架构设计](docs/data-architecture.md)
-
-</td>
-</tr>
-</table>
-
----
-
-## 贡献
-
-欢迎贡献代码、报告问题或提出建议！
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交更改 (`git commit -m 'feat: add amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 提交 Pull Request
-
----
-
-## 许可证
-
-MIT License - 详见 [LICENSE](../LICENSE) 文件
 
 ---
 
 <div align="center">
 
-**NOF0 - 开源AI交易竞技平台**
+**NOF0 Backend API**
 
 **版本**: v1.1.0 | **状态**: 生产就绪 | **更新**: 2025-10-26
 
-[Star](https://github.com/wquguru/nof0) • [反馈问题](https://github.com/wquguru/nof0/issues) • [文档](#)
+[返回项目主页](../README.md)
 
 </div>
