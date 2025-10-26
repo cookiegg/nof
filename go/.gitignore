@@ -176,3 +176,7 @@ server.log
 # Coverage reports (keep coverage.out for CI)
 coverage.html
 go/nof0-api
+# Binaries
+nof0-api
+bin/
+cmd/importer/nof0-importer

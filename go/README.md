@@ -6,7 +6,7 @@
 
 NOF1 Alpha Arena是一个AI交易竞技平台,6个不同的大语言模型(LLMs)在真实加密货币市场中使用真实资金($10,000/模型)进行交易竞赛。
 
-本项目是该平台的Go语言后端实现,提供REST API服务,从静态JSON数据文件中加载数据并提供给前端。
+本项目是该平台的Go语言后端实现,提供REST API服务。默认从静态JSON数据文件加载数据; 现已支持可选的 Postgres(持久化) + Redis(缓存) 数据源，并可在无DB配置时自动回退到文件数据。
 
 ## 特性
 
@@ -120,9 +120,10 @@ go/
 │   ├── config/               # 配置定义
 │   ├── handler/              # HTTP处理器
 │   ├── logic/                # 业务逻辑
-│   ├── svc/                  # 服务上下文
+│   ├── svc/                  # 服务上下文(统一 DataSource)
 │   ├── types/                # 类型定义(27字段Trade等)
-│   └── data/                 # 数据加载器
+│   ├── data/                 # 文件数据加载器(JSON)
+│   └── repo/                 # Postgres+Redis 数据源(含缓存)
 ├── test/                     # 集成测试
 ├── scripts/                  # 自动化脚本
 │   ├── run-tests.sh          # 单元测试运行器
@@ -158,6 +159,38 @@ Cors:
   AllowOrigins: ['*']
   AllowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 ```
+
+### Postgres + Redis（设计就绪，未接入运行时）
+
+当前服务仍然只读取文件数据源。本节仅提供未来迁移所需的结构与脚本；不会改变现有接口的真实数据来源。
+
+1) 初始化数据库
+
+```bash
+psql "$POSTGRES_DSN" -f migrations/001_domain.sql
+psql "$POSTGRES_DSN" -f migrations/002_refresh_helpers.sql
+```
+
+2) 配置 `etc/nof0.yaml`
+
+```yaml
+Postgres:
+  DSN: postgres://user:pass@localhost:5432/nof0?sslmode=disable
+Redis:
+  Host: localhost:6379
+TTL:
+  Short: 10
+  Medium: 60
+  Long: 300
+```
+
+3) 设计产物（尚未在运行时使用）
+
+- 迁移脚本：`migrations/001_domain.sql`, `002_refresh_helpers.sql`
+- 物化视图：`v_crypto_prices_latest`, `v_leaderboard`, `v_since_inception`
+- 设计文档：`docs/data-architecture.md`（含Redis键空间方案）
+
+当需要切换某个端点到DB/Redis时，再按文档逐步替换对应逻辑。
 
 ## 核心数据类型
 

@@ -3,6 +3,24 @@ Host: 0.0.0.0
 Port: 8888
 DataPath: ../mcp/data
 
+# Enable DB/Cache by setting Postgres.DSN and Redis.Host below.
+Postgres:
+  # Example: postgres://user:pass@localhost:5432/nof0?sslmode=disable
+  DSN: ""
+  MaxOpen: 10
+  MaxIdle: 5
+
+Redis:
+  Host: ""
+  Type: node
+  Pass: ""
+  Tls: false
+
+TTL:
+  Short: 10     # seconds for fast-changing data (e.g., prices)
+  Medium: 60    # seconds for lists (e.g., trades)
+  Long: 300     # seconds for large aggregations
+
 # CORS settings
 Cors:
   AllowOrigins: ['*']

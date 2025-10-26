@@ -1,6 +1,28 @@
 version: '3.8'
 
 services:
+  postgres:
+    image: postgres:16
+    container_name: nof0-postgres
+    environment:
+      POSTGRES_USER: nof0
+      POSTGRES_PASSWORD: nof0
+      POSTGRES_DB: nof0
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - nof0-network
+
+  redis:
+    image: redis:7
+    container_name: nof0-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - nof0-network
+
   nof0-api:
     build:
       context: .
@@ -12,6 +34,8 @@ services:
       - ../mcp/data:/data:ro
     environment:
       - DataPath=/data
+      - Postgres__DSN=postgres://nof0:nof0@postgres:5432/nof0?sslmode=disable
+      - Redis__Host=redis:6379
     restart: unless-stopped
     networks:
       - nof0-network
@@ -19,3 +43,6 @@ services:
 networks:
   nof0-network:
     driver: bridge
+
+volumes:
+  pgdata:

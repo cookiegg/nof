@@ -13,6 +13,12 @@ deps: ## Install dependencies
 	go mod download
 	go mod tidy
 
+migrate-up: ## Run DB migrations up (requires golang-migrate cli)
+	migrate -path migrations -database "$(POSTGRES_DSN)" -verbose up
+
+migrate-down: ## Rollback last migration (requires golang-migrate cli)
+	migrate -path migrations -database "$(POSTGRES_DSN)" -verbose down 1
+
 run: ## Run the application in development mode
 	go run nof0.go -f $(CONFIG_FILE)
 
