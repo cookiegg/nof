@@ -1,0 +1,197 @@
+{
+  "totalConversations": 100,
+  "conversationFields": {
+    "type": "object",
+    "keys": [
+      "id",
+      "user_prompt",
+      "llm_response",
+      "cycle_id",
+      "inserted_at",
+      "cot_trace",
+      "model_id",
+      "skill",
+      "cot_trace_summary",
+      "timestamp",
+      "run_id"
+    ],
+    "keyTypes": {
+      "id": "string",
+      "user_prompt": "string",
+      "llm_response": {
+        "type": "object",
+        "keys": [
+          "ETH",
+          "BTC",
+          "BNB",
+          "SOL",
+          "XRP"
+        ],
+        "keyTypes": {
+          "ETH": {
+            "type": "object",
+            "keys": [
+              "quantity",
+              "stop_loss",
+              "signal",
+              "profit_target",
+              "invalidation_condition",
+              "justification",
+              "confidence",
+              "leverage",
+              "risk_usd",
+              "coin"
+            ],
+            "keyTypes": {
+              "quantity": "number",
+              "stop_loss": "number",
+              "signal": "string",
+              "profit_target": "number",
+              "invalidation_condition": "string",
+              "justification": "string",
+              "confidence": "number",
+              "leverage": "number",
+              "risk_usd": "number",
+              "coin": "string"
+            }
+          },
+          "BTC": {
+            "type": "object",
+            "keys": [
+              "quantity",
+              "stop_loss",
+              "signal",
+              "profit_target",
+              "invalidation_condition",
+              "justification",
+              "confidence",
+              "leverage",
+              "risk_usd",
+              "coin"
+            ],
+            "keyTypes": {
+              "quantity": "number",
+              "stop_loss": "number",
+              "signal": "string",
+              "profit_target": "number",
+              "invalidation_condition": "string",
+              "justification": "string",
+              "confidence": "number",
+              "leverage": "number",
+              "risk_usd": "number",
+              "coin": "string"
+            }
+          },
+          "BNB": {
+            "type": "object",
+            "keys": [
+              "quantity",
+              "stop_loss",
+              "signal",
+              "profit_target",
+              "invalidation_condition",
+              "justification",
+              "confidence",
+              "leverage",
+              "risk_usd",
+              "coin"
+            ],
+            "keyTypes": {
+              "quantity": "number",
+              "stop_loss": "number",
+              "signal": "string",
+              "profit_target": "number",
+              "invalidation_condition": "string",
+              "justification": "string",
+              "confidence": "number",
+              "leverage": "number",
+              "risk_usd": "number",
+              "coin": "string"
+            }
+          },
+          "SOL": {
+            "type": "object",
+            "keys": [
+              "quantity",
+              "stop_loss",
+              "signal",
+              "profit_target",
+              "invalidation_condition",
+              "justification",
+              "confidence",
+              "leverage",
+              "risk_usd",
+              "coin"
+            ],
+            "keyTypes": {
+              "quantity": "number",
+              "stop_loss": "number",
+              "signal": "string",
+              "profit_target": "number",
+              "invalidation_condition": "string",
+              "justification": "string",
+              "confidence": "number",
+              "leverage": "number",
+              "risk_usd": "number",
+              "coin": "string"
+            }
+          },
+          "XRP": {
+            "type": "object",
+            "keys": [
+              "quantity",
+              "stop_loss",
+              "signal",
+              "profit_target",
+              "invalidation_condition",
+              "justification",
+              "confidence",
+              "leverage",
+              "risk_usd",
+              "coin"
+            ],
+            "keyTypes": {
+              "quantity": "number",
+              "stop_loss": "number",
+              "signal": "string",
+              "profit_target": "number",
+              "invalidation_condition": "string",
+              "justification": "string",
+              "confidence": "number",
+              "leverage": "number",
+              "risk_usd": "number",
+              "coin": "string"
+            }
+          }
+        }
+      },
+      "cycle_id": "number",
+      "inserted_at": "number",
+      "cot_trace": "string",
+      "model_id": "string",
+      "skill": "string",
+      "cot_trace_summary": "string",
+      "timestamp": "number",
+      "run_id": "string"
+    }
+  },
+  "messageFields": {},
+  "sampleConversation": {
+    "id": "claude-sonnet-4-5_1761653414.881432",
+    "user_prompt": "It has been 8577 minutes since you started trading. The current time is 2025-10-28 12:09:39.595023 and you've been invoked 4039 times. Below, we are providing you with a variety of state data, price data, and predictive signals so you can discover alpha. Below that is your current account information, value, performance, positions, etc.\n\n**ALL OF THE PRICE OR SIGNAL DATA BELOW IS ORDERED: OLDEST → NEWEST**\n\n**Timeframes note:** Unless stated otherwise in a section title, intraday series are provided at **3‑minute intervals**. If a coin uses a different interval, it is explicitly stated in that coin’s section.\n\n---\n\n### CURRENT MARKET STATE FOR ALL COINS\n\n### ALL BTC DATA\n\ncurrent_price = 114274.5, current_ema20 = 114429.703, current_macd = -52.074, current_rsi (7 period) = 23.715\n\nIn addition, here is the latest BTC open interest and funding rate for perps (the instrument you are trading):\n\nOpen Interest: Latest: 30352.47  Average: 30404.13\n\nFunding Rate: 1.25e-05\n\n**Intraday series (by minute, oldest → latest):**\n\nMid prices: [114495.5, 114493.0, 114445.5, 114448.5, 114352.0, 114364.0, 114360.5, 114313.0, 114305.5, 114274.5]\n\nEMA indicators (20‑period): [114536.154, 114531.282, 114523.065, 114516.202, 114498.849, 114486.102, 114475.044, 114458.945, 114446.093, 114429.703]\n\nMACD indicators: [23.144, 16.065, 7.144, 0.553, -13.952, -22.683, -28.867, -38.488, -44.152, -52.074]\n\nRSI indicators (7‑Period): [43.414, 37.619, 31.795, 33.594, 20.994, 29.202, 30.56, 23.757, 28.947, 23.715]\n\nRSI indicators (14‑Period): [49.281, 45.409, 41.299, 42.145, 32.352, 36.558, 37.236, 32.456, 34.984, 31.462]\n\n**Longer‑term context (4‑hour timeframe):**\n\n20‑Period EMA: 113461.259 vs. 50‑Period EMA: 112036.33\n\n3‑Period ATR: 324.094 vs. 14‑Period ATR: 516.398\n\nCurrent Volume: 2.554 vs. Average Volume: 4617.131\n\nMACD indicators: [1082.221, 1205.898, 1326.547, 1391.197, 1399.75, 1380.927, 1285.189, 1177.745, 1106.149, 1051.65]\n\nRSI indicators (14‑Period): [72.884, 74.49, 76.097, 74.118, 70.601, 69.31, 61.103, 59.05, 61.107, 62.223]\n\n---\n\n### ALL ETH DATA\n\ncurrent_price = 4109.55, current_ema20 = 4114.987, current_macd = -1.647, current_rsi (7 period) = 34.923\n\nIn addition, here is the latest ETH open interest and funding rate for perps:\n\nOpen Interest: Latest: 510392.86  Average: 510485.1\n\nFunding Rate: 1.25e-05\n\n**Intraday series (3‑minute intervals, oldest → latest):**\n\nMid prices: [4119.65, 4119.15, 4113.8, 4115.05, 4111.6, 4111.55, 4111.4, 4108.9, 4109.75, 4109.55]\n\nEMA indicators (20‑period): [4119.411, 4119.315, 4118.714, 4118.427, 4117.814, 4117.318, 4116.735, 4115.97, 4115.554, 4114.987]\n\nMACD indicators: [2.302, 1.936, 1.196, 0.819, 0.218, -0.207, -0.649, -1.187, -1.365, -1.647]\n\nRSI indicators (7‑Period): [52.689, 42.736, 30.598, 40.462, 32.97, 35.239, 32.266, 27.443, 39.651, 34.923]\n\nRSI indicators (14‑Period): [54.947, 49.436, 41.389, 46.112, 41.211, 42.282, 40.431, 37.291, 42.837, 40.197]\n\n**Longer‑term context (4‑hour timeframe):**\n\n20‑Period EMA: 4075.947 vs. 50‑Period EMA: 4013.23\n\n3‑Period ATR: 23.985 vs. 14‑Period ATR: 33.904\n\nCurrent Volume: 2285.973 vs. Average Volume: 96143.673\n\nMACD indicators: [46.452, 58.55, 66.939, 69.518, 71.911, 74.043, 69.142, 62.377, 58.463, 54.324]\n\nRSI indicators (14‑Period): [73.574, 76.008, 75.09, 68.302, 69.376, 70.377, 59.286, 55.754, 58.375, 57.662]\n\n---\n\n### ALL SOL DATA\n\ncurrent_price = 199.215, current_ema20 = 199.798, current_macd = -0.305, current_rsi (7 period) = 31.252\n\nIn addition, here is the latest SOL open interest and funding rate for perps:\n\nOpen Interest: Latest: 3829185.5  Average: 3849407.41\n\nFunding Rate: 1.25e-05\n\n**Intraday series (3‑minute intervals, oldest → latest):**\n\nSOL mid prices: [199.755, 199.855, 199.61, 199.575, 199.24, 199.465, 199.685, 199.455, 199.24, 199.215]\n\nEMA indicators (20‑period): [200.285, 200.237, 200.177, 200.115, 200.029, 199.984, 199.956, 199.907, 199.859, 199.798]\n\nMACD indicators: [-0.187, -0.204, -0.228, -0.251, -0.292, -0.292, -0.279, -0.285, -0.29, -0.305]\n\nRSI indicators (7‑Period): [38.716, 34.416, 30.01, 28.039, 21.461, 39.555, 45.042, 37.421, 36.275, 31.252]\n\nRSI indicators (14‑Period): [39.392, 36.988, 34.424, 33.255, 29.013, 38.286, 41.35, 37.495, 36.902, 34.275]\n\n**Longer‑term context (4‑hour timeframe):**\n\n20‑Period EMA: 198.024 vs. 50‑Period EMA: 194.739\n\n3‑Period ATR: 1.984 vs. 14‑Period ATR: 1.948\n\nCurrent Volume: 1000.97 vs. Average Volume: 764578.530\n\nMACD indicators: [2.569, 3.082, 3.267, 3.193, 3.104, 2.987, 2.756, 2.728, 2.788, 2.592]\n\nRSI indicators (14‑Period): [67.183, 73.37, 66.714, 60.8, 60.882, 60.499, 56.868, 61.268, 63.676, 56.562]\n\n---\n\n### ALL BNB DATA\n\ncurrent_price = 1135.45, current_ema20 = 1134.389, current_macd = -0.164, current_rsi (7 period) = 59.226\n\nIn addition, here is the latest BNB open interest and funding rate for perps:\n\nOpen Interest: Latest: 72193.05  Average: 72220.98\n\nFunding Rate: -1.24306e-05\n\n**Intraday series (3‑minute intervals, oldest → latest):**\n\nBNB mid prices: [1135.35, 1135.9, 1134.1, 1133.8, 1133.05, 1131.5, 1132.0, 1133.95, 1134.45, 1135.45]\n\nEMA indicators (20‑period): [1135.096, 1135.163, 1135.004, 1134.89, 1134.71, 1134.414, 1134.203, 1134.241, 1134.303, 1134.389]\n\nMACD indicators: [0.344, 0.355, 0.176, 0.057, -0.1, -0.334, -0.466, -0.372, -0.27, -0.164]\n\nRSI indicators (7‑Period): [56.114, 57.37, 32.451, 36.639, 30.715, 23.092, 31.582, 54.845, 56.978, 59.226]\n\nRSI indicators (14‑Period): [54.32, 54.955, 40.89, 42.941, 39.049, 33.353, 37.557, 50.9, 52.273, 53.668]\n\n**Longer‑term context (4‑hour timeframe):**\n\n20‑Period EMA: 1133.468 vs. 50‑Period EMA: 1125.635\n\n3‑Period ATR: 5.19 vs. 14‑Period ATR: 10.187\n\nCurrent Volume: 18.294 vs. Average Volume: 8698.528\n\nMACD indicators: [7.56, 9.271, 10.754, 13.835, 13.147, 12.475, 11.28, 10.151, 8.736, 7.559]\n\nRSI indicators (14‑Period): [60.044, 64.202, 65.113, 71.553, 55.616, 55.674, 53.219, 52.914, 50.875, 51.032]\n\n---\n\n### ALL XRP DATA\n\ncurrent_price = 2.64085, current_ema20 = 2.646, current_macd = -0.004, current_rsi (7 period) = 44.841\n\nIn addition, here is the latest XRP open interest and funding rate for perps:\n\nOpen Interest: Latest: 53261216.0  Average: 53256402.2\n\nFunding Rate: 1.25e-05\n\n**Intraday series (3‑minute intervals, oldest → latest):**\n\nXRP mid prices: [2.652, 2.643, 2.642, 2.639, 2.642, 2.64, 2.64, 2.641, 2.644, 2.64085]\n\nEMA indicators (20‑period): [2.652, 2.651, 2.65, 2.649, 2.648, 2.647, 2.647, 2.646, 2.646, 2.646]\n\nMACD indicators: [-0.003, -0.003, -0.004, -0.004, -0.004, -0.004, -0.004, -0.004, -0.004, -0.004]\n\nRSI indicators (7‑Period): [57.862, 33.225, 28.116, 27.299, 36.354, 30.993, 33.729, 40.186, 53.715, 44.841]\n\nRSI indicators (14‑Period): [46.576, 34.629, 31.451, 30.941, 35.657, 32.787, 34.157, 37.365, 44.812, 40.886]\n\n**Longer‑term context (4‑hour timeframe):**\n\n20‑Period EMA: 2.606 vs. 50‑Period EMA: 2.543\n\n3‑Period ATR: 0.012 vs. 14‑Period ATR: 0.019\n\nCurrent Volume: 11511.0 vs. Average Volume: 7994383.317\n\nMACD indicators: [0.056, 0.055, 0.053, 0.051, 0.051, 0.052, 0.048, 0.045, 0.042, 0.041]\n\nRSI indicators (14‑Period): [71.099, 68.276, 66.821, 65.295, 70.524, 70.818, 61.541, 60.19, 61.941, 62.798]\n\n---\n\n### ALL DOGE DATA\n\ncurrent_price = 0.199575, current_ema20 = 0.2, current_macd = -0.0, current_rsi (7 period) = 38.138\n\nIn addition, here is the latest DOGE open interest and funding rate for perps:\n\nOpen Interest: Latest: 585402692.0  Average: 585408749.8\n\nFunding Rate: -1.02408e-05\n\n**Intraday series (3‑minute intervals, oldest → latest):**\n\nDOGE mid prices: [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.199575]\n\nEMA indicators (20‑period): [0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2, 0.2]\n\nMACD indicators: [0.0, 0.0, 0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0, -0.0]\n\nRSI indicators (7‑Period): [40.382, 38.579, 30.108, 34.461, 29.818, 32.642, 36.374, 29.201, 44.094, 38.138]\n\nRSI indicators (14‑Period): [46.933, 45.85, 40.427, 42.332, 39.423, 40.595, 42.103, 38.141, 44.638, 41.641]\n\n**Longer‑term context (4‑hour timeframe):**\n\n20‑Period EMA: 0.2 vs. 50‑Period EMA: 0.199\n\n3‑Period ATR: 0.001 vs. 14‑Period ATR: 0.002\n\nCurrent Volume: 259334.0 vs. Average Volume: 80143809.553\n\nMACD indicators: [0.002, 0.002, 0.003, 0.003, 0.002, 0.002, 0.002, 0.002, 0.001, 0.001]\n\nRSI indicators (14‑Period): [68.195, 69.444, 66.424, 59.041, 58.464, 58.158, 51.001, 48.987, 51.302, 49.89]\n\n### HERE IS YOUR ACCOUNT INFORMATION & PERFORMANCE\n\nCurrent Total Return (percent): 13.65%\n\nAvailable Cash: 5555.87\n\n**Current Account Value:** 11364.7\n\nCurrent live positions & performance: \n{'symbol': 'ETH', 'quantity': 2.45, 'entry_price': 4093.6, 'current_price': 4109.55, 'liquidation_price': 3763.58, 'unrealized_pnl': 39.08, 'leverage': 10, 'exit_plan': {'profit_target': 4445.0, 'stop_loss': 3945.0, 'invalidation_condition': '4H MACD turns negative or price closes below $3,950 on 4H timeframe'}, 'confidence': 0.65, 'risk_usd': 350.0, 'sl_oid': 213014471020, 'tp_oid': 213014447915, 'wait_for_fill': False, 'entry_oid': 213014426905, 'notional_usd': 10068.4}\n{'symbol': 'SOL', 'quantity': 25.7, 'entry_price': 194.29, 'current_price': 199.215, 'liquidation_price': 179.59, 'unrealized_pnl': 126.57, 'leverage': 10, 'exit_plan': {'profit_target': 221.62, 'stop_loss': 187.62, 'invalidation_condition': '4H MACD turns negative or price closes below $190 on 4H timeframe'}, 'confidence': 0.65, 'risk_usd': 175.0, 'sl_oid': 212424032571, 'tp_oid': 212424018744, 'wait_for_fill': False, 'entry_oid': 212423998713, 'notional_usd': 5119.83}\n{'symbol': 'XRP', 'quantity': 2344.0, 'entry_price': 2.51, 'current_price': 2.64085, 'liquidation_price': 2.26, 'unrealized_pnl': 305.77, 'leverage': 8, 'exit_plan': {'profit_target': 2.785, 'stop_loss': 2.401, 'invalidation_condition': '4H MACD turns negative or price closes below $2.45 on 4H timeframe'}, 'confidence': 0.65, 'risk_usd': 257.4, 'sl_oid': -1, 'tp_oid': -1, 'wait_for_fill': False, 'entry_oid': 211737285141, 'notional_usd': 6190.15}\n{'symbol': 'BTC', 'quantity': 0.48, 'entry_price': 115097.0, 'current_price': 114274.5, 'liquidation_price': 110827.2, 'unrealized_pnl': -394.8, 'leverage': 20, 'exit_plan': {'profit_target': 121965.71, 'stop_loss': 112761.43, 'invalidation_condition': '4H MACD turns negative or price closes below $111,000 on 4H timeframe'}, 'confidence': 0.7, 'risk_usd': 1116.12, 'sl_oid': 213522570455, 'tp_oid': 213522558998, 'wait_for_fill': False, 'entry_oid': 213522537619, 'notional_usd': 54851.76}\n{'symbol': 'BNB', 'quantity': 8.46, 'entry_price': 1158.05, 'current_price': 1135.45, 'liquidation_price': 1097.34, 'unrealized_pnl': -191.15, 'leverage': 10, 'exit_plan': {'profit_target': 1320.0, 'stop_loss': 1111.72, 'invalidation_condition': '4H MACD turns negative or price closes below $1,110 on 4H timeframe'}, 'confidence': 0.65, 'risk_usd': 392.0, 'sl_oid': 213684829417, 'tp_oid': 213684815834, 'wait_for_fill': False, 'entry_oid': 213684801744, 'notional_usd': 9605.91}\n\nSharpe Ratio: 0.027",
+    "llm_response": {
+      "ETH": "[truncated]",
+      "BTC": "[truncated]",
+      "BNB": "[truncated]",
+      "SOL": "[truncated]",
+      "XRP": "[truncated]"
+    },
+    "cycle_id": 4039,
+    "inserted_at": 1761653417.492318
+  },
+  "statistics": {
+    "totalMessages": 0,
+    "averageMessagesPerConversation": 0,
+    "fieldFrequency": {}
+  }
+}

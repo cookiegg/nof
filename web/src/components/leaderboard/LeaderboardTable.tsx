@@ -10,7 +10,7 @@ import { getModelName } from "@/lib/model/meta";
 import { ModelLogoChip } from "@/components/shared/ModelLogo";
 import { fmtUSD, pnlClass, fmtPct } from "@/lib/utils/formatters";
 import ErrorBanner from "@/components/ui/ErrorBanner";
-import { SkeletonRow } from "@/components/ui/Skeleton";
+import { SkeletonTableRow } from "@/components/ui/Skeleton";
 import clsx from "clsx";
 
 type SortKey =
@@ -141,9 +141,9 @@ export default function LeaderboardTable({
           <tbody style={{ color: "var(--foreground)" }}>
             {isLoading ? (
               <>
-                <SkeletonRow cols={6} />
-                <SkeletonRow cols={6} />
-                <SkeletonRow cols={6} />
+                <SkeletonTableRow cols={6} />
+                <SkeletonTableRow cols={6} />
+                <SkeletonTableRow cols={6} />
               </>
             ) : (
               data.map(

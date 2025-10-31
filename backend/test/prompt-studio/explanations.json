@@ -1,0 +1,92 @@
+{
+  "cap": {
+    "en": "Overview of what data and capabilities are currently available: environment, whether exchange is connected, which symbols are monitored/allowed, available placeholders in the user prompt, and which symbols are present in the live snapshot.",
+    "zh": "当前可用的数据与能力总览：运行环境、是否已连接交易所、监控/白名单币种、user prompt 中可用的占位符，以及快照中包含的币种。",
+    "fr": "Aperçu des données et capacités disponibles: environnement, connexion à l'exchange, symboles surveillés/autorisés, variables disponibles dans le user prompt, et symboles présents dans l'instantané.",
+    "es": "Resumen de datos y capacidades disponibles: entorno, si el exchange está conectado, símbolos monitorizados/autorizados, placeholders disponibles en el user prompt y símbolos presentes en el snapshot.",
+    "ru": "Обзор доступных данных и возможностей: среда, подключение к бирже, отслеживаемые/разрешённые символы, доступные плейсхолдеры в user prompt и символы в снимке рынка.",
+    "ja": "現在利用可能なデータと機能の概要：実行環境、取引所接続の有無、監視/許可シンボル、user prompt で利用可能なプレースホルダー、およびスナップショットに含まれるシンボル。"
+  },
+  "cap-ccxt": {
+    "en": "CCXT exchange capabilities and API features from describe(): includes rate limits, supported endpoints (has.*), available timeframes, API URLs, and a sample of loaded markets.",
+    "zh": "CCXT 交易所能力与接口（来自 describe()）：包含限速、支持的端点（has.*）、可用时间框、API 地址，以及部分已加载的市场示例。",
+    "fr": "Capacités de l'exchange via CCXT (describe()): limites de fréquence, endpoints supportés (has.*), timeframes disponibles, URLs API et échantillon des marchés chargés.",
+    "es": "Capacidades del exchange vía CCXT (describe()): límites de tasa, endpoints soportados (has.*), marcos temporales disponibles, URLs de la API y una muestra de mercados cargados.",
+    "ru": "Возможности биржи по CCXT (describe()): лимиты запросов, поддерживаемые эндпоинты (has.*), доступные таймфреймы, URL API и пример загруженных рынков.",
+    "ja": "CCXT による取引所の機能 (describe()): レート制限、対応エンドポイント (has.*)、利用可能なタイムフレーム、API URL、および一部のロード済みマーケット。"
+  },
+  "schema": {
+    "en": "Field structure references for common data objects: ticker, OHLCV, balance, and (for futures) positions. Use these to design placeholders and ensure the prompt requests feasible data.",
+    "zh": "常见数据对象的字段结构参考：ticker、OHLCV、balance，以及（期货）positions。可据此设计占位符，确保 prompt 仅请求可获取的数据。",
+    "fr": "Références de structure de champs pour les objets courants: ticker, OHLCV, balance et (pour futures) positions. À utiliser pour concevoir des placeholders et garantir des demandes faisables.",
+    "es": "Referencia de estructura de campos para objetos comunes: ticker, OHLCV, balance y (para futuros) positions. Úsalo para diseñar placeholders y garantizar peticiones viables.",
+    "ru": "Справочник по полям для типичных объектов: ticker, OHLCV, balance и (для фьючерсов) positions. Используйте для проектирования плейсхолдеров и реалистичных запросов.",
+    "ja": "一般的なデータオブジェクトのフィールド構造: ticker, OHLCV, balance、および（先物）positions。これらを参考にプレースホルダーを設計し、実際に取得できるデータのみを要求してください。"
+  },
+  "useful_caps": {
+    "en": {
+      "exchange": "Exchange metadata relevant to strategy context.",
+      "exchange.id": "CCXT exchange id (e.g., binanceusdm).",
+      "exchange.name": "Human readable exchange name.",
+      "exchange.futures": "Whether the environment is futures (true/false).",
+      "exchange.marketType": "Market type simplification (e.g., linear USDT‑M).",
+      "timeframes": "Supported candle granularities you can request via fetchOHLCV.",
+      "api_has": "Which core endpoints are available for data/trading.",
+      "api_has.fetchOHLCV": "Historical candles available.",
+      "api_has.fetchTicker": "Latest ticker available.",
+      "api_has.fetchBalance": "Account balances available.",
+      "api_has.fetchPositions": "Open positions available (futures only).",
+      "api_has.createOrder": "Placing orders is supported.",
+      "api_has.fetchOrder": "Fetching order status is supported.",
+      "schemas": "Field layout for common objects (use for placeholders).",
+      "schemas.ticker": "Ticker object fields.",
+      "schemas.ohlcv": "OHLCV array layout: [t, o, h, l, c, v].",
+      "schemas.balance": "Balance fields per currency.",
+      "schemas.position": "Position fields for futures.",
+      "tradable_symbols": "Whitelisted symbols you allow the model to trade."
+    },
+    "zh": {
+      "exchange": "与策略相关的交易所元信息。",
+      "exchange.id": "CCXT 交易所标识（如 binanceusdm）。",
+      "exchange.name": "交易所名称（可读）。",
+      "exchange.futures": "是否为期货环境（true/false）。",
+      "exchange.marketType": "市场类型简化（如 USDT 线性合约）。",
+      "timeframes": "可用K线粒度（可用于 fetchOHLCV）。",
+      "api_has": "可用的核心接口能力（数据/下单/查单）。",
+      "api_has.fetchOHLCV": "是否可获取历史K线。",
+      "api_has.fetchTicker": "是否可获取最新行情。",
+      "api_has.fetchBalance": "是否可获取账户余额。",
+      "api_has.fetchPositions": "是否可获取持仓（期货）。",
+      "api_has.createOrder": "是否支持下单。",
+      "api_has.fetchOrder": "是否支持查单。",
+      "schemas": "常见对象字段结构（用来设计占位符）。",
+      "schemas.ticker": "Ticker 对象字段。",
+      "schemas.ohlcv": "OHLCV 数组结构：[时间, 开, 高, 低, 收, 量]。",
+      "schemas.balance": "余额对象字段（按币种）。",
+      "schemas.position": "期货持仓对象字段。",
+      "tradable_symbols": "允许模型交易的白名单交易对。"
+    },
+    "fr": {},
+    "es": {},
+    "ru": {},
+    "ja": {}
+  },
+  "prompt_docs": {
+    "en": {
+      "system_prompt": "Defines hard constraints and environment for the model: trading venue and mode (e.g., Binance USDT‑M futures isolated), exact symbol whitelist, leverage/margin rules, STRICT JSON schema for outputs, and response style. It prevents hallucinated symbols or formats and enforces machine‑readable responses.",
+      "user_prompt": "Carries runtime state and data for decision‑making: market sections per symbol (recent OHLCV‑derived indicators and 4h context), account info (value, cash, return), open positions with risk plan, and session metrics. Placeholders are rendered at runtime to inject fresh data.",
+      "placeholders": [
+        "minutes_since_start","now_iso","invocation_count","market_sections","account_value","available_cash","total_return","positions_block","sharpe_ratio"
+      ],
+      "market_sections": "Per‑symbol block including latest price, EMA(20), MACD, RSI(14/21), ATR from 1m series; 4h context (EMA20/50, ATR, MACD, RSI14); recent sequences (mid prices, EMA, MACD, RSI). Also volume vs avgVolume, funding rate, open interest (demo)."
+    },
+    "zh": {
+      "system_prompt": "规定模型的硬性约束与运行环境：交易场所与模式（如币安USDT‑M期货逐仓）、精确的交易对白名单、杠杆/保证金规则、严格的JSON输出结构，以及响应风格。用于避免幻觉符号/格式，并确保输出可被程序解析。",
+      "user_prompt": "承载用于决策的运行时数据：按币种的市场分节（近端OHLCV衍生指标与4h上下文）、账户信息（账户价值/可用资金/总回报）、当前持仓与风险计划、会话指标。模板占位符在运行时渲染为最新数据。",
+      "placeholders": [
+        "minutes_since_start","now_iso","invocation_count","market_sections","account_value","available_cash","total_return","positions_block","sharpe_ratio"
+      ],
+      "market_sections": "按币种输出：1分钟序列计算的最新价格、EMA(20)、MACD、RSI(14/21)、ATR；4小时上下文（EMA20/50、ATR、MACD、RSI14）；近期序列（中间价、EMA、MACD、RSI）。另含体量对比（当前量 vs 均量）、资金费率、未平仓量（示例）。"
+    }
+  }
+}

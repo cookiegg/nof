@@ -1,0 +1,45 @@
+{
+  "startTime": "2025-10-31T09:57:56.651Z",
+  "invocationCount": 3,
+  "totalReturn": -50.004083706900005,
+  "accountValue": 4999.59162931,
+  "availableCash": 4906.77500001,
+  "positions": [
+    {
+      "symbol": "SOL",
+      "quantity": 10,
+      "entry_price": 186.45,
+      "current_price": 186.48374293,
+      "liquidation_price": 178.992,
+      "unrealized_pnl": 0.3374293,
+      "leverage": 1,
+      "exit_plan": {
+        "profit_target": 205.095,
+        "stop_loss": 177.12749999999997,
+        "invalidation_condition": "price_below_stop_loss"
+      },
+      "confidence": 0.8,
+      "risk_usd": 1864.5,
+      "sl_oid": null,
+      "tp_oid": null,
+      "wait_for_fill": false,
+      "entry_oid": null,
+      "notional_usd": 1864.8374293
+    }
+  ],
+  "lastUpdate": "2025-10-31T10:00:39.695Z",
+  "tradingEnabled": true,
+  "trades": [
+    {
+      "timestamp": "2025-10-31T09:58:16.930Z",
+      "side": "BUY",
+      "symbol": "SOL",
+      "quantity": 10,
+      "price": 186.45,
+      "orderId": "1064366482",
+      "environment": "demo.binance.com",
+      "accountValue": 10000,
+      "totalReturn": 0
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "dependencies": {
+    "ccxt": "^4.5.13",
+    "http-proxy-agent": "^7.0.2",
+    "https-proxy-agent": "^7.0.6"
+  }
+}

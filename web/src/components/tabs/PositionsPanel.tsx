@@ -5,7 +5,7 @@ import { usePositions } from "@/lib/api/hooks/usePositions";
 import { fmtUSD, pnlClass } from "@/lib/utils/formatters";
 import clsx from "clsx";
 import ErrorBanner from "@/components/ui/ErrorBanner";
-import { SkeletonRow } from "@/components/ui/Skeleton";
+import { SkeletonTableRow } from "@/components/ui/Skeleton";
 import { useAccountTotals } from "@/lib/api/hooks/useAccountTotals";
 import PositionsFilter from "@/components/positions/PositionsFilter";
 import { useSearchParams } from "next/navigation";
@@ -47,9 +47,9 @@ export function PositionsPanel() {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <tbody>
-              <SkeletonRow cols={7} />
-              <SkeletonRow cols={7} />
-              <SkeletonRow cols={7} />
+              <SkeletonTableRow cols={7} />
+              <SkeletonTableRow cols={7} />
+              <SkeletonTableRow cols={7} />
             </tbody>
           </table>
         </div>
@@ -289,12 +289,7 @@ function ExitPlanPeek({ plan }: { plan?: any }) {
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
-  if (
-    !plan ||
-    !(plan.profit_target || plan.stop_loss || plan.invalidation_condition)
-  )
-    return (<span style={{ color: "var(--muted-text)" }}>—</span>) as any;
-
+  
   useEffect(() => {
     if (!open) return;
     const place = () => {
@@ -331,6 +326,12 @@ function ExitPlanPeek({ plan }: { plan?: any }) {
       document.removeEventListener("keydown", onKey);
     };
   }, [open]);
+
+  if (
+    !plan ||
+    !(plan.profit_target || plan.stop_loss || plan.invalidation_condition)
+  )
+    return (<span style={{ color: "var(--muted-text)" }}>—</span>) as any;
 
   return (
     <>

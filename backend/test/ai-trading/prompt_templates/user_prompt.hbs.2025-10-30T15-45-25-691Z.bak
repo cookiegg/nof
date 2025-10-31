@@ -1,0 +1,15 @@
+Trading Session Analysis - {{minutes_since_start}} minutes elapsed (Current time: {{now_iso}}, Invocation #{{invocation_count}})
+
+MARKET OVERVIEW:
+{{market_sections}}
+
+ACCOUNT STATUS:
+- Total Value: {{account_value}} USDT
+- Available Cash: {{available_cash}} USDT
+- Total Return: {{total_return}}
+- Sharpe Ratio: {{sharpe_ratio}}
+
+CURRENT POSITIONS:
+{{positions_block}}
+
+Based on current market conditions and portfolio status, provide your trading analysis and next actions:

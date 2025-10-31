@@ -1,0 +1,164 @@
+{
+  "startTime": "2025-10-31T09:41:24.910Z",
+  "invocationCount": 529,
+  "positions": [
+    {
+      "symbol": "ETH",
+      "quantity": 0.25,
+      "entry_price": 3855.23,
+      "current_price": 3856.91077519,
+      "liquidation_price": 2585.00633134,
+      "unrealized_pnl": 0.42019379,
+      "leverage": 3,
+      "exit_plan": {
+        "profit_target": 4240.753000000001,
+        "stop_loss": 3662.4685,
+        "invalidation_condition": "price_below_stop_loss"
+      },
+      "confidence": 0.8,
+      "risk_usd": 963.8075,
+      "sl_oid": null,
+      "tp_oid": null,
+      "wait_for_fill": false,
+      "entry_oid": null,
+      "notional_usd": 964.22769379
+    },
+    {
+      "symbol": "BNB",
+      "quantity": 0.5,
+      "entry_price": 1083.83,
+      "current_price": 1082.48530397,
+      "liquidation_price": 0,
+      "unrealized_pnl": -0.67234801,
+      "leverage": 1,
+      "exit_plan": {
+        "profit_target": 1192.213,
+        "stop_loss": 1029.6384999999998,
+        "invalidation_condition": "price_below_stop_loss"
+      },
+      "confidence": 0.8,
+      "risk_usd": 541.915,
+      "sl_oid": null,
+      "tp_oid": null,
+      "wait_for_fill": false,
+      "entry_oid": null,
+      "notional_usd": 541.24265198
+    },
+    {
+      "symbol": "BTC",
+      "quantity": 0.001,
+      "entry_price": 110026.1,
+      "current_price": 109868.1,
+      "liquidation_price": 51.9412751,
+      "unrealized_pnl": -0.158,
+      "leverage": 1,
+      "exit_plan": {
+        "profit_target": 121028.71000000002,
+        "stop_loss": 104524.795,
+        "invalidation_condition": "price_below_stop_loss"
+      },
+      "confidence": 0.8,
+      "risk_usd": 110.02610000000001,
+      "sl_oid": null,
+      "tp_oid": null,
+      "wait_for_fill": false,
+      "entry_oid": null,
+      "notional_usd": 109.8681
+    }
+  ],
+  "lastUpdate": "2025-10-31T16:41:02.688Z",
+  "tradingEnabled": true,
+  "accountValue": 4668.4228114,
+  "availableCash": 3695.39529809,
+  "totalReturn": -53.31577188600001,
+  "trades": [
+    {
+      "timestamp": "2025-10-31T14:38:19.976Z",
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.001,
+      "price": 110026.1,
+      "orderId": "7962951927",
+      "environment": "demo.binance.com",
+      "accountValue": 4958.71078895,
+      "totalReturn": -50.412892110499996
+    },
+    {
+      "timestamp": "2025-10-31T14:35:23.172Z",
+      "side": "BUY",
+      "symbol": "ETH",
+      "quantity": 0.25,
+      "price": 3855.23,
+      "orderId": "6301187016",
+      "environment": "demo.binance.com",
+      "accountValue": 4956.44775346,
+      "totalReturn": -50.4355224654
+    },
+    {
+      "timestamp": "2025-10-31T14:33:30.986Z",
+      "side": "SELL",
+      "symbol": "XRP",
+      "quantity": 4000,
+      "price": 2.495,
+      "orderId": "891801561",
+      "environment": "demo.binance.com",
+      "accountValue": 4982.85971472,
+      "totalReturn": -50.17140285280001
+    },
+    {
+      "timestamp": "2025-10-31T14:31:21.316Z",
+      "side": "SELL",
+      "symbol": "XRP",
+      "quantity": 2000,
+      "price": 2.4953,
+      "orderId": "891761812",
+      "environment": "demo.binance.com",
+      "accountValue": 4970.24935472,
+      "totalReturn": -50.2975064528
+    },
+    {
+      "timestamp": "2025-10-31T14:25:22.989Z",
+      "side": "SELL",
+      "symbol": "XRP",
+      "quantity": 1000,
+      "price": 2.5013,
+      "orderId": "891652771",
+      "environment": "demo.binance.com",
+      "accountValue": 4976.02143487,
+      "totalReturn": -50.2397856513
+    },
+    {
+      "timestamp": "2025-10-31T14:22:24.400Z",
+      "side": "SELL",
+      "symbol": "XRP",
+      "quantity": 1000,
+      "price": 2.4929,
+      "orderId": "891600310",
+      "environment": "demo.binance.com",
+      "accountValue": 4986.04663487,
+      "totalReturn": -50.13953365129999
+    },
+    {
+      "timestamp": "2025-10-31T14:13:22.031Z",
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.045,
+      "price": 110038.50667,
+      "orderId": "7960676851",
+      "environment": "demo.binance.com",
+      "accountValue": 4996.66965459,
+      "totalReturn": -50.0333034541
+    },
+    {
+      "timestamp": "2025-10-31T14:07:17.604Z",
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.045,
+      "price": 110218.44667,
+      "orderId": "7960120332",
+      "environment": "demo.binance.com",
+      "accountValue": 4998.10856001,
+      "totalReturn": -50.018914399900005
+    }
+  ]
+}
