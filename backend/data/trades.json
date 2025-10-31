@@ -1,0 +1,114 @@
+{
+  "trades": [
+    {
+      "model_id": "default",
+      "exit_time": 1761921554,
+      "realized_net_pnl": 0,
+      "side": "BUY",
+      "symbol": "BNB",
+      "quantity": 0.5,
+      "price": 1083.83,
+      "orderId": "760191560"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761921499,
+      "realized_net_pnl": 0,
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.001,
+      "price": 110026.1,
+      "orderId": "7962951927"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761921323,
+      "realized_net_pnl": 0,
+      "side": "BUY",
+      "symbol": "ETH",
+      "quantity": 0.25,
+      "price": 3855.23,
+      "orderId": "6301187016"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761921210,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "XRP",
+      "quantity": 4000,
+      "price": 2.495,
+      "orderId": "891801561"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761921081,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "XRP",
+      "quantity": 2000,
+      "price": 2.4953,
+      "orderId": "891761812"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761920722,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "XRP",
+      "quantity": 1000,
+      "price": 2.5013,
+      "orderId": "891652771"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761920544,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "XRP",
+      "quantity": 1000,
+      "price": 2.4929,
+      "orderId": "891600310"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761920002,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.045,
+      "price": 110038.50667,
+      "orderId": "7960676851"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761919637,
+      "realized_net_pnl": 0,
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.045,
+      "price": 110218.44667,
+      "orderId": "7960120332"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761908657,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "SOL",
+      "quantity": 10,
+      "price": 186.41,
+      "orderId": "1065589827"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761891058,
+      "realized_net_pnl": 10
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761894658,
+      "realized_net_pnl": -5
+    }
+  ]
+}

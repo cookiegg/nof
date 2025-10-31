@@ -1,0 +1,20 @@
+It has been {{minutes_since_start}} minutes since you started trading. The current time is {{now_iso}} and you've been invoked {{invocation_count}} times. Below is state data, price data, and predictive signals. Below that is your current account information, value, performance, positions.
+
+---
+
+### CURRENT MARKET STATE FOR ALL COINS
+
+{{market_sections}}
+
+### HERE IS YOUR ACCOUNT INFORMATION & PERFORMANCE
+
+Current Total Return (percent): {{total_return}}
+
+Available Cash: {{available_cash}}
+
+Current Account Value: {{account_value}}
+
+Current live positions & performance:
+{{positions_block}}
+
+Sharpe Ratio: {{sharpe_ratio}}

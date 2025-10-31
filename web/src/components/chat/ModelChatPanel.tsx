@@ -292,7 +292,9 @@ function ChatCard({
             <MarkdownBlock text={user_prompt} />
           </Section>
           <Section title="CHAIN_OF_THOUGHT">
-            {typeof cot_trace === "string" ? (
+            {cot_trace?.chain_of_thought ? (
+              <MarkdownBlock text={cot_trace.chain_of_thought} />
+            ) : typeof cot_trace === "string" ? (
               <MarkdownBlock text={cot_trace} />
             ) : (
               <pre
@@ -348,7 +350,9 @@ function ChatCard({
                         <MarkdownBlock text={h.user_prompt} />
                       </Section>
                       <Section title="CHAIN_OF_THOUGHT">
-                        {typeof h.cot_trace === "string" ? (
+                        {h.cot_trace?.chain_of_thought ? (
+                          <MarkdownBlock text={h.cot_trace.chain_of_thought} />
+                        ) : typeof h.cot_trace === "string" ? (
                           <MarkdownBlock text={h.cot_trace} />
                         ) : (
                           <pre
@@ -479,21 +483,68 @@ function normalizeMd(s?: string): string {
 
 function renderDecisions(resp: any) {
   const rows = [] as any[];
+  
+  // 新格式：llm_response 包含 decision, decision_normalized, trading_decisions
   if (resp && typeof resp === "object") {
-    for (const [coin, v] of Object.entries(resp as Record<string, any>)) {
-      rows.push({
-        coin,
-        signal: (v as any).signal,
-        leverage: (v as any).leverage,
-        target: (v as any).profit_target,
-        stop: (v as any).stop_loss,
-        risk: (v as any).risk_usd,
-        invalid: (v as any).invalidation_condition,
-        confidence: (v as any).confidence,
-        quantity: (v as any).quantity,
-      });
+    // 检查是否是新格式（有 decision 或 trading_decisions）
+    if (resp.decision || resp.trading_decisions) {
+      // 主决策
+      if (resp.decision) {
+        const d = resp.decision;
+        rows.push({
+          coin: d.symbol || '',
+          signal: d.action || 'hold',
+          leverage: d.leverage || 1,
+          target: d.profit_target || 0,
+          stop: d.stop_loss || 0,
+          risk: d.risk_usd || 0,
+          invalid: d.invalidation_condition || '',
+          confidence: d.confidence || 0,
+          quantity: d.quantity || 0,
+        });
+      }
+      
+      // 候选决策
+      if (Array.isArray(resp.trading_decisions)) {
+        for (const d of resp.trading_decisions) {
+          // 避免重复主决策
+          if (resp.decision && d.symbol === resp.decision.symbol && d.action === resp.decision.action) {
+            continue;
+          }
+          rows.push({
+            coin: d.symbol || '',
+            signal: d.action || 'hold',
+            leverage: d.leverage || 1,
+            target: d.profit_target || 0,
+            stop: d.stop_loss || 0,
+            risk: d.risk_usd || 0,
+            invalid: d.invalidation_condition || '',
+            confidence: d.confidence || 0,
+            quantity: d.quantity || 0,
+          });
+        }
+      }
+    } 
+    // 旧格式：直接遍历对象
+    else {
+      for (const [coin, v] of Object.entries(resp as Record<string, any>)) {
+        if (v && typeof v === 'object') {
+          rows.push({
+            coin,
+            signal: (v as any).signal,
+            leverage: (v as any).leverage,
+            target: (v as any).profit_target,
+            stop: (v as any).stop_loss,
+            risk: (v as any).risk_usd,
+            invalid: (v as any).invalidation_condition,
+            confidence: (v as any).confidence,
+            quantity: (v as any).quantity,
+          });
+        }
+      }
     }
   }
+  
   if (!rows.length) return <div style={{ color: "var(--muted-text)" }}>—</div>;
   return (
     <div className="space-y-2">
@@ -549,6 +600,7 @@ function signalZh(s?: string) {
   if (k === "hold") return "持有";
   if (k === "buy" || k === "long") return "做多";
   if (k === "sell" || k === "short") return "做空";
+  if (k === "close_position" || k === "close" || k === "exit") return "平仓";
   return s ?? "—";
 }
 
@@ -566,6 +618,13 @@ function signalColors(s?: string) {
       fg: "#ef4444",
       bg: "color-mix(in oklab, #ef4444 10%, transparent)",
       border: "color-mix(in oklab, #ef4444 45%, transparent)",
+    };
+  }
+  if (k === "close_position" || k === "close" || k === "exit") {
+    return {
+      fg: "#f59e0b",
+      bg: "color-mix(in oklab, #f59e0b 10%, transparent)",
+      border: "color-mix(in oklab, #f59e0b 45%, transparent)",
     };
   }
   // hold/default = blue

@@ -1,0 +1,101 @@
+{
+  "trading_env": "demo-futures",
+  "allowed_symbols": [
+    "BTC/USDT:USDT",
+    "ETH/USDT:USDT",
+    "SOL/USDT:USDT",
+    "BNB/USDT:USDT",
+    "XRP/USDT:USDT",
+    "DOGE/USDT:USDT"
+  ],
+  "symbols_monitor": [],
+  "exchange": {
+    "binance": {
+      "futures_demo": {
+        "api_key": "${BINANCE_FUTURES_DEMO_API_KEY}",
+        "api_secret": "${BINANCE_FUTURES_DEMO_API_SECRET}"
+      },
+      "spot_testnet": {
+        "api_key": "${BINANCE_SPOT_TEST_API_KEY}",
+        "api_secret": "${BINANCE_SPOT_TEST_API_SECRET}"
+      }
+    }
+  },
+  "ai": {
+    "provider": "deepseek",
+    "model": "deepseek-chat",
+    "api_key": "${DEEPSEEK_API_KEY_30}",
+    "temperature": 0.7,
+    "max_tokens": 2000,
+    "presets": {
+      "deepseek": {
+        "provider": "deepseek",
+        "model": "deepseek-chat",
+        "api_key": "${DEEPSEEK_API_KEY_30}",
+        "temperature": 0.7,
+        "max_tokens": 2000
+      },
+      "deepseek-reasoner": {
+        "provider": "deepseek",
+        "model": "deepseek-reasoner",
+        "api_key": "${DEEPSEEK_API_KEY_30}",
+        "temperature": 0.7,
+        "max_tokens": 2000
+      }
+    }
+  },
+  "prompt_files": {
+    "system_prompt_path": "./backend/ai/ai-trading/prompt_templates/system_prompt.txt",
+    "user_prompt_path": "./backend/ai/ai-trading/prompt_templates/user_prompt.hbs"
+  },
+  "presets": {
+    "demo-futures": {
+      "allowed_symbols": [
+        "BTC/USDT:USDT",
+        "ETH/USDT:USDT",
+        "SOL/USDT:USDT",
+        "BNB/USDT:USDT",
+        "XRP/USDT:USDT",
+        "DOGE/USDT:USDT"
+      ]
+    },
+    "demo-spot": {
+      "allowed_symbols": [
+        "BTC/USDT",
+        "ETH/USDT",
+        "SOL/USDT",
+        "BNB/USDT",
+        "XRP/USDT",
+        "DOGE/USDT"
+      ]
+    },
+    "futures": {
+      "allowed_symbols": [
+        "BTC/USDT:USDT",
+        "ETH/USDT:USDT",
+        "SOL/USDT:USDT",
+        "BNB/USDT:USDT",
+        "XRP/USDT:USDT",
+        "DOGE/USDT:USDT"
+      ]
+    },
+    "spot": {
+      "allowed_symbols": [
+        "BTC/USDT",
+        "ETH/USDT",
+        "SOL/USDT",
+        "BNB/USDT",
+        "XRP/USDT",
+        "DOGE/USDT"
+      ]
+    }
+  },
+  "data": {
+    "intraday_tf": "3m",
+    "intraday_limit": 50,
+    "context_tf": "4h",
+    "context_limit": 10
+  }
+}
+
+

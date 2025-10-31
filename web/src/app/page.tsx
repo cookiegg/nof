@@ -2,22 +2,26 @@ import PriceTicker from "@/components/layout/PriceTicker";
 import AccountValueChart from "@/components/chart/AccountValueChart";
 import { PositionsPanel } from "@/components/tabs/PositionsPanel";
 import { Suspense } from "react";
+import PromptStudioChatPanel from "@/components/prompts/PromptStudioChatPanel";
 
 export default function Home() {
   return (
     <main className="w-full terminal-scan flex flex-col h-[calc(100vh-var(--header-h))]">
       <PriceTicker />
-      <section className="grid grid-cols-1 gap-3 p-3 overflow-hidden lg:grid-cols-3 lg:gap-3 lg:p-3 h-[calc(100vh-var(--header-h)-var(--ticker-h))]">
+      <section className="grid grid-cols-1 gap-3 p-3 overflow-hidden lg:grid-cols-4 lg:gap-3 lg:p-3 h-[calc(100vh-var(--header-h)-var(--ticker-h))]">
+        <div className="lg:col-span-1 h-full overflow-hidden">
+          <PromptStudioChatPanel />
+        </div>
         <div className="lg:col-span-2 h-full">
           <AccountValueChart />
         </div>
-        <div className="lg:col-span-1 h-full overflow-hidden">
+        <div className="lg:col-span-1 h-full flex flex-col overflow-hidden">
           <Suspense
             fallback={
-              <div className="mb-2 text-xs text-zinc-500">加载标签…</div>
+              <div className="flex-shrink-0 mb-2 text-xs text-zinc-500">加载标签…</div>
             }
           >
-            <div className="mb-2 flex items-center gap-3 text-xs">
+            <div className="flex-shrink-0 mb-2 flex items-center gap-3 text-xs">
               <TabButton name="持仓" tabKey="positions" />
               <TabButton name="模型对话" tabKey="chat" />
               <TabButton name="成交" tabKey="trades" />
@@ -25,7 +29,7 @@ export default function Home() {
               <TabButton name="README.md" tabKey="readme" />
             </div>
           </Suspense>
-          <div className="h-[calc(100%-1.5rem)] overflow-y-auto pr-1">
+          <div className="flex-1 overflow-y-auto pr-1">
             <Suspense
               fallback={<div className="text-xs text-zinc-500">加载数据…</div>}
             >

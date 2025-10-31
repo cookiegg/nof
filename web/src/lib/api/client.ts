@@ -1,3 +1,4 @@
+// 浏览器直连默认保持官方上游；可通过 NEXT_PUBLIC_NOF1_API_BASE_URL 覆盖
 export const BASE_URL =
   process.env.NEXT_PUBLIC_NOF1_API_BASE_URL || "https://nof1.ai/api";
 

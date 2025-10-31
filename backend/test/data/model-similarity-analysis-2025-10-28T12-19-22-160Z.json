@@ -1,0 +1,326 @@
+{
+  "userPromptSimilarity": {
+    "matrix": {
+      "claude-sonnet-4-5": {
+        "claude-sonnet-4-5": 0,
+        "grok-4": 0.1961254637524233,
+        "gpt-5": 0.1932806245016363,
+        "qwen3-max": 0.20817655262700466,
+        "gemini-2.5-pro": 0.1897531068864185,
+        "deepseek-chat-v3.1": 0.194597204261217
+      },
+      "grok-4": {
+        "claude-sonnet-4-5": 0.1961254637524233,
+        "grok-4": 0,
+        "gpt-5": 0.19262485543447105,
+        "qwen3-max": 0.19442679927000878,
+        "gemini-2.5-pro": 0.19857741852998845,
+        "deepseek-chat-v3.1": 0.20774883379204248
+      },
+      "gpt-5": {
+        "claude-sonnet-4-5": 0.1932806245016363,
+        "grok-4": 0.19262485543447105,
+        "gpt-5": 0,
+        "qwen3-max": 0.19668078383063567,
+        "gemini-2.5-pro": 0.19070819526445693,
+        "deepseek-chat-v3.1": 0.18657019831656374
+      },
+      "qwen3-max": {
+        "claude-sonnet-4-5": 0.20817655262700466,
+        "grok-4": 0.19442679927000878,
+        "gpt-5": 0.19668078383063567,
+        "qwen3-max": 0,
+        "gemini-2.5-pro": 0.1934651253317491,
+        "deepseek-chat-v3.1": 0.19387749899700024
+      },
+      "gemini-2.5-pro": {
+        "claude-sonnet-4-5": 0.1897531068864185,
+        "grok-4": 0.19857741852998845,
+        "gpt-5": 0.19070819526445693,
+        "qwen3-max": 0.1934651253317491,
+        "gemini-2.5-pro": 0,
+        "deepseek-chat-v3.1": 0.20033471527314745
+      },
+      "deepseek-chat-v3.1": {
+        "claude-sonnet-4-5": 0.194597204261217,
+        "grok-4": 0.20774883379204248,
+        "gpt-5": 0.18657019831656374,
+        "qwen3-max": 0.19387749899700024,
+        "gemini-2.5-pro": 0.20033471527314745,
+        "deepseek-chat-v3.1": 0
+      }
+    },
+    "modelAverages": {
+      "claude-sonnet-4-5": 0.19638659040573994,
+      "grok-4": 0.1979006741557868,
+      "gpt-5": 0.19197293146955274,
+      "qwen3-max": 0.1973253520112797,
+      "gemini-2.5-pro": 0.19456771225715208,
+      "deepseek-chat-v3.1": 0.1966256901279942
+    },
+    "overallAverage": 0.19579649173791758
+  },
+  "cotSimilarity": {
+    "matrix": {
+      "claude-sonnet-4-5": {
+        "claude-sonnet-4-5": 0,
+        "grok-4": 0,
+        "gpt-5": 0.07586198925899892,
+        "qwen3-max": 0,
+        "gemini-2.5-pro": 0.09387761643825965,
+        "deepseek-chat-v3.1": 0.07516152633439774
+      },
+      "grok-4": {
+        "claude-sonnet-4-5": 0,
+        "grok-4": 0,
+        "gpt-5": 0,
+        "qwen3-max": 0,
+        "gemini-2.5-pro": 0,
+        "deepseek-chat-v3.1": 0
+      },
+      "gpt-5": {
+        "claude-sonnet-4-5": 0.07586198925899892,
+        "grok-4": 0,
+        "gpt-5": 0,
+        "qwen3-max": 0,
+        "gemini-2.5-pro": 0.15683738496896477,
+        "deepseek-chat-v3.1": 0.1799493502786902
+      },
+      "qwen3-max": {
+        "claude-sonnet-4-5": 0,
+        "grok-4": 0,
+        "gpt-5": 0,
+        "qwen3-max": 0,
+        "gemini-2.5-pro": 0,
+        "deepseek-chat-v3.1": 0
+      },
+      "gemini-2.5-pro": {
+        "claude-sonnet-4-5": 0.09387761643825965,
+        "grok-4": 0,
+        "gpt-5": 0.15683738496896477,
+        "qwen3-max": 0,
+        "gemini-2.5-pro": 0,
+        "deepseek-chat-v3.1": 0.1266309744713224
+      },
+      "deepseek-chat-v3.1": {
+        "claude-sonnet-4-5": 0.07516152633439774,
+        "grok-4": 0,
+        "gpt-5": 0.1799493502786902,
+        "qwen3-max": 0,
+        "gemini-2.5-pro": 0.1266309744713224,
+        "deepseek-chat-v3.1": 0
+      }
+    },
+    "modelAverages": {
+      "claude-sonnet-4-5": 0.08163371067721877,
+      "grok-4": 0,
+      "gpt-5": 0.1375495748355513,
+      "qwen3-max": 0,
+      "gemini-2.5-pro": 0.1257819919595156,
+      "deepseek-chat-v3.1": 0.12724728369480345
+    },
+    "overallAverage": 0.07870209352784818
+  },
+  "modelStats": {
+    "claude-sonnet-4-5": {
+      "conversationCount": 17,
+      "avgPromptLength": 10904,
+      "avgCotLength": 2760,
+      "promptUniqueWords": 3950,
+      "cotUniqueWords": 1556,
+      "promptLexicalDiversity": 0.17301038062283736,
+      "cotLexicalDiversity": 0.22626145121419222
+    },
+    "grok-4": {
+      "conversationCount": 15,
+      "avgPromptLength": 11163,
+      "avgCotLength": null,
+      "promptUniqueWords": 3848,
+      "cotUniqueWords": 2,
+      "promptLexicalDiversity": 0.18932349323493236,
+      "cotLexicalDiversity": 0.06666666666666667
+    },
+    "gpt-5": {
+      "conversationCount": 16,
+      "avgPromptLength": 11623,
+      "avgCotLength": 2634,
+      "promptUniqueWords": 3741,
+      "cotUniqueWords": 1149,
+      "promptLexicalDiversity": 0.16270876826722339,
+      "cotLexicalDiversity": 0.19175567423230974
+    },
+    "qwen3-max": {
+      "conversationCount": 22,
+      "avgPromptLength": 8981,
+      "avgCotLength": null,
+      "promptUniqueWords": 3697,
+      "cotUniqueWords": 2,
+      "promptLexicalDiversity": 0.14587279040404041,
+      "cotLexicalDiversity": 0.045454545454545456
+    },
+    "gemini-2.5-pro": {
+      "conversationCount": 17,
+      "avgPromptLength": 11230,
+      "avgCotLength": 2363,
+      "promptUniqueWords": 3736,
+      "cotUniqueWords": 1403,
+      "promptLexicalDiversity": 0.16171060035493226,
+      "cotLexicalDiversity": 0.2183657587548638
+    },
+    "deepseek-chat-v3.1": {
+      "conversationCount": 13,
+      "avgPromptLength": 11297,
+      "avgCotLength": null,
+      "promptUniqueWords": 3418,
+      "cotUniqueWords": 1401,
+      "promptLexicalDiversity": 0.19093905368415173,
+      "cotLexicalDiversity": 0.11150019896538002
+    }
+  },
+  "sampleData": {
+    "claude-sonnet-4-5": {
+      "userPrompt": {
+        "length": 10929,
+        "preview": "It has been 8577 minutes since you started trading. The current time is 2025-10-28 12:09:39.595023 and you've been invoked 4039 times. Below, we are providing you with a variety of state data, price d...",
+        "containsMarketData": true,
+        "containsAccountInfo": true
+      },
+      "cotTrace": {
+        "length": 3081,
+        "preview": "Let me analyze the current market state and my positions:\n\n**Current positions:**\n1. ETH: Long 2.45 @ 4093.6, current 4109.55, +$39.08 unrealized PnL (in profit)\n2. SOL: Long 25.7 @ 194.29, current 19...",
+        "containsAnalysis": true,
+        "containsDecision": false
+      },
+      "llmResponse": {
+        "hasResponse": true,
+        "responseKeys": [
+          "ETH",
+          "BTC",
+          "BNB",
+          "SOL",
+          "XRP"
+        ]
+      }
+    },
+    "grok-4": {
+      "userPrompt": {
+        "length": 11175,
+        "preview": "It has been 8583 minutes since you started trading. The current time is 2025-10-28 12:09:07.136248 and you've been invoked 3518 times. Below, we are providing you with a variety of state data, price d...",
+        "containsMarketData": true,
+        "containsAccountInfo": true
+      },
+      "cotTrace": {
+        "length": 15,
+        "preview": "[object Object]",
+        "containsAnalysis": false,
+        "containsDecision": false
+      },
+      "llmResponse": {
+        "hasResponse": true,
+        "responseKeys": [
+          "ETH",
+          "BTC",
+          "BNB",
+          "SOL",
+          "XRP",
+          "DOGE"
+        ]
+      }
+    },
+    "gpt-5": {
+      "userPrompt": {
+        "length": 11639,
+        "preview": "It has been 8586 minutes since you started trading. The current time is 2025-10-28 12:08:52.065825 and you've been invoked 3489 times. Below, we are providing you with a variety of state data, price d...",
+        "containsMarketData": true,
+        "containsAccountInfo": true
+      },
+      "cotTrace": {
+        "length": 2760,
+        "preview": "**Clarifying trading strategy**\n\nI need to focus on outputting JSON only for the tokens we're currently managing, which are ETH, SOL, XRP, BTC, DOGE, and BNB. Since all six positions are already activ...",
+        "containsAnalysis": false,
+        "containsDecision": false
+      },
+      "llmResponse": {
+        "hasResponse": true,
+        "responseKeys": [
+          "ETH",
+          "BTC",
+          "BNB",
+          "SOL",
+          "XRP",
+          "DOGE"
+        ]
+      }
+    },
+    "qwen3-max": {
+      "userPrompt": {
+        "length": 9006,
+        "preview": "It has been 8577 minutes since you started trading. The current time is 2025-10-28 12:08:34.674254 and you've been invoked 5336 times. Below, we are providing you with a variety of state data, price d...",
+        "containsMarketData": true,
+        "containsAccountInfo": true
+      },
+      "cotTrace": {
+        "length": 15,
+        "preview": "[object Object]",
+        "containsAnalysis": false,
+        "containsDecision": false
+      },
+      "llmResponse": {
+        "hasResponse": true,
+        "responseKeys": [
+          "BTC"
+        ]
+      }
+    },
+    "gemini-2.5-pro": {
+      "userPrompt": {
+        "length": 11255,
+        "preview": "It has been 8578 minutes since you started trading. The current time is 2025-10-28 12:07:52.620914 and you've been invoked 4129 times. Below, we are providing you with a variety of state data, price d...",
+        "containsMarketData": true,
+        "containsAccountInfo": true
+      },
+      "cotTrace": {
+        "length": 2942,
+        "preview": "**Decision Summary: Hold All Positions**\n\nOkay, so the game plan is clear: maximize profits on Hyperliquid while keeping risk under control. Every 3 minutes I get a refresh, so let's use it. Right now...",
+        "containsAnalysis": false,
+        "containsDecision": false
+      },
+      "llmResponse": {
+        "hasResponse": true,
+        "responseKeys": [
+          "ETH",
+          "BTC",
+          "BNB",
+          "SOL",
+          "XRP",
+          "DOGE"
+        ]
+      }
+    },
+    "deepseek-chat-v3.1": {
+      "userPrompt": {
+        "length": 11317,
+        "preview": "It has been 8578 minutes since you started trading. The current time is 2025-10-28 12:07:27.094513 and you've been invoked 3368 times. Below, we are providing you with a variety of state data, price d...",
+        "containsMarketData": true,
+        "containsAccountInfo": true
+      },
+      "cotTrace": {
+        "length": 4485,
+        "preview": "First, I need to check my existing positions. I have open positions in ETH, SOL, XRP, BTC, DOGE, and BNB. Each has an exit plan with profit targets, stop losses, and invalidation conditions. I must de...",
+        "containsAnalysis": false,
+        "containsDecision": false
+      },
+      "llmResponse": {
+        "hasResponse": true,
+        "responseKeys": [
+          "ETH",
+          "BTC",
+          "BNB",
+          "SOL",
+          "XRP",
+          "DOGE"
+        ]
+      }
+    }
+  }
+}

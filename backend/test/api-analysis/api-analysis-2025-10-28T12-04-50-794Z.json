@@ -1,0 +1,661 @@
+{
+  "endpoints": {
+    "GET /": {
+      "endpoint": "/",
+      "method": "GET",
+      "url": "https://nof1.ai/api/",
+      "statusCode": 308,
+      "contentType": "application/json",
+      "contentLength": 38,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "redirect",
+          "status"
+        ],
+        "keyTypes": {
+          "redirect": "string",
+          "status": "string"
+        }
+      },
+      "sampleData": {
+        "redirect": "/api",
+        "status": "308"
+      },
+      "success": true
+    },
+    "GET /health": {
+      "endpoint": "/health",
+      "method": "GET",
+      "url": "https://nof1.ai/api/health",
+      "statusCode": 404,
+      "contentType": "text/html; charset=utf-8",
+      "contentLength": 6711,
+      "isJson": false,
+      "dataStructure": null,
+      "sampleData": null,
+      "success": true
+    },
+    "GET /status": {
+      "endpoint": "/status",
+      "method": "GET",
+      "url": "https://nof1.ai/api/status",
+      "statusCode": 404,
+      "contentType": "text/html; charset=utf-8",
+      "contentLength": 6711,
+      "isJson": false,
+      "dataStructure": null,
+      "sampleData": null,
+      "success": true
+    },
+    "GET /trades": {
+      "endpoint": "/trades",
+      "method": "GET",
+      "url": "https://nof1.ai/api/trades",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 229934,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "trades",
+          "serverTime"
+        ],
+        "keyTypes": {
+          "trades": "array",
+          "serverTime": "number"
+        }
+      },
+      "sampleData": {
+        "trades": [
+          "[truncated]",
+          "[truncated]",
+          "[truncated]"
+        ],
+        "serverTime": 1761652961762
+      },
+      "success": true
+    },
+    "POST /trades": {
+      "endpoint": "/trades",
+      "method": "POST",
+      "url": "https://nof1.ai/api/trades",
+      "statusCode": 405,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 32,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message"
+        ],
+        "keyTypes": {
+          "message": "string"
+        }
+      },
+      "sampleData": {
+        "message": "Method not allowed"
+      },
+      "success": true
+    },
+    "GET /positions": {
+      "endpoint": "/positions",
+      "method": "GET",
+      "url": "https://nof1.ai/api/positions",
+      "statusCode": 410,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 109,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message",
+          "positions",
+          "serverTime"
+        ],
+        "keyTypes": {
+          "message": "string",
+          "positions": "array",
+          "serverTime": "number"
+        }
+      },
+      "sampleData": {
+        "message": "Positions API deprecated - use account_totals instead",
+        "positions": [],
+        "serverTime": 1761652990750
+      },
+      "success": true
+    },
+    "POST /positions": {
+      "endpoint": "/positions",
+      "method": "POST",
+      "url": "https://nof1.ai/api/positions",
+      "statusCode": 410,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 109,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message",
+          "positions",
+          "serverTime"
+        ],
+        "keyTypes": {
+          "message": "string",
+          "positions": "array",
+          "serverTime": "number"
+        }
+      },
+      "sampleData": {
+        "message": "Positions API deprecated - use account_totals instead",
+        "positions": [],
+        "serverTime": 1761652991434
+      },
+      "success": true
+    },
+    "GET /analytics": {
+      "endpoint": "/analytics",
+      "method": "GET",
+      "url": "https://nof1.ai/api/analytics",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 22750,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "analytics",
+          "serverTime"
+        ],
+        "keyTypes": {
+          "analytics": "array",
+          "serverTime": "number"
+        }
+      },
+      "sampleData": {
+        "analytics": [
+          "[truncated]",
+          "[truncated]",
+          "[truncated]"
+        ],
+        "serverTime": 1761652982152
+      },
+      "success": true
+    },
+    "POST /analytics": {
+      "endpoint": "/analytics",
+      "method": "POST",
+      "url": "https://nof1.ai/api/analytics",
+      "statusCode": 405,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 32,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message"
+        ],
+        "keyTypes": {
+          "message": "string"
+        }
+      },
+      "sampleData": {
+        "message": "Method not allowed"
+      },
+      "success": true
+    },
+    "GET /leaderboard": {
+      "endpoint": "/leaderboard",
+      "method": "GET",
+      "url": "https://nof1.ai/api/leaderboard",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 969,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "leaderboard"
+        ],
+        "keyTypes": {
+          "leaderboard": "array"
+        }
+      },
+      "sampleData": {
+        "leaderboard": [
+          "[truncated]",
+          "[truncated]",
+          "[truncated]"
+        ]
+      },
+      "success": true
+    },
+    "GET /crypto-prices": {
+      "endpoint": "/crypto-prices",
+      "method": "GET",
+      "url": "https://nof1.ai/api/crypto-prices",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 433,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "prices",
+          "serverTime"
+        ],
+        "keyTypes": {
+          "prices": "object",
+          "serverTime": "number"
+        }
+      },
+      "sampleData": {
+        "prices": {
+          "BTC": "[truncated]",
+          "ETH": "[truncated]",
+          "SOL": "[truncated]",
+          "BNB": "[truncated]",
+          "DOGE": "[truncated]"
+        },
+        "serverTime": 1761652992345
+      },
+      "success": true
+    },
+    "GET /conversations": {
+      "endpoint": "/conversations",
+      "method": "GET",
+      "url": "https://nof1.ai/api/conversations",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 1515731,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "conversations"
+        ],
+        "keyTypes": {
+          "conversations": "array"
+        }
+      },
+      "sampleData": {
+        "conversations": [
+          "[truncated]",
+          "[truncated]",
+          "[truncated]"
+        ]
+      },
+      "success": true
+    },
+    "GET /account-totals": {
+      "endpoint": "/account-totals",
+      "method": "GET",
+      "url": "https://nof1.ai/api/account-totals",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 4571148,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "accountTotals",
+          "lastHourlyMarkerRead",
+          "serverTime"
+        ],
+        "keyTypes": {
+          "accountTotals": "array",
+          "lastHourlyMarkerRead": "number",
+          "serverTime": "number"
+        }
+      },
+      "sampleData": {
+        "accountTotals": [
+          "[truncated]",
+          "[truncated]",
+          "[truncated]"
+        ],
+        "lastHourlyMarkerRead": 254,
+        "serverTime": 1761653006699
+      },
+      "success": true
+    },
+    "GET /since-inception-values": {
+      "endpoint": "/since-inception-values",
+      "method": "GET",
+      "url": "https://nof1.ai/api/since-inception-values",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 1134,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "sinceInceptionValues",
+          "serverTime"
+        ],
+        "keyTypes": {
+          "sinceInceptionValues": "array",
+          "serverTime": "number"
+        }
+      },
+      "sampleData": {
+        "sinceInceptionValues": [
+          "[truncated]",
+          "[truncated]",
+          "[truncated]"
+        ],
+        "serverTime": 1761653038715
+      },
+      "success": true
+    },
+    "GET /api-endpoints": {
+      "endpoint": "/api-endpoints",
+      "method": "GET",
+      "url": "https://nof1.ai/api/api-endpoints",
+      "statusCode": 404,
+      "contentType": "text/html; charset=utf-8",
+      "contentLength": 6711,
+      "isJson": false,
+      "dataStructure": null,
+      "sampleData": null,
+      "success": true
+    },
+    "GET /analytics/claude-sonnet-4-5": {
+      "endpoint": "/analytics/claude-sonnet-4-5",
+      "method": "GET",
+      "url": "https://nof1.ai/api/analytics/claude-sonnet-4-5",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 3676,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "analytics"
+        ],
+        "keyTypes": {
+          "analytics": "array"
+        }
+      },
+      "sampleData": {
+        "analytics": [
+          "[truncated]"
+        ]
+      },
+      "success": true
+    },
+    "POST /analytics/claude-sonnet-4-5": {
+      "endpoint": "/analytics/claude-sonnet-4-5",
+      "method": "POST",
+      "url": "https://nof1.ai/api/analytics/claude-sonnet-4-5",
+      "statusCode": 405,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 32,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message"
+        ],
+        "keyTypes": {
+          "message": "string"
+        }
+      },
+      "sampleData": {
+        "message": "Method not allowed"
+      },
+      "success": true
+    },
+    "GET /analytics/deepseek-chat-v3.1": {
+      "endpoint": "/analytics/deepseek-chat-v3.1",
+      "method": "GET",
+      "url": "https://nof1.ai/api/analytics/deepseek-chat-v3.1",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 3782,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "analytics"
+        ],
+        "keyTypes": {
+          "analytics": "array"
+        }
+      },
+      "sampleData": {
+        "analytics": [
+          "[truncated]"
+        ]
+      },
+      "success": true
+    },
+    "POST /analytics/deepseek-chat-v3.1": {
+      "endpoint": "/analytics/deepseek-chat-v3.1",
+      "method": "POST",
+      "url": "https://nof1.ai/api/analytics/deepseek-chat-v3.1",
+      "statusCode": 405,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 32,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message"
+        ],
+        "keyTypes": {
+          "message": "string"
+        }
+      },
+      "sampleData": {
+        "message": "Method not allowed"
+      },
+      "success": true
+    },
+    "GET /analytics/gemini-2.5-pro": {
+      "endpoint": "/analytics/gemini-2.5-pro",
+      "method": "GET",
+      "url": "https://nof1.ai/api/analytics/gemini-2.5-pro",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 3860,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "analytics"
+        ],
+        "keyTypes": {
+          "analytics": "array"
+        }
+      },
+      "sampleData": {
+        "analytics": [
+          "[truncated]"
+        ]
+      },
+      "success": true
+    },
+    "POST /analytics/gemini-2.5-pro": {
+      "endpoint": "/analytics/gemini-2.5-pro",
+      "method": "POST",
+      "url": "https://nof1.ai/api/analytics/gemini-2.5-pro",
+      "statusCode": 405,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 32,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message"
+        ],
+        "keyTypes": {
+          "message": "string"
+        }
+      },
+      "sampleData": {
+        "message": "Method not allowed"
+      },
+      "success": true
+    },
+    "GET /analytics/gpt-5": {
+      "endpoint": "/analytics/gpt-5",
+      "method": "GET",
+      "url": "https://nof1.ai/api/analytics/gpt-5",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 3845,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "analytics"
+        ],
+        "keyTypes": {
+          "analytics": "array"
+        }
+      },
+      "sampleData": {
+        "analytics": [
+          "[truncated]"
+        ]
+      },
+      "success": true
+    },
+    "POST /analytics/gpt-5": {
+      "endpoint": "/analytics/gpt-5",
+      "method": "POST",
+      "url": "https://nof1.ai/api/analytics/gpt-5",
+      "statusCode": 405,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 32,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message"
+        ],
+        "keyTypes": {
+          "message": "string"
+        }
+      },
+      "sampleData": {
+        "message": "Method not allowed"
+      },
+      "success": true
+    },
+    "GET /analytics/grok-4": {
+      "endpoint": "/analytics/grok-4",
+      "method": "GET",
+      "url": "https://nof1.ai/api/analytics/grok-4",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 3757,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "analytics"
+        ],
+        "keyTypes": {
+          "analytics": "array"
+        }
+      },
+      "sampleData": {
+        "analytics": [
+          "[truncated]"
+        ]
+      },
+      "success": true
+    },
+    "POST /analytics/grok-4": {
+      "endpoint": "/analytics/grok-4",
+      "method": "POST",
+      "url": "https://nof1.ai/api/analytics/grok-4",
+      "statusCode": 405,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 32,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message"
+        ],
+        "keyTypes": {
+          "message": "string"
+        }
+      },
+      "sampleData": {
+        "message": "Method not allowed"
+      },
+      "success": true
+    },
+    "GET /analytics/qwen3-max": {
+      "endpoint": "/analytics/qwen3-max",
+      "method": "GET",
+      "url": "https://nof1.ai/api/analytics/qwen3-max",
+      "statusCode": 200,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 3877,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "analytics"
+        ],
+        "keyTypes": {
+          "analytics": "array"
+        }
+      },
+      "sampleData": {
+        "analytics": [
+          "[truncated]"
+        ]
+      },
+      "success": true
+    },
+    "POST /analytics/qwen3-max": {
+      "endpoint": "/analytics/qwen3-max",
+      "method": "POST",
+      "url": "https://nof1.ai/api/analytics/qwen3-max",
+      "statusCode": 405,
+      "contentType": "application/json; charset=utf-8",
+      "contentLength": 32,
+      "isJson": true,
+      "dataStructure": {
+        "type": "object",
+        "keys": [
+          "message"
+        ],
+        "keyTypes": {
+          "message": "string"
+        }
+      },
+      "sampleData": {
+        "message": "Method not allowed"
+      },
+      "success": true
+    }
+  },
+  "errors": [],
+  "summary": {
+    "totalEndpoints": 27,
+    "workingEndpoints": 27,
+    "errorEndpoints": 0,
+    "methods": {
+      "GET": {
+        "total": 18,
+        "success": 18,
+        "error": 0
+      },
+      "POST": {
+        "total": 9,
+        "success": 9,
+        "error": 0
+      }
+    }
+  }
+}

@@ -109,7 +109,17 @@ export default function TradesTable() {
             <SkeletonRow cols={6} />
           </div>
         ) : rows.length ? (
-          rows.map((t) => <TradeItem key={t.id} t={t} />)
+          rows.map((t, idx) => (
+            <TradeItem
+              key={
+                (t as any).id ??
+                `${t.model_id || 'default'}-${(t.symbol || 'sym').toUpperCase()}-${t.side || 'side'}-${
+                  t.exit_time || t.entry_time || 'time'
+                }-${idx}`
+              }
+              t={t}
+            />
+          ))
         ) : (
           <div className="p-3 text-xs" style={{ color: "var(--muted-text)" }}>
             暂无数据
