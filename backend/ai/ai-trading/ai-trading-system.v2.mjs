@@ -1,5 +1,5 @@
 import ccxt from 'ccxt';
-import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'fs';
+import { writeFileSync, readFileSync, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { resolve } from 'path';
 
 // 轻量级 .env 加载（避免额外依赖），需在使用 config/env 之前执行
@@ -128,14 +128,18 @@ class AITradingSystemV2 {
       ? this.config.symbols_monitor
       : [...this.allowedSymbolsForAI];
 
-    this.systemPromptTemplatePath = resolve(process.cwd(), this.config.prompt_files?.system_prompt_path || '');
-    this.userPromptTemplatePath = resolve(process.cwd(), this.config.prompt_files?.user_prompt_path || '');
-    this.systemPromptTemplate = existsSync(this.systemPromptTemplatePath)
-      ? readFileSync(this.systemPromptTemplatePath, 'utf8')
-      : '';
-    this.userPromptTemplate = existsSync(this.userPromptTemplatePath)
-      ? readFileSync(this.userPromptTemplatePath, 'utf8')
-      : '';
+    // 优先从 presets 读取环境特定的模板路径，否则使用全局配置
+    const presetPromptFiles = this.config.presets?.[this.tradingEnv]?.prompt_files;
+    const promptFiles = presetPromptFiles || this.config.prompt_files || {};
+    
+    this.systemPromptTemplatePath = resolve(process.cwd(), promptFiles.system_prompt_path || '');
+    this.userPromptTemplatePath = resolve(process.cwd(), promptFiles.user_prompt_path || '');
+    
+    // 初始化时加载模板
+    this.reloadTemplates();
+    
+    // 记录模板文件最后修改时间
+    this.templateLastLoadTime = Date.now();
 
     this.dataCfg = {
       intraday_tf: this.config.data?.intraday_tf || '1m',
@@ -146,6 +150,44 @@ class AITradingSystemV2 {
 
     // 简单的随机基准，用于离线/失败回退生成数值
     this._seed = Math.floor(Date.now() / 60000);
+  }
+
+  // 重新加载模板文件
+  reloadTemplates() {
+    try {
+      this.systemPromptTemplate = existsSync(this.systemPromptTemplatePath)
+        ? readFileSync(this.systemPromptTemplatePath, 'utf8')
+        : '';
+      this.userPromptTemplate = existsSync(this.userPromptTemplatePath)
+        ? readFileSync(this.userPromptTemplatePath, 'utf8')
+        : '';
+      this.templateLastLoadTime = Date.now();
+      console.log(`✅ Prompt模板已重新加载 (${this.tradingEnv})`);
+    } catch (e) {
+      console.error('重新加载模板失败:', e.message);
+    }
+  }
+
+  // 检查是否需要重新加载模板（通过标记文件）
+  checkAndReloadTemplates() {
+    try {
+      const dataDir = resolve(process.cwd(), 'backend', 'data');
+      const markerFile = resolve(dataDir, `.reload-prompts-${this.tradingEnv}.marker`);
+      
+      if (existsSync(markerFile)) {
+        // 标记文件存在，重新加载模板
+        this.reloadTemplates();
+        // 删除标记文件
+        try {
+          unlinkSync(markerFile);
+          console.log(`🗑️ 已删除重载标记文件: ${markerFile}`);
+        } catch (e) {
+          console.warn('删除标记文件失败:', e.message);
+        }
+      }
+    } catch (e) {
+      // 静默失败，不影响主流程
+    }
   }
 
   sanitizeState() {
@@ -531,7 +573,13 @@ class AITradingSystemV2 {
       ].join('\n');
       return base;
     }
-    const tpl1 = renderSections(this.systemPromptTemplate, { is_futures: this.isFutures });
+    // 新模板已经分离为futures和spot，不需要renderSections（但仍保留兼容性）
+    // 检查模板是否包含条件标签，如果没有则跳过renderSections
+    const hasConditionalTags = this.systemPromptTemplate.includes('{{#is_futures}}') || 
+                                this.systemPromptTemplate.includes('{{^is_futures}}');
+    const tpl1 = hasConditionalTags 
+      ? renderSections(this.systemPromptTemplate, { is_futures: this.isFutures })
+      : this.systemPromptTemplate;
     const context = {
       environment: this.isFutures ? 'demo.binance.com (USDT-M Futures)' : 'binance spot testnet',
       env_note: this.isFutures ? 'USDM perpetual' : 'Spot testnet',
@@ -842,6 +890,9 @@ class AITradingSystemV2 {
 
   async runTradingCycle() {
     try {
+      // 在每次交易循环开始时检查是否需要重新加载模板
+      this.checkAndReloadTemplates();
+      
       const marketData = await this.getMarketData();
       const userPrompt = this.generateUserPrompt(marketData);
       const aiResponse = await this.callDeepSeekAPI(userPrompt);
