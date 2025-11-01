@@ -6,6 +6,13 @@ import { useTheme } from "@/store/useTheme";
 
 const ORDER = ["BTC", "ETH", "SOL", "BNB", "DOGE", "XRP"] as const;
 
+// 从symbol中提取币种名称（例如：BTC/USDT -> BTC）
+function extractCoinSymbol(symbol: string): string {
+  if (!symbol) return "";
+  // 处理多种格式：BTC/USDT, BTC/USDT:USDT, BTC:USDT 等
+  return symbol.split("/")[0].split(":")[0].toUpperCase();
+}
+
 export default function PriceTicker() {
   const { prices } = useCryptoPrices();
   const wrapRef = useRef<HTMLDivElement | null>(null);
@@ -14,9 +21,13 @@ export default function PriceTicker() {
   // use CSS variables instead of theme branching
   const list = useMemo(() => {
     const vals = Object.values(prices);
-    return ORDER.map((s) => vals.find((v) => v.symbol === s)).filter(
-      Boolean,
-    ) as typeof vals;
+    // 从后端数据中匹配币种（后端返回的symbol可能是BTC/USDT格式）
+    return ORDER.map((coinSymbol) => {
+      return vals.find((v) => {
+        const vSymbol = extractCoinSymbol(v.symbol || "");
+        return vSymbol === coinSymbol;
+      });
+    }).filter(Boolean) as typeof vals;
   }, [prices]);
 
   useEffect(() => {
@@ -69,12 +80,15 @@ export default function PriceTicker() {
 }
 
 function renderItems(list: { symbol: string; price: number }[]) {
-  return list.map((p) => (
-    <span key={`${p.symbol}-${Math.random()}`} className={`tabular-nums`} style={{ color: "var(--muted-text)" }}>
-      <b className={`mr-1`} style={{ color: "var(--foreground)" }}>
-        {p.symbol}
-      </b>
-      {fmtUSD(p.price)}
-    </span>
-  ));
+  return list.map((p) => {
+    const displaySymbol = extractCoinSymbol(p.symbol || "");
+    return (
+      <span key={displaySymbol} className={`tabular-nums`} style={{ color: "var(--muted-text)" }}>
+        <b className={`mr-1`} style={{ color: "var(--foreground)" }}>
+          {displaySymbol}
+        </b>
+        {fmtUSD(p.price)}
+      </span>
+    );
+  });
 }

@@ -231,7 +231,9 @@ export function PositionsPanel() {
                   <tbody style={{ color: "var(--foreground)" }}>
                     {filtered.map((p, i) => {
                       const isLong = p.quantity > 0;
+                      // 优先使用 notional_usd 字段，如果不存在则计算
                       const notional =
+                        p.notional_usd ??
                         Math.abs(p.quantity) * (p.current_price ?? 0);
                       return (
                         <tr

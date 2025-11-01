@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useTheme } from "@/store/useTheme";
-import PromptEditorLauncher from "@/components/prompts/PromptEditorLauncher";
 
 export function Header() {
   const theme = useTheme((s) => s.theme);
@@ -55,7 +54,6 @@ export function Header() {
         {/* 右：主题切换占位，保证中间绝对定位不受挤压 */}
         <div className="flex min-w-0 flex-1 justify-end">
           <div className="ml-2 hidden sm:flex items-center gap-2 text-[11px]">
-            <PromptEditorLauncher />
             <div
               className={`flex overflow-hidden rounded border`}
               style={{ borderColor: "var(--chip-border)" }}
