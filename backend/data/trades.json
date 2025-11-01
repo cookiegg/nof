@@ -2,6 +2,66 @@
   "trades": [
     {
       "model_id": "default",
+      "exit_time": 1761949843,
+      "realized_net_pnl": 0,
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.042,
+      "price": 109623.4,
+      "orderId": "8005781662"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761947033,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.04,
+      "price": 109695.4,
+      "orderId": "8001425419"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761946854,
+      "realized_net_pnl": 0,
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.04,
+      "price": 109699.19,
+      "orderId": "8001145952"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761945772,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.001,
+      "price": 109549.5,
+      "orderId": "7999470719"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761945597,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "BNB",
+      "quantity": 0.5,
+      "price": 1083.5,
+      "orderId": "763514289"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1761945419,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "ETH",
+      "quantity": 0.25,
+      "price": 3847.94,
+      "orderId": "6320224357"
+    },
+    {
+      "model_id": "default",
       "exit_time": 1761921554,
       "realized_net_pnl": 0,
       "side": "BUY",

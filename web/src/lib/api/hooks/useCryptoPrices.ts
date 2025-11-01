@@ -13,7 +13,7 @@ export function useCryptoPrices() {
     endpoints.cryptoPrices(),
     fetcher,
     {
-      refreshInterval: 10000, // Reduced from 2s to 10s to minimize Fast Origin Transfer costs
+      refreshInterval: 2000, // 2秒刷新一次，确保价格实时性
       revalidateOnFocus: true,
     },
   );

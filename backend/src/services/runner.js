@@ -17,12 +17,14 @@ class TradingRunnerService {
 
   start({ intervalMinutes = 3, env = undefined, ai = undefined } = {}) {
     if (this.child && this.status.running) return this.status;
-    const runnerPath = path.resolve(process.cwd(), 'backend/ai/ai-trading/run-ai-trading.mjs');
+    // 确保工作目录是项目根目录（不是backend目录）
+    const projectRoot = process.cwd().endsWith('backend') ? path.resolve(process.cwd(), '..') : process.cwd();
+    const runnerPath = path.resolve(projectRoot, 'backend/ai/ai-trading/run-ai-trading.mjs');
     const args = [runnerPath, String(intervalMinutes)];
     // ??????server.js???? dotenv ?? backend/.env???????????
     const child = spawn('node', args, {
       stdio: 'inherit',
-      cwd: path.resolve(process.cwd()),
+      cwd: projectRoot, // 确保在项目根目录运行
       env: {
         ...process.env,
         ...(env ? { TRADING_ENV: env } : {}),

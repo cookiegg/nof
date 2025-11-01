@@ -17,6 +17,7 @@ export interface RawPositionRow {
   current_price: number;
   unrealized_pnl: number;
   closed_pnl?: number;
+  notional_usd?: number; // 名义金额，如果存在则优先使用
 }
 
 export interface ExitPlan {
@@ -34,7 +35,7 @@ export function usePositions() {
   const { data, error, isLoading } = useSWR<{
     accountTotals: AccountTotalsRow[];
   }>(endpoints.accountTotals(), fetcher, {
-    refreshInterval: 10000, // Reduced from 5s to 10s to minimize Fast Origin Transfer costs
+    refreshInterval: 3000, // Reduced from 5s to 10s to minimize Fast Origin Transfer costs
     dedupingInterval: 2000,
   });
 

@@ -17,7 +17,7 @@ export function useLatestEquityMap() {
     endpoints.accountTotals(),
     fetcher,
     {
-      refreshInterval: 10000,
+      refreshInterval: 3000,
     },
   );
   const map: Record<string, number> = {};

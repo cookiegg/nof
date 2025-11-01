@@ -163,7 +163,7 @@ export default function PromptEditorPanel() {
       <div className="mb-3 rounded border p-2" style={{ borderColor: 'var(--panel-border)' }}>
         <div className="mb-2 text-[11px]" style={{ color: 'var(--muted-text)' }}>交易控制</div>
         <div className="mb-2 grid grid-cols-3 gap-2 items-center text-xs">
-          <label className="col-span-1">环境</label>
+          <label className="col-span-1">交易类型</label>
           <select className="col-span-2 rounded border px-2 py-1"
                   style={{ borderColor: 'var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--foreground)' }}
                   value={env}
@@ -172,7 +172,7 @@ export default function PromptEditorPanel() {
               <option key={k} value={k}>{k}</option>
             ))}
           </select>
-          <label className="col-span-1">AI 预设</label>
+          <label className="col-span-1">AI模型</label>
           <select className="col-span-2 rounded border px-2 py-1"
                   style={{ borderColor: 'var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--foreground)' }}
                   value={ai}

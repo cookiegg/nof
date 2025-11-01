@@ -27,7 +27,7 @@ export function useTrades() {
     endpoints.trades(),
     fetcher,
     {
-      refreshInterval: 10000,
+      refreshInterval: 3000,
     },
   );
 

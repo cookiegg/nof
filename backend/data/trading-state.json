@@ -1,77 +1,101 @@
 {
-  "startTime": "2025-10-31T09:41:24.910Z",
-  "invocationCount": 529,
+  "startTime": "2025-10-31T22:30:14.378Z",
+  "invocationCount": 543,
   "positions": [
     {
-      "symbol": "ETH",
-      "quantity": 0.25,
-      "entry_price": 3855.23,
-      "current_price": 3856.91077519,
-      "liquidation_price": 2585.00633134,
-      "unrealized_pnl": 0.42019379,
+      "symbol": "BTC",
+      "quantity": 0.042,
+      "entry_price": 109623.4,
+      "current_price": 109675.11086957,
+      "liquidation_price": 73414.67399192,
+      "unrealized_pnl": 2.17185652,
       "leverage": 3,
       "exit_plan": {
-        "profit_target": 4240.753000000001,
-        "stop_loss": 3662.4685,
+        "profit_target": 120585.74,
+        "stop_loss": 104142.23,
         "invalidation_condition": "price_below_stop_loss"
       },
       "confidence": 0.8,
-      "risk_usd": 963.8075,
+      "risk_usd": 4604.1828,
       "sl_oid": null,
       "tp_oid": null,
       "wait_for_fill": false,
       "entry_oid": null,
-      "notional_usd": 964.22769379
-    },
-    {
-      "symbol": "BNB",
-      "quantity": 0.5,
-      "entry_price": 1083.83,
-      "current_price": 1082.48530397,
-      "liquidation_price": 0,
-      "unrealized_pnl": -0.67234801,
-      "leverage": 1,
-      "exit_plan": {
-        "profit_target": 1192.213,
-        "stop_loss": 1029.6384999999998,
-        "invalidation_condition": "price_below_stop_loss"
-      },
-      "confidence": 0.8,
-      "risk_usd": 541.915,
-      "sl_oid": null,
-      "tp_oid": null,
-      "wait_for_fill": false,
-      "entry_oid": null,
-      "notional_usd": 541.24265198
-    },
-    {
-      "symbol": "BTC",
-      "quantity": 0.001,
-      "entry_price": 110026.1,
-      "current_price": 109868.1,
-      "liquidation_price": 51.9412751,
-      "unrealized_pnl": -0.158,
-      "leverage": 1,
-      "exit_plan": {
-        "profit_target": 121028.71000000002,
-        "stop_loss": 104524.795,
-        "invalidation_condition": "price_below_stop_loss"
-      },
-      "confidence": 0.8,
-      "risk_usd": 110.02610000000001,
-      "sl_oid": null,
-      "tp_oid": null,
-      "wait_for_fill": false,
-      "entry_oid": null,
-      "notional_usd": 109.8681
+      "notional_usd": 4606.35465652
     }
   ],
-  "lastUpdate": "2025-10-31T16:41:02.688Z",
+  "lastUpdate": "2025-10-31T22:37:12.072Z",
   "tradingEnabled": true,
-  "accountValue": 4668.4228114,
-  "availableCash": 3695.39529809,
-  "totalReturn": -53.31577188600001,
+  "accountValue": 4662.39182179,
+  "availableCash": 3127.1198077,
+  "totalReturn": -53.3760817821,
   "trades": [
+    {
+      "timestamp": "2025-10-31T22:30:43.605Z",
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.042,
+      "price": 109623.4,
+      "orderId": "8005781662",
+      "environment": "demo.binance.com",
+      "accountValue": 4662.06163839,
+      "totalReturn": -53.37938361610001
+    },
+    {
+      "timestamp": "2025-10-31T21:43:53.921Z",
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.04,
+      "price": 109695.4,
+      "orderId": "8001425419",
+      "environment": "demo.binance.com",
+      "accountValue": 4661.19099015,
+      "totalReturn": -53.388090098499994
+    },
+    {
+      "timestamp": "2025-10-31T21:40:54.022Z",
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.04,
+      "price": 109699.19,
+      "orderId": "8001145952",
+      "environment": "demo.binance.com",
+      "accountValue": 4665.72355182,
+      "totalReturn": -53.34276448180001
+    },
+    {
+      "timestamp": "2025-10-31T21:22:52.085Z",
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.001,
+      "price": 109549.5,
+      "orderId": "7999470719",
+      "environment": "demo.binance.com",
+      "accountValue": 4665.80279289,
+      "totalReturn": -53.341972071099995
+    },
+    {
+      "timestamp": "2025-10-31T21:19:57.199Z",
+      "side": "SELL",
+      "symbol": "BNB",
+      "quantity": 0.5,
+      "price": 1083.5,
+      "orderId": "763514289",
+      "environment": "demo.binance.com",
+      "accountValue": 4666.51672775,
+      "totalReturn": -53.33483272249999
+    },
+    {
+      "timestamp": "2025-10-31T21:16:59.691Z",
+      "side": "SELL",
+      "symbol": "ETH",
+      "quantity": 0.25,
+      "price": 3847.94,
+      "orderId": "6320224357",
+      "environment": "demo.binance.com",
+      "accountValue": 4667.49956562,
+      "totalReturn": -53.325004343799996
+    },
     {
       "timestamp": "2025-10-31T14:38:19.976Z",
       "side": "BUY",
@@ -160,5 +184,8 @@
       "accountValue": 4998.10856001,
       "totalReturn": -50.018914399900005
     }
-  ]
+  ],
+  "initialAccountValue": 4667.82706017,
+  "initialBTCPrice": 109608,
+  "initialBTCTimestamp": "2025-10-31T22:30:14.378Z"
 }

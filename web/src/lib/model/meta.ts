@@ -113,6 +113,16 @@ const METAS: Record<string, ModelMeta> = {
     color: BRAND_COLORS["qwen3-max"],
     icon: "/logos_white/qwen_logo.png",
   },
+  default: {
+    id: "default",
+    name: "默认模型",
+    color: DEFAULT_COLOR,
+  },
+  "btc-hold": {
+    id: "btc-hold",
+    name: "BTC买入持有",
+    color: "#f7931a", // BTC橙色
+  },
   buynhold_btc: {
     id: "buynhold_btc",
     name: "Buy&Hold BTC",

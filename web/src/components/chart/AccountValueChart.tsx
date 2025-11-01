@@ -38,7 +38,7 @@ interface SeriesPoint {
 const MAX_POINTS_72H = 600;
 
 export default function AccountValueChart() {
-  const { series, modelIds, isLoading, isError } = useAccountValueSeries();
+  const { series, modelIds, isLoading, isError, initialAccountValue } = useAccountValueSeries();
   const [range, setRange] = useState<Range>("ALL");
   const [mode, setMode] = useState<Mode>("$");
   const cutoffTimeRef = useRef<number>(0);
@@ -525,19 +525,21 @@ export default function AccountValueChart() {
                           : `$${Number(val).toFixed(2)}`
                       }
                     />
-                    {mode === "$" ? (
-                      <ReferenceLine
-                        y={10000}
-                        stroke={refLine}
-                        strokeDasharray="4 4"
-                      />
-                    ) : (
+                    {/* 只有在百分比模式下显示0参考线，美元模式下不显示参考线（除非有明确的初始值） */}
+                    {mode === "%" ? (
                       <ReferenceLine
                         y={0}
                         stroke={refLine}
                         strokeDasharray="4 4"
                       />
-                    )}
+                    ) : initialAccountValue && typeof initialAccountValue === "number" && initialAccountValue > 0 ? (
+                      // 只有在有明确的初始账户价值时才显示参考线
+                      <ReferenceLine
+                        y={initialAccountValue}
+                        stroke={refLine}
+                        strokeDasharray="4 4"
+                      />
+                    ) : null}
                     {models.map((id, i) => (
                       <Line
                         key={id}
@@ -573,7 +575,7 @@ export default function AccountValueChart() {
                       userSelect: "none",
                     }}
                   >
-                    @wquguru
+                    @0xuf
                   </div>
                 </div>
               </div>

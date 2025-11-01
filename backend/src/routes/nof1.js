@@ -1,5 +1,5 @@
 import express from 'express';
-import { getPrices } from '../services/binance.js';
+import { getPrices, getAccountBalance, getRealTimeAccountData } from '../services/binance.js';
 import { loadJson, saveJson } from '../store/fsStore.js';
 import { deriveAccountTotals, deriveLeaderboard, deriveSinceInception } from '../services/metrics.js';
 import fs from 'fs/promises';
@@ -598,8 +598,83 @@ router.post('/ai/trading/start', async (req, res) => {
     // ?? backend/data ??????????????????
     const dataDir = path.resolve(process.cwd(), 'backend', 'data');
     await fs.mkdir(dataDir, { recursive: true }).catch(() => {});
+    
+    // 在启动时从交易所获取实际账户余额和BTC价格作为初始值
+    let initialAccountValue = null;
+    let initialBTCPrice = null;
+    try {
+      // 临时设置环境变量以便 getAccountBalance 使用
+      if (env) process.env.TRADING_ENV = env;
+      const balance = await getAccountBalance();
+      if (balance && balance > 0) {
+        initialAccountValue = balance;
+        console.log(`启动时获取到的账户余额: ${initialAccountValue}`);
+      } else {
+        console.log('无法获取账户余额或余额为0，将不显示参考线');
+      }
+      
+      // 获取初始BTC价格
+      try {
+        const prices = await getPrices(['BTC/USDT']);
+        if (prices && prices['BTC/USDT'] && prices['BTC/USDT'].price) {
+          initialBTCPrice = prices['BTC/USDT'].price;
+          console.log(`启动时获取到的BTC价格: ${initialBTCPrice}`);
+        }
+      } catch (e) {
+        console.error('获取初始BTC价格失败:', e.message);
+      }
+    } catch (e) {
+      console.error('获取账户余额失败:', e.message);
+    }
+    
+    // 检查并更新 trading-state.json，确保保存初始账户价值
+    const stateFile = path.join(dataDir, 'trading-state.json');
+    try {
+      const existing = await loadJson('trading-state.json', null);
+      if (existing && typeof existing === 'object') {
+        // 如果文件已存在，只更新初始账户价值（如果还没有的话）和启动时间
+        if (!existing.initialAccountValue) {
+          existing.initialAccountValue = initialAccountValue;
+        }
+        // 保存初始BTC价格（用于计算BTC持有曲线）
+        if (initialBTCPrice && !existing.initialBTCPrice) {
+          existing.initialBTCPrice = initialBTCPrice;
+          existing.initialBTCTimestamp = new Date().toISOString();
+        }
+        existing.startTime = new Date().toISOString();
+        existing.tradingEnabled = true;
+        existing.lastUpdate = new Date().toISOString();
+        if (!existing.accountValue) {
+          existing.accountValue = initialAccountValue;
+        }
+        await saveJson('trading-state.json', existing);
+      } else {
+        // 文件不存在，创建新的
+        const newState = {
+          startTime: new Date().toISOString(),
+          invocationCount: 0,
+          positions: [],
+          lastUpdate: new Date().toISOString(),
+          tradingEnabled: true,
+        };
+        // 只有在有初始值时才保存
+        if (initialAccountValue) {
+          newState.accountValue = initialAccountValue;
+          newState.initialAccountValue = initialAccountValue;
+        }
+        // 保存初始BTC价格
+        if (initialBTCPrice) {
+          newState.initialBTCPrice = initialBTCPrice;
+          newState.initialBTCTimestamp = new Date().toISOString();
+        }
+        await saveJson('trading-state.json', newState);
+      }
+    } catch (e) {
+      console.error('更新 trading-state.json 失败:', e.message);
+    }
+    
+    // 其他文件的初始化
     const seeds = [
-      { file: path.join(dataDir, 'trading-state.json'), content: { startTime: new Date().toISOString(), invocationCount: 0, positions: [], lastUpdate: new Date().toISOString(), tradingEnabled: true } },
       { file: path.join(dataDir, 'conversations.json'), content: { conversations: [], lastUpdate: new Date().toISOString() } },
       { file: path.join(dataDir, 'trades.json'), content: { trades: [] } },
     ];
@@ -639,90 +714,154 @@ router.get('/account-totals', async (req, res) => {
   const trades = await loadJson('trades.json', { trades: [] });
   const totals = await deriveAccountTotals(trades, lastHourlyMarker);
   
-  // 从 conversations 或 trading-state 获取最新持仓
+  // 优先尝试从币安API获取实时数据
   let latestPositions = {};
-  let latestAccountValue = 10000;
+  let latestAccountValue = null;
+  let initialAccountValue = null;
+  let initialBTCPrice = null;
+  
   try {
-    // 先尝试从 trading-state.json 读取
-    const state = await loadJson('trading-state.json', { positions: [] });
-    // 同时获取最新的 accountValue
-    if (state?.accountValue) {
-      latestAccountValue = Number(state.accountValue);
-    }
-    if (Array.isArray(state?.positions) && state.positions.length > 0) {
-      for (const p of state.positions) {
-        const symbol = String(p?.symbol || '').toUpperCase();
+    const realTimeData = await getRealTimeAccountData();
+    if (realTimeData) {
+      latestAccountValue = realTimeData.balance;
+      // 将positions数组转为对象格式
+      for (const p of realTimeData.positions) {
+        const symbol = String(p.symbol || '').toUpperCase();
         if (symbol) {
           latestPositions[symbol] = {
             symbol,
-            quantity: Number(p?.quantity || 0),
-            entry_price: Number(p?.entry_price || 0),
-            current_price: Number(p?.current_price || p?.entry_price || 0),
-            liquidation_price: Number(p?.liquidation_price || 0),
-            unrealized_pnl: Number(p?.unrealized_pnl || 0),
-            leverage: Number(p?.leverage || 1),
-            exit_plan: p?.exit_plan || null,
-            confidence: Number(p?.confidence || 0),
-            risk_usd: Number(p?.risk_usd || 0),
-            margin: Number(p?.notional_usd || 0) / Number(p?.leverage || 1),
-            entry_time: Math.floor(Date.now() / 1000),
-            entry_oid: 0,
-          };
-        }
-      }
-    }
-    
-    // 如果没有，从 conversations 推导
-    if (Object.keys(latestPositions).length === 0) {
-      const buf = await fs.readFile(CONV_FILE, 'utf8');
-      const raw = JSON.parse(buf);
-      const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
-      const posMap = {};
-      // 倒序遍历（最新到最旧），累计持仓
-      for (const c of arr.slice().reverse()) {
-        const d = c?.decision_normalized || {};
-        const action = String(d?.action || '').toLowerCase();
-        const base = (d?.symbol || '').toString().toUpperCase().replace(/:USDT$/, '');
-        const symbol = base.includes('/') ? base.split('/')[0] : base;
-        const qty = Number.isFinite(Number(d?.quantity)) ? Number(d.quantity) : 0;
-        
-        // 只处理buy/sell/close_position，忽略hold操作
-        if (!symbol) continue;
-        if (action === 'buy' && qty > 0) {
-          if (!posMap[symbol]) posMap[symbol] = { symbol, quantity: 0, entry_price: 0, leverage: 1 };
-          posMap[symbol].quantity += qty;
-        } else if ((action === 'sell' || action === 'close_position') && qty > 0) {
-          if (posMap[symbol]) {
-            posMap[symbol].quantity -= qty;
-            if (posMap[symbol].quantity <= 0) delete posMap[symbol];
-          }
-        }
-      }
-      // 转换为标准格式
-      for (const [symbol, p] of Object.entries(posMap)) {
-        if (p.quantity > 0) {
-          latestPositions[symbol] = {
-            symbol: p.symbol,
-            quantity: p.quantity,
-            entry_price: p.entry_price || 0,
-            current_price: 0,
-            liquidation_price: 0,
-            unrealized_pnl: 0,
-            leverage: p.leverage || 1,
-            exit_plan: null,
-            confidence: 0,
-            risk_usd: 0,
-            margin: 0,
-            entry_time: Math.floor(Date.now() / 1000),
-            entry_oid: 0,
+            quantity: Number(p.quantity || 0),
+            entry_price: Number(p.entry_price || 0),
+            current_price: Number(p.current_price || 0),
+            liquidation_price: Number(p.liquidation_price || 0),
+            unrealized_pnl: Number(p.unrealized_pnl || 0),
+            leverage: Number(p.leverage || 1),
+            exit_plan: p.exit_plan || null,
+            confidence: Number(p.confidence || 0),
+            risk_usd: Number(p.risk_usd || 0),
+            margin: Number(p.margin || 0),
+            notional_usd: Number(p.notional_usd || 0),
+            entry_time: Number(p.entry_time || Math.floor(Date.now() / 1000)),
+            entry_oid: Number(p.entry_oid || 0),
           };
         }
       }
     }
   } catch (e) {
-    console.error('读取持仓失败:', e.message);
+    console.warn('获取实时账户数据失败，降级到trading-state.json:', e.message);
   }
   
+  // 始终从 trading-state.json 读取初始值（用于BTC持有曲线计算）
+  try {
+    const state = await loadJson('trading-state.json', { positions: [] });
+    // 获取初始账户价值（启动时的值）
+    if (state?.initialAccountValue) {
+      initialAccountValue = Number(state.initialAccountValue);
+    } else if (state?.accountValue) {
+      // 如果没有保存初始值，使用当前值（可能是第一次启动）
+      initialAccountValue = Number(state.accountValue);
+    }
+    // 获取初始BTC价格（用于计算BTC持有曲线）
+    if (state?.initialBTCPrice) {
+      initialBTCPrice = Number(state.initialBTCPrice);
+    }
+  } catch (e) {
+    console.warn('读取 trading-state.json 失败:', e.message);
+  }
+  
+  // 如果实时数据获取失败，降级到trading-state.json
+  if (!latestAccountValue || Object.keys(latestPositions).length === 0) {
+    try {
+      // 从 trading-state.json 读取最新的账户价值和持仓
+      const state = await loadJson('trading-state.json', { positions: [] });
+      if (state?.accountValue) {
+        latestAccountValue = Number(state.accountValue);
+      }
+      if (Array.isArray(state?.positions) && state.positions.length > 0) {
+        for (const p of state.positions) {
+          const symbol = String(p?.symbol || '').toUpperCase();
+          if (symbol) {
+            const notional = Number(p?.notional_usd || 0) || Math.abs(Number(p?.quantity || 0)) * Number(p?.current_price || p?.entry_price || 0);
+            latestPositions[symbol] = {
+              symbol,
+              quantity: Number(p?.quantity || 0),
+              entry_price: Number(p?.entry_price || 0),
+              current_price: Number(p?.current_price || p?.entry_price || 0),
+              liquidation_price: Number(p?.liquidation_price || 0),
+              unrealized_pnl: Number(p?.unrealized_pnl || 0),
+              leverage: Number(p?.leverage || 1),
+              exit_plan: p?.exit_plan || null,
+              confidence: Number(p?.confidence || 0),
+              risk_usd: Number(p?.risk_usd || 0),
+              margin: notional / Number(p?.leverage || 1),
+              notional_usd: notional,
+              entry_time: Math.floor(Date.now() / 1000),
+              entry_oid: Number(p?.entry_oid || 0),
+            };
+          }
+        }
+      }
+      
+      // 如果没有，从 conversations 推导
+      if (Object.keys(latestPositions).length === 0) {
+        const buf = await fs.readFile(CONV_FILE, 'utf8');
+        const raw = JSON.parse(buf);
+        const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
+        const posMap = {};
+        // 倒序遍历（最新到最旧），累计持仓
+        for (const c of arr.slice().reverse()) {
+          const d = c?.decision_normalized || {};
+          const action = String(d?.action || '').toLowerCase();
+          const base = (d?.symbol || '').toString().toUpperCase().replace(/:USDT$/, '');
+          const symbol = base.includes('/') ? base.split('/')[0] : base;
+          const qty = Number.isFinite(Number(d?.quantity)) ? Number(d.quantity) : 0;
+          
+          // 只处理buy/sell/close_position，忽略hold操作
+          if (!symbol) continue;
+          if (action === 'buy' && qty > 0) {
+            if (!posMap[symbol]) posMap[symbol] = { symbol, quantity: 0, entry_price: 0, leverage: 1 };
+            posMap[symbol].quantity += qty;
+          } else if ((action === 'sell' || action === 'close_position') && qty > 0) {
+            if (posMap[symbol]) {
+              posMap[symbol].quantity -= qty;
+              if (posMap[symbol].quantity <= 0) delete posMap[symbol];
+            }
+          }
+        }
+        // 转换为标准格式
+        for (const [symbol, p] of Object.entries(posMap)) {
+          if (p.quantity > 0) {
+            latestPositions[symbol] = {
+              symbol: p.symbol,
+              quantity: p.quantity,
+              entry_price: p.entry_price || 0,
+              current_price: 0,
+              liquidation_price: 0,
+              unrealized_pnl: 0,
+              leverage: p.leverage || 1,
+              exit_plan: null,
+              confidence: 0,
+              risk_usd: 0,
+              margin: 0,
+              entry_time: Math.floor(Date.now() / 1000),
+              entry_oid: 0,
+            };
+          }
+        }
+      }
+    } catch (e) {
+      console.error('读取持仓失败:', e.message);
+    }
+  }
+  
+  // 从conversations中提取BTC价格历史的辅助函数
+  function extractBTCPrice(userPrompt) {
+    if (!userPrompt) return null;
+    // 从userPrompt中提取 current_price = 109695.40 格式的BTC价格
+    const match = userPrompt.match(/ALL BTC DATA[\s\S]*?current_price\s*=\s*([\d.]+)/);
+    return match ? Number(match[1]) : null;
+  }
+
   if (!totals || totals.length === 0) {
     // 从 conversations 生成净值时间序列
     try {
@@ -731,34 +870,113 @@ router.get('/account-totals', async (req, res) => {
       const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
       const series = arr.slice().reverse().map(c => {
         const ts = Math.floor(new Date(c?.timestamp || Date.now()).getTime() / 1000);
-        const equity = Number(c?.accountValue) || 10000;
+        const equity = Number(c?.accountValue);
+        if (!Number.isFinite(equity)) return null; // 跳过无效值，返回null
+        // 从userPrompt中提取BTC价格
+        const btcPrice = extractBTCPrice(c?.userPrompt);
         return {
           model_id: 'default',
           timestamp: ts,
           dollar_equity: equity,
           since_inception_hourly_marker: Math.floor(ts / 3600),
           positions: latestPositions, // 附加持仓信息
+          btc_price: btcPrice || undefined, // 附加BTC价格（如果存在）
         };
+      }).filter(item => item !== null); // 过滤掉null值
+      if (series.length > 0) return res.json({ 
+        accountTotals: series,
+        initialAccountValue: initialAccountValue || undefined, // 如果没有则不返回，而不是返回null
+        initialBTCPrice: initialBTCPrice || undefined, // 返回初始BTC价格
       });
-      if (series.length > 0) return res.json({ accountTotals: series });
     } catch (_) {}
+    // 如果没有数据且没有初始值，返回空数组而不是伪造数据
+    if (!initialAccountValue && !latestAccountValue) {
+      return res.json({
+        accountTotals: [],
+        initialAccountValue: undefined
+      });
+    }
+    
     const now = Date.now();
     const t0 = Math.floor((now - 60_000) / 1000);
     const t1 = Math.floor(now / 1000);
+    // 使用实际的值，如果没有初始值就使用当前值
+    const startValue = initialAccountValue || latestAccountValue || 0;
+    const currentValue = latestAccountValue || initialAccountValue || 0;
     return res.json({
       accountTotals: [
-        { model_id: 'default', timestamp: t0, dollar_equity: latestAccountValue, since_inception_hourly_marker: Math.floor(t0 / 3600), positions: latestPositions },
-        { model_id: 'default', timestamp: t1, dollar_equity: latestAccountValue, since_inception_hourly_marker: Math.floor(t1 / 3600), positions: latestPositions },
+        { model_id: 'default', timestamp: t0, dollar_equity: startValue, since_inception_hourly_marker: Math.floor(t0 / 3600), positions: latestPositions },
+        { model_id: 'default', timestamp: t1, dollar_equity: currentValue, since_inception_hourly_marker: Math.floor(t1 / 3600), positions: latestPositions },
       ],
+      // 只有确实有初始值时才返回
+      initialAccountValue: initialAccountValue || undefined,
     });
   }
   
-  // 为现有的 totals 也附加持仓信息（取最新的一条）
+  // 为现有的 totals 也附加持仓信息和更新最新净值，以及BTC价格
   if (totals && totals.length > 0) {
-    totals[totals.length - 1].positions = latestPositions;
+    // 尝试从conversations中提取BTC价格历史
+    let btcPriceMap = new Map(); // timestamp -> btc_price
+    try {
+      const buf = await fs.readFile(CONV_FILE, 'utf8');
+      const raw = JSON.parse(buf);
+      const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
+      for (const c of arr) {
+        const ts = Math.floor(new Date(c?.timestamp || Date.now()).getTime() / 1000);
+        const btcPrice = extractBTCPrice(c?.userPrompt);
+        if (btcPrice && !btcPriceMap.has(ts)) {
+          btcPriceMap.set(ts, btcPrice);
+        }
+      }
+    } catch (e) {
+      console.warn('从conversations提取BTC价格失败:', e.message);
+    }
+    
+    const latest = totals[totals.length - 1];
+    latest.positions = latestPositions;
+    // 如果有最新的账户价值，更新最后一条记录的净值
+    if (latestAccountValue != null && Number.isFinite(latestAccountValue)) {
+      latest.dollar_equity = latestAccountValue;
+      latest.timestamp = Math.floor(Date.now() / 1000);
+    }
+    
+    // 为每个totals项附加BTC价格（如果存在）
+    for (const item of totals) {
+      const ts = item.timestamp;
+      // 查找最接近的时间戳的BTC价格
+      let closestPrice = null;
+      let minDiff = Infinity;
+      for (const [priceTs, price] of btcPriceMap.entries()) {
+        const diff = Math.abs(priceTs - ts);
+        if (diff < minDiff && diff < 3600) { // 1小时内
+          minDiff = diff;
+          closestPrice = price;
+        }
+      }
+      if (closestPrice) {
+        item.btc_price = closestPrice;
+      }
+    }
+    
+    // 为最后一个点添加当前BTC价格（如果还没有）
+    if (!latest.btc_price) {
+      try {
+        const prices = await getPrices(['BTC/USDT']);
+        if (prices && prices['BTC/USDT'] && prices['BTC/USDT'].price) {
+          latest.btc_price = prices['BTC/USDT'].price;
+        }
+      } catch (e) {
+        console.warn('获取当前BTC价格失败:', e.message);
+      }
+    }
   }
   
-  res.json({ accountTotals: totals });
+  res.json({ 
+    accountTotals: totals,
+    // 只有确实有初始值时才返回，用于图表参考线
+    initialAccountValue: initialAccountValue || undefined,
+    initialBTCPrice: initialBTCPrice || undefined, // 返回初始BTC价格
+  });
 });
 
 router.get('/leaderboard', async (req, res) => {
@@ -773,7 +991,57 @@ router.get('/since-inception-values', async (req, res) => {
   res.json(out);
 });
 
+// 实时数据端点：直接从币安API获取
+router.get('/realtime', async (req, res) => {
+  try {
+    const realTimeData = await getRealTimeAccountData();
+    if (!realTimeData) {
+      // 如果实时获取失败，降级到trading-state.json
+      const state = await loadJson('trading-state.json', {});
+      return res.json({
+        balance: state.accountValue || 0,
+        availableCash: state.availableCash || 0,
+        positions: state.positions || [],
+        source: 'fallback',
+      });
+    }
+    return res.json({
+      ...realTimeData,
+      source: 'realtime',
+    });
+  } catch (e) {
+    console.error('获取实时数据失败:', e.message);
+    // 降级到trading-state.json
+    try {
+      const state = await loadJson('trading-state.json', {});
+      res.json({
+        balance: state.accountValue || 0,
+        availableCash: state.availableCash || 0,
+        positions: state.positions || [],
+        source: 'fallback',
+      });
+    } catch (_) {
+      res.json({
+        balance: 0,
+        availableCash: 0,
+        positions: [],
+        source: 'error',
+      });
+    }
+  }
+});
+
 router.get('/positions', async (req, res) => {
+  // 优先尝试实时数据
+  try {
+    const realTimeData = await getRealTimeAccountData();
+    if (realTimeData && realTimeData.positions && realTimeData.positions.length > 0) {
+      return res.json({ positions: realTimeData.positions });
+    }
+  } catch (_) {
+    // 如果失败，继续使用原有逻辑
+  }
+  
   try {
     const state = await loadJson('trading-state.json', { positions: [] });
     const positions = Array.isArray(state?.positions) ? state.positions : [];
