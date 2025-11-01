@@ -1,35 +1,46 @@
 {
   "startTime": "2025-11-01T07:50:03.177Z",
-  "invocationCount": 600,
-  "positions": [
+  "invocationCount": 632,
+  "positions": [],
+  "lastUpdate": "2025-11-01T12:15:16.449Z",
+  "tradingEnabled": true,
+  "accountValue": 4669.87760788,
+  "availableCash": 4669.87760788,
+  "totalReturn": -53.301223921200005,
+  "trades": [
     {
+      "timestamp": "2025-11-01T12:15:15.936Z",
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.01,
+      "price": 110058.1,
+      "orderId": "8082518861",
+      "environment": "demo.binance.com",
+      "accountValue": 4670.38284027,
+      "totalReturn": -53.2961715973
+    },
+    {
+      "timestamp": "2025-11-01T10:57:10.452Z",
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.01,
+      "price": 110118,
+      "orderId": "8075190637",
+      "environment": "demo.binance.com",
+      "accountValue": 4671.35731227,
+      "totalReturn": -53.286426877299995
+    },
+    {
+      "timestamp": "2025-11-01T10:54:13.290Z",
+      "side": "SELL",
       "symbol": "BNB",
       "quantity": 0.5,
-      "entry_price": 1088.17,
-      "current_price": 1086.737316,
-      "liquidation_price": 728.38479817,
-      "unrealized_pnl": -0.716342,
-      "leverage": 3,
-      "exit_plan": {
-        "profit_target": 1196.987,
-        "stop_loss": 1033.7615,
-        "invalidation_condition": "price_below_stop_loss"
-      },
-      "confidence": 0.8,
-      "risk_usd": 544.085,
-      "sl_oid": null,
-      "tp_oid": null,
-      "wait_for_fill": false,
-      "entry_oid": null,
-      "notional_usd": 543.368658
-    }
-  ],
-  "lastUpdate": "2025-11-01T10:39:10.426Z",
-  "tradingEnabled": true,
-  "accountValue": 4671.02353827,
-  "availableCash": 4490.02631736,
-  "totalReturn": -53.289764617299994,
-  "trades": [
+      "price": 1087.84,
+      "orderId": "770584365",
+      "environment": "demo.binance.com",
+      "accountValue": 4671.28736996,
+      "totalReturn": -53.287126300400004
+    },
     {
       "timestamp": "2025-11-01T10:36:09.532Z",
       "side": "BUY",

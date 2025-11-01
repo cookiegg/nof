@@ -57,7 +57,11 @@
         "BNB/USDT:USDT",
         "XRP/USDT:USDT",
         "DOGE/USDT:USDT"
-      ]
+      ],
+      "prompt_files": {
+        "system_prompt_path": "./backend/ai/ai-trading/prompt_templates/futures/system_prompt.txt",
+        "user_prompt_path": "./backend/ai/ai-trading/prompt_templates/futures/user_prompt.hbs"
+      }
     },
     "demo-spot": {
       "allowed_symbols": [
@@ -67,7 +71,11 @@
         "BNB/USDT",
         "XRP/USDT",
         "DOGE/USDT"
-      ]
+      ],
+      "prompt_files": {
+        "system_prompt_path": "./backend/ai/ai-trading/prompt_templates/spot/system_prompt.txt",
+        "user_prompt_path": "./backend/ai/ai-trading/prompt_templates/spot/user_prompt.hbs"
+      }
     },
     "futures": {
       "allowed_symbols": [
@@ -77,7 +85,11 @@
         "BNB/USDT:USDT",
         "XRP/USDT:USDT",
         "DOGE/USDT:USDT"
-      ]
+      ],
+      "prompt_files": {
+        "system_prompt_path": "./backend/ai/ai-trading/prompt_templates/futures/system_prompt.txt",
+        "user_prompt_path": "./backend/ai/ai-trading/prompt_templates/futures/user_prompt.hbs"
+      }
     },
     "spot": {
       "allowed_symbols": [
@@ -87,7 +99,11 @@
         "BNB/USDT",
         "XRP/USDT",
         "DOGE/USDT"
-      ]
+      ],
+      "prompt_files": {
+        "system_prompt_path": "./backend/ai/ai-trading/prompt_templates/spot/system_prompt.txt",
+        "user_prompt_path": "./backend/ai/ai-trading/prompt_templates/spot/user_prompt.hbs"
+      }
     }
   },
   "data": {

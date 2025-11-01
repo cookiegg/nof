@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import fetch from 'node-fetch';
 import { tradingRunner } from '../services/runner.js';
+import { botConfigManager } from '../services/bots/bot-config-manager.js';
 
 export const router = express.Router();
 
@@ -305,11 +306,26 @@ const CFG_FILE = path.join(AI_BASE_DIR, 'config.json');
 
 router.get('/ai/prompts', async (req, res) => {
   try {
+    const env = String(req.query.env || '').toLowerCase();
+    const isFutures = env === 'demo-futures' || env === 'futures';
+    
+    // 根据环境选择模板路径
+    let sysPath = SYS_TPL;
+    let userPath = USER_TPL;
+    
+    if (env && (env === 'demo-futures' || env === 'futures')) {
+      sysPath = path.join(TPL_DIR, 'futures', 'system_prompt.txt');
+      userPath = path.join(TPL_DIR, 'futures', 'user_prompt.hbs');
+    } else if (env && (env === 'demo-spot' || env === 'spot')) {
+      sysPath = path.join(TPL_DIR, 'spot', 'system_prompt.txt');
+      userPath = path.join(TPL_DIR, 'spot', 'user_prompt.hbs');
+    }
+    
     const [sys, user] = await Promise.all([
-      fs.readFile(SYS_TPL, 'utf8').catch(() => ''),
-      fs.readFile(USER_TPL, 'utf8').catch(() => ''),
+      fs.readFile(sysPath, 'utf8').catch(() => ''),
+      fs.readFile(userPath, 'utf8').catch(() => ''),
     ]);
-    res.json({ system: sys, user });
+    res.json({ system: sys, user, env: env || 'default' });
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) });
   }
@@ -320,14 +336,28 @@ router.post('/ai/prompts', async (req, res) => {
     const body = req.body || {};
     const system = String(body.system || '');
     const user = String(body.user || '');
-    await fs.mkdir(TPL_DIR, { recursive: true }).catch(() => {});
+    const env = String(body.env || '').toLowerCase();
+    
+    // 根据环境选择保存路径
+    let sysPath = SYS_TPL;
+    let userPath = USER_TPL;
+    
+    if (env && (env === 'demo-futures' || env === 'futures')) {
+      sysPath = path.join(TPL_DIR, 'futures', 'system_prompt.txt');
+      userPath = path.join(TPL_DIR, 'futures', 'user_prompt.hbs');
+    } else if (env && (env === 'demo-spot' || env === 'spot')) {
+      sysPath = path.join(TPL_DIR, 'spot', 'system_prompt.txt');
+      userPath = path.join(TPL_DIR, 'spot', 'user_prompt.hbs');
+    }
+    
+    await fs.mkdir(path.dirname(sysPath), { recursive: true }).catch(() => {});
     await Promise.all([
-      fs.writeFile(SYS_TPL, system, 'utf8'),
-      fs.writeFile(USER_TPL, user, 'utf8'),
+      fs.writeFile(sysPath, system, 'utf8'),
+      fs.writeFile(userPath, user, 'utf8'),
       // keep a JSON mirror for legacy UI
       saveJson('prompts.json', { system, user }),
     ]);
-    res.json({ system, user });
+    res.json({ system, user, env: env || 'default' });
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) });
   }
@@ -593,6 +623,65 @@ router.get('/ai/trading/status', async (req, res) => {
   res.json(tradingRunner.getStatus());
 });
 
+// ==================== Bot启动/停止API ====================
+
+// 启动指定Bot
+router.post('/bots/:botId/start', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const bot = await botConfigManager.getBotById(botId);
+    if (!bot) {
+      return res.status(404).json({ error: `Bot '${botId}' 不存在` });
+    }
+
+    // 检查是否已在运行
+    const existingStatus = tradingRunner.getBotStatus(botId);
+    if (existingStatus?.running) {
+      return res.json({ message: 'Bot已在运行', status: existingStatus });
+    }
+
+    const status = await tradingRunner.startBot(botId, bot);
+    res.json(status);
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// 停止指定Bot
+router.post('/bots/:botId/stop', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const status = tradingRunner.stopBot(botId);
+    res.json(status);
+  } catch (e) {
+    res.status(404).json({ error: String(e?.message || e) });
+  }
+});
+
+// 获取指定Bot状态
+router.get('/bots/:botId/status', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const status = tradingRunner.getBotStatus(botId);
+    if (!status) {
+      return res.status(404).json({ error: `Bot '${botId}' 不存在` });
+    }
+    res.json(status);
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// 获取所有Bot状态
+router.get('/bots/status/all', async (req, res) => {
+  try {
+    const statuses = tradingRunner.getAllBotStatuses();
+    res.json({ bots: statuses });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
 router.post('/ai/trading/start', async (req, res) => {
   try {
     const { intervalMinutes = 3, env, ai } = req.body || {};
@@ -693,6 +782,35 @@ router.post('/ai/trading/stop', async (req, res) => {
   try {
     const st = tradingRunner.stop();
     res.json(st);
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// 重新加载Prompt模板（手动触发）
+router.post('/ai/trading/reload-prompts', async (req, res) => {
+  try {
+    const { env } = req.body || {};
+    if (!env) {
+      return res.status(400).json({ error: 'env parameter is required' });
+    }
+    
+    // 创建重载标记文件，让运行中的AI系统在下次运行时重新加载模板
+    const dataDir = path.resolve(process.cwd(), 'backend', 'data');
+    const reloadMarkerFile = path.join(dataDir, `.reload-prompts-${env}.marker`);
+    
+    // 写入标记文件（包含时间戳）
+    await fs.writeFile(reloadMarkerFile, JSON.stringify({
+      env,
+      timestamp: new Date().toISOString(),
+      triggeredBy: 'manual'
+    }), 'utf8');
+    
+    res.json({ 
+      success: true, 
+      message: `已创建重载标记，运行中的 ${env} Bot将在下次交易循环时重新加载Prompt`,
+      markerFile: reloadMarkerFile
+    });
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) });
   }
@@ -1104,6 +1222,127 @@ router.get('/positions', async (req, res) => {
     }
   } catch (e) {
     res.json({ positions: [] });
+  }
+});
+
+// ==================== Bot管理API ====================
+
+// 获取所有Bot配置
+router.get('/bots', async (req, res) => {
+  try {
+    const bots = await botConfigManager.getAllBots();
+    res.json({ bots });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// 根据ID获取Bot配置
+router.get('/bots/:botId', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const bot = await botConfigManager.getBotById(botId);
+    if (!bot) {
+      return res.status(404).json({ error: `Bot '${botId}' 不存在` });
+    }
+    res.json(bot);
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// 创建新Bot
+router.post('/bots', async (req, res) => {
+  try {
+    const botConfig = req.body;
+    const created = await botConfigManager.createBot(botConfig);
+    res.json(created);
+  } catch (e) {
+    res.status(400).json({ error: String(e?.message || e) });
+  }
+});
+
+// 更新Bot配置
+router.put('/bots/:botId', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const updates = req.body;
+    const updated = await botConfigManager.updateBot(botId, updates);
+    res.json(updated);
+  } catch (e) {
+    res.status(400).json({ error: String(e?.message || e) });
+  }
+});
+
+// 删除Bot
+router.delete('/bots/:botId', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    await botConfigManager.deleteBot(botId);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(400).json({ error: String(e?.message || e) });
+  }
+});
+
+// 获取Bot的完整配置（包含解析后的AI配置）
+router.get('/bots/:botId/config-with-ai', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const config = await botConfigManager.getBotConfigWithAI(botId);
+    if (!config) {
+      return res.status(404).json({ error: `Bot '${botId}' 不存在` });
+    }
+    res.json(config);
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// 获取Bot的Prompt（支持env-shared和bot-specific）
+router.get('/bots/:botId/prompts', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const bot = await botConfigManager.getBotById(botId);
+    if (!bot) {
+      return res.status(404).json({ error: `Bot '${botId}' 不存在` });
+    }
+
+    const { PromptManager } = await import('../services/prompts/prompt-manager.js');
+    const promptManager = new PromptManager(bot);
+    
+    const [system, user] = await Promise.all([
+      promptManager.loadSystemPrompt(),
+      promptManager.loadUserPrompt()
+    ]);
+
+    res.json({ system, user, env: bot.env, promptMode: bot.promptMode });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// 保存Bot的Prompt
+router.post('/bots/:botId/prompts', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const { system, user } = req.body;
+    const bot = await botConfigManager.getBotById(botId);
+    if (!bot) {
+      return res.status(404).json({ error: `Bot '${botId}' 不存在` });
+    }
+
+    const { PromptManager } = await import('../services/prompts/prompt-manager.js');
+    const promptManager = new PromptManager(bot);
+    
+    await Promise.all([
+      promptManager.saveSystemPrompt(system || ''),
+      promptManager.saveUserPrompt(user || '')
+    ]);
+
+    res.json({ system, user, ok: true });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
   }
 });
 
