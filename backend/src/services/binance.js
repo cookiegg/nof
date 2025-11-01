@@ -7,11 +7,11 @@ function createExchange() {
   const isDemo = env.includes('demo');
   
   const apiKey = isFutures 
-    ? (process.env.BINANCE_FUTURES_DEMO_API_KEY || process.env.BINANCE_API_KEY || '')
+    ? (process.env.BINANCE_DEMO_API_KEY || process.env.BINANCE_API_KEY || '')
     : (process.env.BINANCE_SPOT_TEST_API_KEY || process.env.BINANCE_API_KEY || '');
   
   const secret = isFutures
-    ? (process.env.BINANCE_FUTURES_DEMO_API_SECRET || process.env.BINANCE_API_SECRET || '')
+    ? (process.env.BINANCE_DEMO_API_SECRET || process.env.BINANCE_API_SECRET || '')
     : (process.env.BINANCE_SPOT_TEST_API_SECRET || process.env.BINANCE_API_SECRET || '');
   
   // 如果是期货，使用binanceusdm
@@ -72,8 +72,37 @@ export async function getPrices(symbols) {
     if (ex.has?.fetchTickers && symbols.length > 1) {
       try {
         const tickers = await ex.fetchTickers(symbols);
+        
+        // 创建symbol到ticker的映射
+        // ticker的key可能是 BTC/USDT 或 BTC/USDT:USDT 等格式
+        const tickerMap = {};
+        for (const [key, ticker] of Object.entries(tickers)) {
+          if (ticker && ticker.symbol) {
+            // 尝试多种匹配方式：直接用symbol，或提取基础symbol
+            const baseSymbol = ticker.symbol.replace(/[:/].*/, ''); // 提取BTC部分
+            const fullSymbol = ticker.symbol;
+            tickerMap[fullSymbol] = ticker;
+            tickerMap[baseSymbol + '/USDT'] = ticker; // BTC/USDT
+            tickerMap[baseSymbol + '/USDT:USDT'] = ticker; // BTC/USDT:USDT
+          }
+        }
+        
         for (const s of symbols) {
-          const t = tickers[s];
+          // 先尝试直接匹配
+          let t = tickers[s] || tickerMap[s];
+          // 如果还是找不到，尝试通过symbol字段匹配
+          if (!t) {
+            const baseSymbol = s.split('/')[0];
+            t = Object.values(tickers).find(ticker => 
+              ticker && ticker.symbol && (
+                ticker.symbol === s || 
+                ticker.symbol === s + ':USDT' ||
+                ticker.symbol.startsWith(baseSymbol + '/') ||
+                ticker.symbol.startsWith(baseSymbol + ':')
+              )
+            );
+          }
+          
           if (t) {
             out[s] = { 
               symbol: s.split('/')[0], // 只保留币种名称，如BTC
@@ -84,7 +113,7 @@ export async function getPrices(symbols) {
         }
       } catch (e) {
         // 如果批量获取失败，降级到逐个获取
-        console.warn('批量获取价格失败，降级到逐个获取:', e.message);
+        console.warn('[getPrices] 批量获取价格失败，降级到逐个获取:', e.message);
         for (const s of symbols) {
           try {
             const t = await ex.fetchTicker(s);
@@ -94,12 +123,13 @@ export async function getPrices(symbols) {
               timestamp: Number(t.timestamp || Date.now()) 
             };
           } catch (err) {
-            console.warn(`获取${s}价格失败:`, err.message);
+            console.warn(`[getPrices] 获取${s}价格失败:`, err.message);
           }
         }
       }
     } else {
       // 如果交易所不支持批量获取，逐个获取
+      console.log('[getPrices] 交易所不支持批量获取，逐个获取');
       for (const s of symbols) {
         try {
           const t = await ex.fetchTicker(s);
@@ -109,14 +139,14 @@ export async function getPrices(symbols) {
             timestamp: Number(t.timestamp || Date.now()) 
           };
         } catch (err) {
-          console.warn(`获取${s}价格失败:`, err.message);
+          console.warn(`[getPrices] 获取${s}价格失败:`, err.message);
         }
       }
     }
     
     return out;
   } catch (e) {
-    console.error('获取价格失败:', e.message);
+    console.error('[getPrices] 获取价格失败:', e.message);
     // 返回空对象而不是抛出错误，让前端可以优雅降级
     return {};
   }

@@ -13,8 +13,8 @@ if [ ! -f "../../.env" ]; then
     echo "❌ 错误: 找不到环境变量文件 backend/.env"
     echo "💡 请确保设置了以下环境变量:"
     echo "   - DEEPSEEK_API_KEY_30"
-    echo "   - BINANCE_FUTURES_DEMO_API_KEY"
-    echo "   - BINANCE_FUTURES_DEMO_API_SECRET"
+    echo "   - BINANCE_DEMO_API_KEY"
+    echo "   - BINANCE_DEMO_API_SECRET"
     exit 1
 fi
 

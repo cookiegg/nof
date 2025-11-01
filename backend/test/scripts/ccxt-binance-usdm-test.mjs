@@ -27,8 +27,8 @@ function envBool(name, def = false) {
 }
 
 async function main() {
-  const apiKey = process.env.BINANCE_FUTURES_DEMO_API_KEY || '';
-  const secret = process.env.BINANCE_FUTURES_DEMO_API_SECRET || '';
+  const apiKey = process.env.BINANCE_DEMO_API_KEY || '';
+  const secret = process.env.BINANCE_DEMO_API_SECRET || '';
   const testnet = envBool('BINANCE_TESTNET', false);
 
   // binanceusdm = Binance USDT-Margined Perpetual Futures

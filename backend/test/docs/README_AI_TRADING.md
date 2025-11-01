@@ -32,8 +32,8 @@ backend/test/
 DEEPSEEK_API_KEY_30="your_deepseek_api_key"
 
 # Binance Futures API（用于获取市场数据）
-BINANCE_FUTURES_DEMO_API_KEY="your_binance_api_key"
-BINANCE_FUTURES_DEMO_API_SECRET="your_binance_secret"
+BINANCE_DEMO_API_KEY="your_binance_api_key"
+BINANCE_DEMO_API_SECRET="your_binance_secret"
 BINANCE_TESTNET=true
 
 # 代理设置（如果需要）

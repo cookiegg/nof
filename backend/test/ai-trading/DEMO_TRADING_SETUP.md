@@ -51,8 +51,8 @@ AI交易系统已成功配置为使用**Binance Demo Trading**环境，所有交
 确保以下环境变量正确设置：
 
 ```bash
-BINANCE_FUTURES_DEMO_API_KEY="your_demo_api_key"
-BINANCE_FUTURES_DEMO_API_SECRET="your_demo_api_secret"
+BINANCE_DEMO_API_KEY="your_demo_api_key"
+BINANCE_DEMO_API_SECRET="your_demo_api_secret"
 DEEPSEEK_API_KEY_30="your_deepseek_api_key"
 ```
 

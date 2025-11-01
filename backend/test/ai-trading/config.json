@@ -12,8 +12,8 @@
   "exchange": {
     "binance": {
       "futures_demo": {
-        "api_key": "${BINANCE_FUTURES_DEMO_API_KEY}",
-        "api_secret": "${BINANCE_FUTURES_DEMO_API_SECRET}"
+        "api_key": "${BINANCE_DEMO_API_KEY}",
+        "api_secret": "${BINANCE_DEMO_API_SECRET}"
       },
       "spot_testnet": {
         "api_key": "${BINANCE_SPOT_TESTNET_API_KEY}",
