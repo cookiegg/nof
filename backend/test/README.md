@@ -106,8 +106,8 @@ DeepSeek API相关文档和配置。
 ### 1. 环境配置
 确保在 `backend/.env` 中设置了必要的环境变量：
 - `DEEPSEEK_API_KEY_30` - DeepSeek API密钥
-- `BINANCE_FUTURES_DEMO_API_KEY` - Binance API密钥
-- `BINANCE_FUTURES_DEMO_API_SECRET` - Binance API密钥
+- `BINANCE_DEMO_API_KEY` - Binance API密钥
+- `BINANCE_DEMO_API_SECRET` - Binance API密钥
 
 ### 2. 运行AI交易系统
 ```bash

@@ -26,6 +26,7 @@ router.get('/crypto-prices', async (req, res) => {
     const prices = await getPrices(symbols);
     res.json({ prices, serverTime: Date.now() });
   } catch (e) {
+    console.error('[crypto-prices] 错误:', e);
     res.status(500).json({ error: String(e?.message || e) });
   }
 });

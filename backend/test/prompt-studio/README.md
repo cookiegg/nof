@@ -30,7 +30,7 @@ node --env-file=./backend/.env backend/test/prompt-studio/prompt_studio.mjs \
 - Node.js 运行时
 - 代理（如需要）：默认读取 `HTTP(S)_PROXY`，并为 CCXT 设定 `exchange.httpsProxy`
 - 交易所连接（可选，用于快照/能力探测）：
-  - 期货（demo）：`BINANCE_FUTURES_DEMO_API_KEY` / `BINANCE_FUTURES_DEMO_API_SECRET`
+  - 期货（demo）：`BINANCE_DEMO_API_KEY` / `BINANCE_DEMO_API_SECRET`
   - 现货（testnet）：`BINANCE_SPOT_TESTNET_API_KEY` / `BINANCE_SPOT_TESTNET_API_SECRET`
 - 大模型 API：
   - Provider/Model 取自 `config.ai.{provider,model}` 或 `ai.presets[*]`
