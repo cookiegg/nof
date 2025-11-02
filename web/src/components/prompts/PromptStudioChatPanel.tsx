@@ -1,16 +1,18 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import Modal from "@/components/ui/Modal";
+import BotList from "@/components/trading/BotList";
+import type { BotConfig } from "@/components/trading/BotControlPanel";
 
 type Msg = { role: 'user' | 'assistant' | 'system'; content: string };
 
 export default function PromptStudioChatPanel() {
   const [messages, setMessages] = useState<Msg[]>([
-    { role: 'system', content: 'Prompt Studio Chat 已就绪：输入问题进行问答（ask），或点击“建议”让模型产出模板草稿。' }
+    { role: 'system', content: 'Prompt Studio Chat 已就绪：输入问题进行问答（ask），或点击"建议"让模型产出模板草稿。' }
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [selectedBot, setSelectedBot] = useState<BotConfig | null>(null);
 
   async function onAsk() {
     if (!input.trim()) return;
@@ -20,10 +22,14 @@ export default function PromptStudioChatPanel() {
     setBusy(true);
     setError(null);
     try {
+      const body: any = { question: q };
+      if (selectedBot?.id) {
+        body.botId = selectedBot.id;
+      }
       const r = await fetch('/api/nof1/ai/prompt/ask', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ question: q })
+        body: JSON.stringify(body)
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
@@ -39,17 +45,26 @@ export default function PromptStudioChatPanel() {
     setBusy(true);
     setError(null);
     try {
-      const r = await fetch('/api/nof1/ai/prompt/suggest', { method: 'POST' });
+      const body: any = {};
+      if (selectedBot?.id) {
+        body.botId = selectedBot.id;
+      }
+      const r = await fetch('/api/nof1/ai/prompt/suggest', { 
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body)
+      });
       const j = await r.json();
       if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
       const s = j?.suggestion || {};
+      const botInfo = selectedBot ? `[基于Bot: ${selectedBot.name || selectedBot.id}]\n\n` : '';
       const blocks = [
         s.system_prompt_en ? `System Prompt (EN)\n\n${s.system_prompt_en}` : null,
         s.user_prompt_en ? `User Prompt (EN)\n\n${s.user_prompt_en}` : null,
         s.rationale_en ? `Rationale\n\n${s.rationale_en}` : null,
         s.config_updates ? `Config Updates (JSON)\n\n${JSON.stringify(s.config_updates, null, 2)}` : null,
       ].filter(Boolean);
-      setMessages((m) => [...m, { role: 'assistant', content: blocks.join('\n\n---\n\n') }]);
+      setMessages((m) => [...m, { role: 'assistant', content: botInfo + blocks.join('\n\n---\n\n') }]);
       // 缓存草稿以便 Diff/Apply
       setDraft({ system: s.system_prompt_en || '', user: s.user_prompt_en || '' });
     } catch (e: any) {
@@ -61,32 +76,18 @@ export default function PromptStudioChatPanel() {
 
   const [draft, setDraft] = useState<{ system: string; user: string } | null>(null);
 
-  // --- 交易控制区状态 ---
-  const [status, setStatus] = useState<any>(null);
+  // --- 配置加载（用于获取AI预设列表） ---
   const [cfg, setCfg] = useState<any>(null);
-  const [intervalMinutes, setIntervalMinutes] = useState<number>(3);
-  const [env, setEnv] = useState<string>("");
-  const [ai, setAi] = useState<string>("");
-  const [ctrlError, setCtrlError] = useState<string | null>(null);
-  const [ctrlInfo, setCtrlInfo] = useState<string | null>(null);
-  const [showStopConfirm, setShowStopConfirm] = useState(false);
-  const isRunning = !!status?.running;
   const aiPresetKeys = useMemo(() => Object.keys(cfg?.ai?.presets || {}), [cfg]);
 
   useEffect(() => {
     let abort = false;
     (async () => {
       try {
-        const [c, s] = await Promise.all([
-          fetch('/api/nof1/ai/config', { cache: 'no-store' }),
-          fetch('/api/nof1/ai/trading/status', { cache: 'no-store' }),
-        ]);
+        const c = await fetch('/api/nof1/ai/config', { cache: 'no-store' });
         const cj = await c.json();
-        const sj = await s.json();
         if (!abort) {
           setCfg(cj);
-          setEnv(String(cj?.trading_env || ''));
-          setStatus(sj);
         }
       } catch (_) {
         // ignore
@@ -95,54 +96,22 @@ export default function PromptStudioChatPanel() {
     return () => { abort = true; };
   }, []);
 
-  async function startTrading() {
-    try {
-      setCtrlError(null);
-      setCtrlInfo(null);
-      const r = await fetch('/api/nof1/ai/trading/start', {
-        method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ intervalMinutes, env, ai })
-      });
-      const txt = await r.text();
-      if (!r.ok) {
-        throw new Error(txt || `HTTP ${r.status}`);
-      }
-      const j = txt ? JSON.parse(txt) : {};
-      setStatus(j);
-      setCtrlInfo('已启动');
-    } catch (e: any) {
-      setCtrlError(e?.message || String(e));
-    }
-  }
-
-  function stopTrading() {
-    setShowStopConfirm(true);
-  }
-
-  async function confirmStopTrading() {
-    setShowStopConfirm(false);
-    try {
-      setCtrlError(null);
-      setCtrlInfo(null);
-      const r = await fetch('/api/nof1/ai/trading/stop', { method: 'POST' });
-      const txt = await r.text();
-      if (!r.ok) {
-        throw new Error(txt || `HTTP ${r.status}`);
-      }
-      const j = txt ? JSON.parse(txt) : {};
-      setStatus(j);
-      setCtrlInfo('已停止');
-    } catch (e: any) {
-      setCtrlError(e?.message || String(e));
-    }
-  }
-
   async function onShow() {
     setBusy(true); setError(null);
     try {
-      const r = await fetch('/api/nof1/ai/prompts');
+      let url = '/api/nof1/ai/prompts';
+      // 如果选中了Bot，根据promptMode加载对应的Prompt
+      if (selectedBot?.id) {
+        if (selectedBot.promptMode === 'bot-specific') {
+          url = `/api/nof1/bots/${selectedBot.id}/prompts`;
+        } else {
+          url = `/api/nof1/ai/prompts?env=${selectedBot.env}`;
+        }
+      }
+      const r = await fetch(url);
       const j = await r.json();
-      setMessages((m) => [...m, { role: 'assistant', content: `Current System\n\n${j.system || ''}\n\n---\n\nCurrent User\n\n${j.user || ''}` }]);
+      const botInfo = selectedBot ? `[Bot: ${selectedBot.name || selectedBot.id}, Mode: ${selectedBot.promptMode || 'env-shared'}]\n\n` : '';
+      setMessages((m) => [...m, { role: 'assistant', content: `${botInfo}Current System\n\n${j.system || ''}\n\n---\n\nCurrent User\n\n${j.user || ''}` }]);
     } finally { setBusy(false); }
   }
 
@@ -150,15 +119,30 @@ export default function PromptStudioChatPanel() {
     if (!draft) return;
     setBusy(true); setError(null);
     try {
-      const r0 = await fetch('/api/nof1/ai/prompts');
+      // 加载当前Prompt用于对比
+      let currentUrl = '/api/nof1/ai/prompts';
+      if (selectedBot?.id) {
+        if (selectedBot.promptMode === 'bot-specific') {
+          currentUrl = `/api/nof1/bots/${selectedBot.id}/prompts`;
+        } else {
+          currentUrl = `/api/nof1/ai/prompts?env=${selectedBot.env}`;
+        }
+      }
+      const r0 = await fetch(currentUrl);
       const cur = await r0.json();
+      
+      const diffBody: any = { system: draft.system, user: draft.user };
+      if (selectedBot?.id) {
+        diffBody.botId = selectedBot.id;
+      }
       const r = await fetch('/api/nof1/ai/prompt/diff', {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ system: draft.system, user: draft.user })
+        body: JSON.stringify(diffBody)
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-      setMessages((m) => [...m, { role: 'assistant', content: `System Diff\n\n${j.system_diff}\n\n---\n\nUser Diff\n\n${j.user_diff}` }]);
+      const target = selectedBot?.id ? (selectedBot.promptMode === 'bot-specific' ? `Bot "${selectedBot.name || selectedBot.id}"` : `环境 "${selectedBot.env}"`) : '模板';
+      setMessages((m) => [...m, { role: 'assistant', content: `[${target}] System Diff\n\n${j.system_diff}\n\n---\n\nUser Diff\n\n${j.user_diff}` }]);
     } catch (e: any) { setError(e?.message || String(e)); }
     finally { setBusy(false); }
   }
@@ -167,12 +151,30 @@ export default function PromptStudioChatPanel() {
     if (!draft) return;
     setBusy(true); setError(null);
     try {
-      const r = await fetch('/api/nof1/ai/prompt/apply', {
+      let url: string;
+      let body: any;
+      
+      // 如果选中了Bot且是bot-specific模式，直接保存到Bot的Prompt
+      if (selectedBot?.id && selectedBot.promptMode === 'bot-specific') {
+        url = `/api/nof1/bots/${selectedBot.id}/prompts`;
+        body = draft;
+      } else if (selectedBot?.id) {
+        // env-shared模式，使用环境模板的apply API
+        url = '/api/nof1/ai/prompt/apply';
+        body = { ...draft, env: selectedBot.env };
+      } else {
+        // 没有选中Bot，使用默认模板的apply API
+        url = '/api/nof1/ai/prompt/apply';
+        body = draft;
+      }
+      
+      const r = await fetch(url, {
         method: 'POST', headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(draft)
+        body: JSON.stringify(body)
       });
       const j = await r.json(); if (!r.ok) throw new Error(j?.error || `HTTP ${r.status}`);
-      setMessages((m) => [...m, { role: 'assistant', content: '已应用草稿到模板（已备份）' }]);
+      const target = selectedBot?.id ? (selectedBot.promptMode === 'bot-specific' ? `Bot "${selectedBot.name || selectedBot.id}"` : `环境 "${selectedBot.env}"`) : '模板';
+      setMessages((m) => [...m, { role: 'assistant', content: `已应用草稿到${target}的Prompt${selectedBot?.promptMode === 'bot-specific' ? '' : '（已备份）'}` }]);
     } catch (e: any) { setError(e?.message || String(e)); }
     finally { setBusy(false); }
   }
@@ -212,62 +214,30 @@ export default function PromptStudioChatPanel() {
 
   return (
     <aside className="h-full flex flex-col pr-1">
-      {/* 交易控制区：固定在顶部 */}
-      <div className="flex-shrink-0 mb-3 rounded border p-2" style={{ borderColor: 'var(--panel-border)' }}>
-        <div className="mb-2 text-[11px]" style={{ color: 'var(--muted-text)' }}>交易控制</div>
-        <div className="mb-2 grid grid-cols-3 gap-2 items-center text-xs">
-          <label className="col-span-1">交易类型</label>
-          <select className="col-span-2 rounded border px-2 py-1"
-                  style={{ borderColor: 'var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--foreground)' }}
-                  value={env}
-                  onChange={(e) => setEnv(e.target.value)}>
-            {['demo-futures','demo-spot','futures','spot'].map(k => (
-              <option key={k} value={k}>{k}</option>
-            ))}
-          </select>
-          <label className="col-span-1">AI模型</label>
-          <select className="col-span-2 rounded border px-2 py-1"
-                  style={{ borderColor: 'var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--foreground)' }}
-                  value={ai}
-                  onChange={(e) => setAi(e.target.value)}>
-            <option value="">(默认)</option>
-            {aiPresetKeys.map(k => (
-              <option key={k} value={k}>{k}</option>
-            ))}
-          </select>
-          <label className="col-span-1">间隔(分)</label>
-          <input className="col-span-2 rounded border px-2 py-1"
-                 style={{ borderColor: 'var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--foreground)' }}
-                 type="number" min={1} value={intervalMinutes}
-                 onChange={(e) => setIntervalMinutes(parseInt(e.target.value || '3'))} />
-        </div>
-        <div className="flex items-center gap-2">
-          <button className="rounded px-2 py-1 chip-btn text-xs"
-                  style={{ background: 'var(--btn-active-bg)', color: 'var(--btn-active-fg)' }}
-                  onClick={startTrading}
-                  disabled={isRunning}>启动</button>
-          <button className="rounded px-2 py-1 chip-btn text-xs"
-                  style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }}
-                  onClick={stopTrading}
-                  disabled={!isRunning}>停止</button>
-          <div className="text-[11px]" style={{ color: 'var(--muted-text)' }}>
-            状态：{isRunning ? `运行中(pid=${status?.pid})` : '未运行'}
-          </div>
-        </div>
-        {ctrlError && (
-          <div className="mt-2 rounded border px-2 py-1 text-xs" style={{ borderColor: 'var(--chip-border)', color: 'var(--danger)' }}>
-            {ctrlError}
-          </div>
-        )}
-        {ctrlInfo && (
-          <div className="mt-2 text-[11px]" style={{ color: 'var(--muted-text)' }}>
-            {ctrlInfo}
-          </div>
-        )}
+      {/* 多Bot交易控制区：固定在顶部，可滚动 */}
+      <div className="flex-shrink-0 mb-3" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+        <BotList 
+          aiPresets={aiPresetKeys} 
+          onBotSelect={setSelectedBot}
+          selectedBotId={selectedBot?.id || null}
+        />
       </div>
 
       {/* Prompt Studio Chat */}
-      <div className="flex-shrink-0 mb-2 text-xs font-semibold" style={{ color: 'var(--foreground)' }}>Prompt Studio Chat</div>
+      <div className="flex-shrink-0 mb-2 flex items-center justify-between">
+        <div className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
+          Prompt Studio Chat
+        </div>
+        {selectedBot && (
+          <div className="text-[10px] px-2 py-0.5 rounded" style={{ 
+            background: 'rgba(59, 130, 246, 0.15)',
+            color: 'rgb(59, 130, 246)',
+            border: '1px solid rgba(59, 130, 246, 0.3)'
+          }}>
+            编辑: {selectedBot.name || selectedBot.id} ({selectedBot.promptMode === 'bot-specific' ? '独立' : '共享'})
+          </div>
+        )}
+      </div>
       {error && (
         <div className="flex-shrink-0 mb-2 rounded border px-2 py-1 text-xs" style={{ borderColor: 'var(--chip-border)', color: 'var(--danger)' }}>{error}</div>
       )}
@@ -307,30 +277,6 @@ export default function PromptStudioChatPanel() {
         </div>
       </div>
 
-      {/* 停止确认弹窗 */}
-      <Modal open={showStopConfirm} onClose={() => setShowStopConfirm(false)} title="确认停止交易">
-        <div className="mb-4 text-xs leading-relaxed" style={{ color: 'var(--foreground)' }}>
-          <p className="mb-2">停止运行当前 AI 交易系统。</p>
-          <p className="mb-2">⚠️ 注意：停止后系统将不再执行新的交易决策。</p>
-          <p className="text-xs opacity-70">当前持仓将保持不变，如有需要请手动平仓。</p>
-        </div>
-        <div className="flex items-center justify-end gap-2">
-          <button
-            className="rounded px-3 py-1.5 text-xs chip-btn"
-            style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }}
-            onClick={() => setShowStopConfirm(false)}
-          >
-            取消
-          </button>
-          <button
-            className="rounded px-3 py-1.5 text-xs chip-btn"
-            style={{ background: 'var(--btn-active-bg)', color: 'var(--btn-active-fg)' }}
-            onClick={confirmStopTrading}
-          >
-            确认停止
-          </button>
-        </div>
-      </Modal>
     </aside>
   );
 }

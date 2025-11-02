@@ -366,10 +366,30 @@ router.post('/ai/prompts', async (req, res) => {
 // Diff between current templates and proposed ones
 router.post('/ai/prompt/diff', async (req, res) => {
   try {
-    const curSys = await fs.readFile(SYS_TPL, 'utf8').catch(() => '');
-    const curUsr = await fs.readFile(USER_TPL, 'utf8').catch(() => '');
-    const nextSys = String(req.body?.system || '');
-    const nextUsr = String(req.body?.user || '');
+    const body = req.body || {};
+    const botId = body.botId;
+    const nextSys = String(body.system || '');
+    const nextUsr = String(body.user || '');
+    
+    let curSys = '';
+    let curUsr = '';
+    
+    // 如果提供了botId，加载Bot对应的Prompt
+    if (botId) {
+      const botConfig = await botConfigManager.getBotById(botId);
+      if (botConfig) {
+        const { PromptManager } = await import('../services/prompts/prompt-manager.js');
+        const promptManager = new PromptManager(botConfig);
+        curSys = await promptManager.loadSystemPrompt() || '';
+        curUsr = await promptManager.loadUserPrompt() || '';
+      }
+    }
+    
+    // 如果没有botId或Bot不存在，使用默认模板
+    if (!curSys && !curUsr) {
+      curSys = await fs.readFile(SYS_TPL, 'utf8').catch(() => '');
+      curUsr = await fs.readFile(USER_TPL, 'utf8').catch(() => '');
+    }
     function simpleDiff(a, b) {
       const al = String(a).split(/\r?\n/);
       const bl = String(b).split(/\r?\n/);
@@ -507,20 +527,54 @@ router.post('/ai/config', async (req, res) => {
 // Suggest prompts via LLM using config presets
 router.post('/ai/prompt/suggest', async (req, res) => {
   try {
-    const cfg = JSON.parse(await fs.readFile(CFG_FILE, 'utf8'));
-    const sys = await fs.readFile(SYS_TPL, 'utf8').catch(() => '');
-    const usr = await fs.readFile(USER_TPL, 'utf8').catch(() => '');
     const body = req.body || {};
-    const aiKey = cfg.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '';
-    const provider = cfg.ai?.provider || 'deepseek';
-    const model = cfg.ai?.model || 'deepseek-chat';
-    const temperature = cfg.ai?.temperature ?? 0.7;
+    const botId = body.botId;
+    const cfg = JSON.parse(await fs.readFile(CFG_FILE, 'utf8'));
+    
+    let sys = '';
+    let usr = '';
+    let botConfig = null;
+    let aiKey = cfg.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '';
+    let provider = cfg.ai?.provider || 'deepseek';
+    let model = cfg.ai?.model || 'deepseek-chat';
+    let temperature = cfg.ai?.temperature ?? 0.7;
+    let env = cfg.trading_env || 'demo-futures';
+    
+    // 如果提供了botId，加载Bot对应的Prompt和配置
+    if (botId) {
+      botConfig = await botConfigManager.getBotById(botId);
+      if (botConfig) {
+        env = botConfig.env;
+        // 加载Bot的AI配置
+        const { resolveAIConfig } = await import('../services/bots/bot-config-manager.js');
+        const aiConfig = resolveAIConfig(botConfig, cfg);
+        aiKey = aiConfig.api_key;
+        provider = aiConfig.provider;
+        model = aiConfig.model;
+        temperature = aiConfig.temperature;
+        
+        // 加载Bot的Prompt
+        const { PromptManager } = await import('../services/prompts/prompt-manager.js');
+        const promptManager = new PromptManager(botConfig);
+        sys = await promptManager.loadSystemPrompt() || '';
+        usr = await promptManager.loadUserPrompt() || '';
+      }
+    }
+    
+    // 如果没有botId或Bot不存在，使用默认模板
+    if (!sys && !usr) {
+      sys = await fs.readFile(SYS_TPL, 'utf8').catch(() => '');
+      usr = await fs.readFile(USER_TPL, 'utf8').catch(() => '');
+    }
 
     const context = {
-      environment: cfg.trading_env,
+      environment: env,
       allowed_symbols: cfg.allowed_symbols,
       data: cfg.data,
-      current_templates: { system: sys, user: usr }
+      current_templates: { system: sys, user: usr },
+      bot_id: botId || null,
+      bot_name: botConfig?.name || null,
+      prompt_mode: botConfig?.promptMode || 'env-shared'
     };
 
     if (!aiKey) {
@@ -569,18 +623,53 @@ router.post('/ai/prompt/suggest', async (req, res) => {
 // Q&A about prompts/config/capabilities without changing templates
 router.post('/ai/prompt/ask', async (req, res) => {
   try {
+    const body = req.body || {};
+    const botId = body.botId;
+    const question = String(body.question || '').slice(0, 8000);
     const cfg = JSON.parse(await fs.readFile(CFG_FILE, 'utf8'));
-    const sys = await fs.readFile(SYS_TPL, 'utf8').catch(() => '');
-    const usr = await fs.readFile(USER_TPL, 'utf8').catch(() => '');
-    const question = String(req.body?.question || '').slice(0, 8000);
-    const aiKey = cfg.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '';
-    const model = cfg.ai?.model || 'deepseek-chat';
-    const temperature = cfg.ai?.temperature ?? 0.4;
+    
+    let sys = '';
+    let usr = '';
+    let botConfig = null;
+    let aiKey = cfg.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '';
+    let model = cfg.ai?.model || 'deepseek-chat';
+    let temperature = cfg.ai?.temperature ?? 0.4;
+    let env = cfg.trading_env || 'demo-futures';
+    
+    // 如果提供了botId，加载Bot对应的Prompt和配置
+    if (botId) {
+      botConfig = await botConfigManager.getBotById(botId);
+      if (botConfig) {
+        env = botConfig.env;
+        // 加载Bot的AI配置
+        const { resolveAIConfig } = await import('../services/bots/bot-config-manager.js');
+        const aiConfig = resolveAIConfig(botConfig, cfg);
+        aiKey = aiConfig.api_key;
+        model = aiConfig.model;
+        temperature = aiConfig.temperature;
+        
+        // 加载Bot的Prompt
+        const { PromptManager } = await import('../services/prompts/prompt-manager.js');
+        const promptManager = new PromptManager(botConfig);
+        sys = await promptManager.loadSystemPrompt() || '';
+        usr = await promptManager.loadUserPrompt() || '';
+      }
+    }
+    
+    // 如果没有botId或Bot不存在，使用默认模板
+    if (!sys && !usr) {
+      sys = await fs.readFile(SYS_TPL, 'utf8').catch(() => '');
+      usr = await fs.readFile(USER_TPL, 'utf8').catch(() => '');
+    }
+    
     const context = {
-      environment: cfg.trading_env,
+      environment: env,
       allowed_symbols: cfg.allowed_symbols,
       data: cfg.data,
-      current_templates: { system: sys, user: usr }
+      current_templates: { system: sys, user: usr },
+      bot_id: botId || null,
+      bot_name: botConfig?.name || null,
+      prompt_mode: botConfig?.promptMode || 'env-shared'
     };
     if (!question) return res.status(400).json({ error: 'empty_question' });
     if (!aiKey) return res.json({ answer: null, disabled: true });
@@ -1256,6 +1345,50 @@ router.post('/bots', async (req, res) => {
   try {
     const botConfig = req.body;
     const created = await botConfigManager.createBot(botConfig);
+    
+    // 如果Bot是bot-specific模式，初始化Prompt目录（从env继承）
+    if (created.promptMode === 'bot-specific' && created.id) {
+      try {
+        const { PromptManager } = await import('../services/prompts/prompt-manager.js');
+        const promptManager = new PromptManager(created);
+        // 触发加载，会自动从env继承并创建目录和文件
+        await Promise.all([
+          promptManager.loadSystemPrompt(),
+          promptManager.loadUserPrompt()
+        ]);
+      } catch (e) {
+        console.warn(`[Bot创建] 初始化Bot Prompt目录失败 (${created.id}):`, e.message);
+        // 不影响Bot创建，只记录警告
+      }
+    }
+    
+    // 初始化Bot状态目录（如果tradingMode是local-simulated或需要独立状态）
+    if (created.tradingMode === 'local-simulated' && created.id) {
+      try {
+        const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+        const stateManager = new BotStateManager(created.id);
+        // 创建初始状态文件
+        const initialState = {
+          startTime: new Date().toISOString(),
+          invocationCount: 0,
+          totalReturn: 0,
+          accountValue: 10000,
+          availableCash: 10000,
+          positions: [],
+          lastUpdate: new Date().toISOString(),
+          tradingEnabled: true,
+          initialAccountValue: 10000
+        };
+        await stateManager.saveState(initialState);
+        // 初始化空数组
+        await stateManager.saveConversations([]);
+        await stateManager.saveTrades([]);
+      } catch (e) {
+        console.warn(`[Bot创建] 初始化Bot状态目录失败 (${created.id}):`, e.message);
+        // 不影响Bot创建，只记录警告
+      }
+    }
+    
     res.json(created);
   } catch (e) {
     res.status(400).json({ error: String(e?.message || e) });
@@ -1268,6 +1401,22 @@ router.put('/bots/:botId', async (req, res) => {
     const { botId } = req.params;
     const updates = req.body;
     const updated = await botConfigManager.updateBot(botId, updates);
+    
+    // 如果更新后是bot-specific模式且之前没有初始化，现在初始化
+    if (updated.promptMode === 'bot-specific' && updated.id) {
+      try {
+        const { PromptManager } = await import('../services/prompts/prompt-manager.js');
+        const promptManager = new PromptManager(updated);
+        // 触发加载，会自动从env继承并创建目录和文件
+        await Promise.all([
+          promptManager.loadSystemPrompt(),
+          promptManager.loadUserPrompt()
+        ]);
+      } catch (e) {
+        console.warn(`[Bot更新] 初始化Bot Prompt目录失败 (${updated.id}):`, e.message);
+      }
+    }
+    
     res.json(updated);
   } catch (e) {
     res.status(400).json({ error: String(e?.message || e) });
@@ -1277,10 +1426,74 @@ router.put('/bots/:botId', async (req, res) => {
 // 删除Bot
 router.delete('/bots/:botId', async (req, res) => {
   try {
-    const { botId } = req.params;
+    // Express会自动解码URL参数
+    const botId = decodeURIComponent(req.params.botId);
+    console.log(`[Bot删除] 开始删除Bot: ${botId}`);
+    
+    // 先停止并移除运行中的Bot实例（如果存在）
+    try {
+      tradingRunner.removeBot(botId);
+      console.log(`[Bot删除] 已停止运行中的Bot实例: ${botId}`);
+    } catch (e) {
+      // 如果Bot不在运行中，忽略错误
+      console.log(`[Bot删除] Bot ${botId} 不在运行中或已移除:`, e.message);
+    }
+    
+    // 获取Bot配置（需要在删除配置之前获取，用于后续操作）
+    const bot = await botConfigManager.getBotById(botId);
+    if (!bot) {
+      return res.status(404).json({ error: `Bot '${botId}' 不存在` });
+    }
+    console.log(`[Bot删除] 找到Bot配置: ${JSON.stringify({ id: bot.id, name: bot.name })}`);
+    
+    // 删除Bot对应的数据目录和文件（在删除配置之前，以便获取Bot信息）
+    try {
+      // 使用正确的路径：__dirname指向backend/src/routes，所以需要../../到达backend，然后data/bots
+      // 但实际文件结构是 backend/src/routes -> backend/data/bots
+      // 所以应该是: ../../data/bots (从backend/src/routes到backend/data/bots)
+      const botDataDir = path.resolve(__dirname, '../../data/bots', botId);
+      
+      console.log(`[Bot删除] 准备删除数据目录: ${botDataDir}`);
+      
+      // 强制删除目录（即使不存在也尝试，force选项会忽略错误）
+      try {
+        // 使用force选项，即使目录不存在也不会报错
+        await fs.rm(botDataDir, { recursive: true, force: true });
+        
+        // 验证删除是否成功
+        await new Promise(resolve => setTimeout(resolve, 100)); // 等待100ms确保删除完成
+        try {
+          await fs.access(botDataDir);
+          // 如果还能访问，说明删除失败
+          console.warn(`[Bot删除] ⚠️ 目录删除后仍然存在，尝试再次删除: ${botDataDir}`);
+          await fs.rm(botDataDir, { recursive: true, force: true });
+        } catch (verifyErr) {
+          if (verifyErr.code === 'ENOENT') {
+            console.log(`[Bot删除] ✓ 已删除Bot数据目录: ${botDataDir}`);
+          } else {
+            throw verifyErr;
+          }
+        }
+      } catch (e) {
+        // 即使删除失败，也记录但不阻止Bot配置删除
+        if (e.code === 'ENOENT') {
+          console.log(`[Bot删除] Bot数据目录不存在: ${botDataDir}`);
+        } else {
+          console.warn(`[Bot删除] ⚠️ 删除目录时出错 (${botId}):`, e.message);
+        }
+      }
+    } catch (e) {
+      // 删除文件失败不影响Bot配置删除，但记录警告
+      console.warn(`[Bot删除] ⚠️ 删除Bot数据目录失败 (${botId}):`, e.message);
+    }
+    
+    // 最后删除Bot配置（确保即使文件删除失败，配置也能删除）
     await botConfigManager.deleteBot(botId);
-    res.json({ ok: true });
+    console.log(`[Bot删除] ✓ 已删除Bot配置: ${botId}`);
+    
+    res.json({ ok: true, deletedBotId: botId });
   } catch (e) {
+    console.error(`[Bot删除] ✗ 删除Bot失败:`, e.message, e.stack);
     res.status(400).json({ error: String(e?.message || e) });
   }
 });
@@ -1294,6 +1507,67 @@ router.get('/bots/:botId/config-with-ai', async (req, res) => {
       return res.status(404).json({ error: `Bot '${botId}' 不存在` });
     }
     res.json(config);
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// 初始化Bot目录和文件（用于已存在的Bot）
+// 注意：这个路由必须在其他 /bots/:botId/* 路由之前，否则会被 :botId 匹配
+router.post('/bots/:botId/init', async (req, res) => {
+  try {
+    const { botId } = req.params;
+    const bot = await botConfigManager.getBotById(botId);
+    if (!bot) {
+      return res.status(404).json({ error: `Bot '${botId}' 不存在` });
+    }
+    
+    const results = { prompt: false, state: false };
+    
+    // 初始化Prompt目录（如果是bot-specific模式）
+    if (bot.promptMode === 'bot-specific') {
+      try {
+        const { PromptManager } = await import('../services/prompts/prompt-manager.js');
+        const promptManager = new PromptManager(bot);
+        await Promise.all([
+          promptManager.loadSystemPrompt(),
+          promptManager.loadUserPrompt()
+        ]);
+        results.prompt = true;
+      } catch (e) {
+        console.error(`[Bot初始化] Prompt目录初始化失败:`, e.message);
+      }
+    }
+    
+    // 初始化状态目录（如果是local-simulated模式）
+    if (bot.tradingMode === 'local-simulated') {
+      try {
+        const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+        const stateManager = new BotStateManager(bot.id);
+        const existingState = await stateManager.loadState();
+        if (!existingState) {
+          const initialState = {
+            startTime: new Date().toISOString(),
+            invocationCount: 0,
+            totalReturn: 0,
+            accountValue: 10000,
+            availableCash: 10000,
+            positions: [],
+            lastUpdate: new Date().toISOString(),
+            tradingEnabled: true,
+            initialAccountValue: 10000
+          };
+          await stateManager.saveState(initialState);
+          await stateManager.saveConversations([]);
+          await stateManager.saveTrades([]);
+        }
+        results.state = true;
+      } catch (e) {
+        console.error(`[Bot初始化] 状态目录初始化失败:`, e.message);
+      }
+    }
+    
+    res.json({ ok: true, results });
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) });
   }

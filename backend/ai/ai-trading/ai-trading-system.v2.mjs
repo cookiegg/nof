@@ -74,32 +74,68 @@ function renderSimple(template, context) {
 }
 
 class AITradingSystemV2 {
-  constructor() {
+  constructor(options = {}) {
     this.config = loadConfig();
+    
+    // 支持依赖注入：executor和promptManager
+    this.executor = options.executor || null;
+    this.promptManager = options.promptManager || null;
+    this.botId = options.botId || process.env.BOT_ID || null;
+    this.botConfig = options.botConfig || null;
+    
+    // 如果提供了botConfig，使用它；否则从环境变量或参数读取
+    if (this.botConfig) {
+      this.tradingEnv = this.botConfig.env;
+      this.isFutures = this.tradingEnv === 'demo-futures' || this.tradingEnv === 'futures';
+      
+      // 从botConfig获取AI配置（延迟异步加载，先用同步方式）
+      // AI配置将在initialize()方法中加载
+      this._botConfigForInit = this.botConfig;
+      this._needsAIConfigInit = true;
+      
+      // 使用BotStateManager（如果提供了botId和executor）
+      if (this.botId && this.executor) {
+        // executor已经创建了stateManager
+        if (this.executor.stateManager) {
+          this.stateManager = this.executor.stateManager;
+        }
+      }
+    } else {
+      // 向后兼容：从环境变量或参数读取
+      const argEnv = getArg('--env');
+      const argAi = getArg('--ai');
+      
+      this.tradingEnv = (argEnv && typeof argEnv === 'string') ? argEnv : (this.config.trading_env || 'demo-futures');
+      this.isFutures = this.tradingEnv === 'demo-futures' || this.tradingEnv === 'futures';
+      
+      const aiPreset = (argAi && this.config.ai?.presets?.[argAi]) ? this.config.ai.presets[argAi] : null;
+      this.aiProvider = (aiPreset?.provider || this.config.ai?.provider || 'deepseek');
+      this.aiModel = (aiPreset?.model || this.config.ai?.model || 'deepseek-chat');
+      this.aiApiKey = expandEnvMaybe(aiPreset?.api_key || this.config.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '');
+      this.aiTemperature = (aiPreset?.temperature ?? this.config.ai?.temperature ?? 0.7);
+      this.aiMaxTokens = (aiPreset?.max_tokens ?? this.config.ai?.max_tokens ?? 2000);
+    }
 
-    const argEnv = getArg('--env');
-    const argAi = getArg('--ai');
-
-    this.tradingEnv = (argEnv && typeof argEnv === 'string') ? argEnv : (this.config.trading_env || 'demo-futures');
-    this.isFutures = this.tradingEnv === 'demo-futures' || this.tradingEnv === 'futures';
-
-    const aiPreset = (argAi && this.config.ai?.presets?.[argAi]) ? this.config.ai.presets[argAi] : null;
-    this.aiProvider = (aiPreset?.provider || this.config.ai?.provider || 'deepseek');
-    this.aiModel = (aiPreset?.model || this.config.ai?.model || 'deepseek-chat');
-    this.aiApiKey = expandEnvMaybe(aiPreset?.api_key || this.config.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '');
-    this.aiTemperature = (aiPreset?.temperature ?? this.config.ai?.temperature ?? 0.7);
-    this.aiMaxTokens = (aiPreset?.max_tokens ?? this.config.ai?.max_tokens ?? 2000);
-
-    this.exchange = null;
+    this.exchange = null; // 保留用于向后兼容
     this.dataDir = resolve(process.cwd(), 'backend', 'data');
     try { mkdirSync(this.dataDir, { recursive: true }); } catch (_) {}
-    this.stateFile = resolve(this.dataDir, 'trading-state.json');
-    this.conversationsFile = resolve(this.dataDir, 'conversations.json');
-    this.tradesFile = resolve(this.dataDir, 'trades.json');
+    
+    // 如果使用BotStateManager，路径由它管理；否则使用旧的路径
+    if (this.stateManager) {
+      this.stateFile = this.stateManager.getStateFilePath();
+      this.conversationsFile = this.stateManager.getConversationsFilePath();
+      this.tradesFile = this.stateManager.getTradesFilePath();
+    } else {
+      this.stateFile = resolve(this.dataDir, 'trading-state.json');
+      this.conversationsFile = resolve(this.dataDir, 'conversations.json');
+      this.tradesFile = resolve(this.dataDir, 'trades.json');
+    }
 
     this.state = this.loadState();
     this.sanitizeState();
-    this.conversations = this.loadConversations();
+    // conversations异步加载，稍后初始化
+    this.conversations = { conversations: [], lastUpdate: new Date().toISOString() };
+    this._loadConversationsSync();
 
     // 确保种子文件存在（前端可立即读取）
     try {
@@ -110,7 +146,7 @@ class AITradingSystemV2 {
         writeFileSync(this.conversationsFile, JSON.stringify(this.conversations, null, 2), 'utf8');
       }
       if (!existsSync(this.stateFile)) {
-        this.saveState();
+        await this.saveState();
       }
     } catch (_) {}
 
@@ -128,15 +164,22 @@ class AITradingSystemV2 {
       ? this.config.symbols_monitor
       : [...this.allowedSymbolsForAI];
 
-    // 优先从 presets 读取环境特定的模板路径，否则使用全局配置
-    const presetPromptFiles = this.config.presets?.[this.tradingEnv]?.prompt_files;
-    const promptFiles = presetPromptFiles || this.config.prompt_files || {};
+    // 如果提供了promptManager，使用它；否则使用旧的文件路径方式
+    if (this.promptManager) {
+      // 使用注入的promptManager，稍后在reloadTemplates中加载
+      this.systemPromptTemplate = '';
+      this.userPromptTemplate = '';
+    } else {
+      // 向后兼容：使用文件路径
+      const presetPromptFiles = this.config.presets?.[this.tradingEnv]?.prompt_files;
+      const promptFiles = presetPromptFiles || this.config.prompt_files || {};
+      
+      this.systemPromptTemplatePath = resolve(process.cwd(), promptFiles.system_prompt_path || '');
+      this.userPromptTemplatePath = resolve(process.cwd(), promptFiles.user_prompt_path || '');
+    }
     
-    this.systemPromptTemplatePath = resolve(process.cwd(), promptFiles.system_prompt_path || '');
-    this.userPromptTemplatePath = resolve(process.cwd(), promptFiles.user_prompt_path || '');
-    
-    // 初始化时加载模板
-    this.reloadTemplates();
+    // 初始化时加载模板（异步，但不阻塞构造函数）
+    this.reloadTemplates().catch(e => console.error('初始化加载模板失败:', e.message));
     
     // 记录模板文件最后修改时间
     this.templateLastLoadTime = Date.now();
@@ -153,30 +196,42 @@ class AITradingSystemV2 {
   }
 
   // 重新加载模板文件
-  reloadTemplates() {
+  async reloadTemplates() {
     try {
-      this.systemPromptTemplate = existsSync(this.systemPromptTemplatePath)
-        ? readFileSync(this.systemPromptTemplatePath, 'utf8')
-        : '';
-      this.userPromptTemplate = existsSync(this.userPromptTemplatePath)
-        ? readFileSync(this.userPromptTemplatePath, 'utf8')
-        : '';
+      if (this.promptManager) {
+        // 使用注入的promptManager
+        const [system, user] = await Promise.all([
+          this.promptManager.loadSystemPrompt(),
+          this.promptManager.loadUserPrompt()
+        ]);
+        this.systemPromptTemplate = system || '';
+        this.userPromptTemplate = user || '';
+        console.log(`✅ Prompt模板已重新加载 (${this.tradingEnv}, botId=${this.botId || 'default'})`);
+      } else {
+        // 向后兼容：使用文件路径
+        this.systemPromptTemplate = existsSync(this.systemPromptTemplatePath)
+          ? readFileSync(this.systemPromptTemplatePath, 'utf8')
+          : '';
+        this.userPromptTemplate = existsSync(this.userPromptTemplatePath)
+          ? readFileSync(this.userPromptTemplatePath, 'utf8')
+          : '';
+        console.log(`✅ Prompt模板已重新加载 (${this.tradingEnv})`);
+      }
       this.templateLastLoadTime = Date.now();
-      console.log(`✅ Prompt模板已重新加载 (${this.tradingEnv})`);
     } catch (e) {
       console.error('重新加载模板失败:', e.message);
     }
   }
 
   // 检查是否需要重新加载模板（通过标记文件）
-  checkAndReloadTemplates() {
+  async checkAndReloadTemplates() {
     try {
       const dataDir = resolve(process.cwd(), 'backend', 'data');
       const markerFile = resolve(dataDir, `.reload-prompts-${this.tradingEnv}.marker`);
       
       if (existsSync(markerFile)) {
         // 标记文件存在，重新加载模板
-        this.reloadTemplates();
+        await this.reloadTemplates();
         // 删除标记文件
         try {
           unlinkSync(markerFile);
@@ -235,9 +290,18 @@ class AITradingSystemV2 {
 
   loadState() {
     try {
-      if (existsSync(this.stateFile)) {
-        const data = readFileSync(this.stateFile, 'utf8');
-        return JSON.parse(data);
+      if (this.stateManager) {
+        // 同步加载（BotStateManager是异步的，这里需要同步版本）
+        // 为了向后兼容，暂时仍使用文件方式
+        if (existsSync(this.stateFile)) {
+          const data = readFileSync(this.stateFile, 'utf8');
+          return JSON.parse(data);
+        }
+      } else {
+        if (existsSync(this.stateFile)) {
+          const data = readFileSync(this.stateFile, 'utf8');
+          return JSON.parse(data);
+        }
       }
     } catch (_) {}
     return {
@@ -252,24 +316,52 @@ class AITradingSystemV2 {
     };
   }
 
-  saveState() {
+  async saveState() {
     this.state.lastUpdate = new Date().toISOString();
-    writeFileSync(this.stateFile, JSON.stringify(this.state, null, 2), 'utf8');
+    if (this.stateManager) {
+      // 使用BotStateManager保存（异步）
+      await this.stateManager.saveState(this.state);
+    } else {
+      // 向后兼容：使用文件方式
+      writeFileSync(this.stateFile, JSON.stringify(this.state, null, 2), 'utf8');
+    }
   }
 
-  loadConversations() {
+  // 同步加载conversations（用于构造函数）
+  _loadConversationsSync() {
     try {
       if (existsSync(this.conversationsFile)) {
         const data = readFileSync(this.conversationsFile, 'utf8');
-        return JSON.parse(data);
+        this.conversations = JSON.parse(data);
       }
     } catch (_) {}
-    return { conversations: [], lastUpdate: new Date().toISOString() };
+    if (!this.conversations || !Array.isArray(this.conversations.conversations)) {
+      this.conversations = { conversations: [], lastUpdate: new Date().toISOString() };
+    }
   }
 
-  saveConversations() {
+  // 异步加载conversations（使用BotStateManager时）
+  async loadConversations() {
+    try {
+      if (this.stateManager) {
+        const conversations = await this.stateManager.loadConversations();
+        return { conversations, lastUpdate: new Date().toISOString() };
+      } else {
+        this._loadConversationsSync();
+        return this.conversations;
+      }
+    } catch (_) {
+      return { conversations: [], lastUpdate: new Date().toISOString() };
+    }
+  }
+
+  async saveConversations() {
     this.conversations.lastUpdate = new Date().toISOString();
-    writeFileSync(this.conversationsFile, JSON.stringify(this.conversations, null, 2), 'utf8');
+    if (this.stateManager) {
+      await this.stateManager.saveConversations(this.conversations.conversations || []);
+    } else {
+      writeFileSync(this.conversationsFile, JSON.stringify(this.conversations, null, 2), 'utf8');
+    }
   }
 
   async initializeExchange() {
@@ -357,9 +449,38 @@ class AITradingSystemV2 {
     const ctxLimit = this.dataCfg.context_limit;
     for (const symbol of this.symbols) {
       try {
-        if (!this.exchange) throw new Error('no_exchange');
-        const ticker = await this.exchange.fetchTicker(symbol);
-        const ohlcv = await this.exchange.fetchOHLCV(symbol, intradayTf, undefined, intradayLimit);
+        // 优先使用executor获取价格，但OHLCV数据仍需要exchange（或使用executor的exchange）
+        let ticker, ohlcv;
+        if (this.executor && this.executor._getExchange) {
+          // LocalSimulatedExecutor有_getExchange方法用于读取行情
+          const exchange = await this.executor._getExchange();
+          ticker = await exchange.fetchTicker(symbol);
+          ohlcv = await exchange.fetchOHLCV(symbol, intradayTf, undefined, intradayLimit);
+        } else if (this.executor && this.executor.getCurrentPrice) {
+          // 如果executor只提供getCurrentPrice，使用它获取价格
+          const baseSymbol = this.normalizeBaseSymbol(symbol);
+          const currentPrice = await this.executor.getCurrentPrice(baseSymbol);
+          ticker = { last: currentPrice, bid: currentPrice * 0.999, ask: currentPrice * 1.001 };
+          // 对于OHLCV，如果没有exchange，使用模拟数据或空数组
+          if (this.exchange) {
+            ohlcv = await this.exchange.fetchOHLCV(symbol, intradayTf, undefined, intradayLimit);
+          } else {
+            // 生成简单的模拟OHLCV数据
+            ohlcv = Array.from({ length: intradayLimit }, (_, i) => [
+              Date.now() - (intradayLimit - i) * 60000,
+              currentPrice * 0.995,
+              currentPrice * 1.005,
+              currentPrice * 0.998,
+              currentPrice,
+              1000000
+            ]);
+          }
+        } else if (!this.exchange) {
+          throw new Error('no_exchange');
+        } else {
+          ticker = await this.exchange.fetchTicker(symbol);
+          ohlcv = await this.exchange.fetchOHLCV(symbol, intradayTf, undefined, intradayLimit);
+        }
         const prices = ohlcv.map(c => (c[2] + c[3]) / 2);
         const highs = ohlcv.map(c => c[2]);
         const lows = ohlcv.map(c => c[3]);
@@ -371,7 +492,15 @@ class AITradingSystemV2 {
         const rsi21 = this.calculateRSI(prices, 21) || 50;
         const atr = this.calculateATR(highs, lows, closes) || (Number(ticker.last) || 0) * 0.02;
 
-        const ohlcvCtx = await this.exchange.fetchOHLCV(symbol, ctxTf, undefined, ctxLimit);
+        let ohlcvCtx;
+        if (this.executor && !this.exchange) {
+          // executor模式下，如果没有exchange，使用ohlcv数据的一部分作为context
+          ohlcvCtx = ohlcv.slice(-ctxLimit);
+        } else if (this.exchange) {
+          ohlcvCtx = await this.exchange.fetchOHLCV(symbol, ctxTf, undefined, ctxLimit);
+        } else {
+          ohlcvCtx = [];
+        }
         const pricesCtx = ohlcvCtx.map(c => (c[2] + c[3]) / 2);
         const ema20_4h = this.calculateEMA(pricesCtx, 20) || Number(ticker.last) || 0;
         const ema50_4h = this.calculateEMA(pricesCtx, 50) || Number(ticker.last) || 0;
@@ -678,25 +807,34 @@ class AITradingSystemV2 {
     } catch (e) {
       console.error('交易执行失败:', e.message);
     }
-    this.saveState();
+    await this.saveState();
   }
 
   async executeBuyOrder(decision) {
     try {
-      const base = this.normalizeBaseSymbol(decision.symbol);
-      const symbol = this.isFutures ? `${base}/USDT:USDT` : `${base}/USDT`;
-      const quantity = decision.quantity || 0.001;
-      const leverage = this.isFutures && decision.leverage !== undefined ? Math.floor(Number(decision.leverage)) : undefined;
-      if (this.isFutures) {
-        try { await this.exchange.setMarginMode('ISOLATED', symbol); } catch (_) {}
-        try { if (leverage !== undefined) await this.exchange.setLeverage(leverage, symbol); } catch (_) {}
+      if (this.executor) {
+        // 使用注入的executor
+        const order = await this.executor.executeBuyOrder(decision);
+        const base = this.normalizeBaseSymbol(decision.symbol);
+        this.addPosition(base, order.quantity, order.price);
+        this.logTrade('BUY', base, order.quantity, order.price, order.id);
+      } else {
+        // 向后兼容：使用旧的exchange方式
+        const base = this.normalizeBaseSymbol(decision.symbol);
+        const symbol = this.isFutures ? `${base}/USDT:USDT` : `${base}/USDT`;
+        const quantity = decision.quantity || 0.001;
+        const leverage = this.isFutures && decision.leverage !== undefined ? Math.floor(Number(decision.leverage)) : undefined;
+        if (this.isFutures) {
+          try { await this.exchange.setMarginMode('ISOLATED', symbol); } catch (_) {}
+          try { if (leverage !== undefined) await this.exchange.setLeverage(leverage, symbol); } catch (_) {}
+        }
+        const order = await this.exchange.createOrder(
+          symbol, 'market', 'buy', quantity, null,
+          this.isFutures ? (leverage !== undefined ? { leverage, marginType: 'isolated' } : { marginType: 'isolated' }) : undefined
+        );
+        this.addPosition(base, quantity, order.average || order.price);
+        this.logTrade('BUY', base, quantity, order.average || order.price, order.id);
       }
-      const order = await this.exchange.createOrder(
-        symbol, 'market', 'buy', quantity, null,
-        this.isFutures ? (leverage !== undefined ? { leverage, marginType: 'isolated' } : { marginType: 'isolated' }) : undefined
-      );
-      this.addPosition(base, quantity, order.average || order.price);
-      this.logTrade('BUY', base, quantity, order.average || order.price, order.id);
     } catch (e) {
       console.error('买入失败:', e.message);
     }
@@ -704,20 +842,29 @@ class AITradingSystemV2 {
 
   async executeSellOrder(decision) {
     try {
-      const base = this.normalizeBaseSymbol(decision.symbol);
-      const symbol = this.isFutures ? `${base}/USDT:USDT` : `${base}/USDT`;
-      const quantity = decision.quantity || 0.001;
-      const leverage = this.isFutures && decision.leverage !== undefined ? Math.floor(Number(decision.leverage)) : undefined;
-      if (this.isFutures) {
-        try { await this.exchange.setMarginMode('ISOLATED', symbol); } catch (_) {}
-        try { if (leverage !== undefined) await this.exchange.setLeverage(leverage, symbol); } catch (_) {}
+      if (this.executor) {
+        // 使用注入的executor
+        const order = await this.executor.executeSellOrder(decision);
+        const base = this.normalizeBaseSymbol(decision.symbol);
+        this.removePosition(base, order.quantity);
+        this.logTrade('SELL', base, order.quantity, order.price, order.id);
+      } else {
+        // 向后兼容：使用旧的exchange方式
+        const base = this.normalizeBaseSymbol(decision.symbol);
+        const symbol = this.isFutures ? `${base}/USDT:USDT` : `${base}/USDT`;
+        const quantity = decision.quantity || 0.001;
+        const leverage = this.isFutures && decision.leverage !== undefined ? Math.floor(Number(decision.leverage)) : undefined;
+        if (this.isFutures) {
+          try { await this.exchange.setMarginMode('ISOLATED', symbol); } catch (_) {}
+          try { if (leverage !== undefined) await this.exchange.setLeverage(leverage, symbol); } catch (_) {}
+        }
+        const order = await this.exchange.createOrder(
+          symbol, 'market', 'sell', quantity, null,
+          this.isFutures ? (leverage !== undefined ? { leverage, marginType: 'isolated' } : { marginType: 'isolated' }) : undefined
+        );
+        this.removePosition(base, quantity);
+        this.logTrade('SELL', base, quantity, order.average || order.price, order.id);
       }
-      const order = await this.exchange.createOrder(
-        symbol, 'market', 'sell', quantity, null,
-        this.isFutures ? (leverage !== undefined ? { leverage, marginType: 'isolated' } : { marginType: 'isolated' }) : undefined
-      );
-      this.removePosition(base, quantity);
-      this.logTrade('SELL', base, quantity, order.average || order.price, order.id);
     } catch (e) {
       console.error('卖出失败:', e.message);
     }
@@ -763,11 +910,24 @@ class AITradingSystemV2 {
 
   async updateAccountState() {
     try {
-      const balance = await this.exchange.fetchBalance();
-      this.state.accountValue = balance.USDT?.total || 10000;
-      this.state.availableCash = balance.USDT?.free || 10000;
-      this.state.totalReturn = ((this.state.accountValue - 10000) / 10000) * 100;
-      if (this.isFutures) {
+      if (this.executor) {
+        // 使用注入的executor更新账户状态
+        const accountState = await this.executor.updateAccountState();
+        this.state.accountValue = accountState.accountValue || this.state.accountValue;
+        this.state.availableCash = accountState.availableCash || this.state.availableCash;
+        this.state.positions = accountState.positions || [];
+        
+        // 计算总收益
+        const initialValue = this.state.initialAccountValue || 10000;
+        this.state.totalReturn = ((this.state.accountValue - initialValue) / initialValue) * 100;
+      } else if (this.exchange) {
+        // 向后兼容：使用旧的exchange方式
+        const balance = await this.exchange.fetchBalance();
+        this.state.accountValue = balance.USDT?.total || 10000;
+        this.state.availableCash = balance.USDT?.free || 10000;
+        this.state.totalReturn = ((this.state.accountValue - 10000) / 10000) * 100;
+      }
+      if (this.isFutures && this.exchange && !this.executor) {
         const positions = await this.exchange.fetchPositions();
         const active = positions.filter(p => parseFloat(p.contracts) !== 0);
         this.state.positions = [];
@@ -885,13 +1045,13 @@ class AITradingSystemV2 {
     };
     if (!this.conversations.conversations) this.conversations.conversations = [];
     this.conversations.conversations.unshift(conversation);
-    this.saveConversations();
+    await this.saveConversations();
   }
 
   async runTradingCycle() {
     try {
       // 在每次交易循环开始时检查是否需要重新加载模板
-      this.checkAndReloadTemplates();
+      await this.checkAndReloadTemplates();
       
       const marketData = await this.getMarketData();
       const userPrompt = this.generateUserPrompt(marketData);
@@ -918,23 +1078,56 @@ class AITradingSystemV2 {
     }
   }
 
+  // 初始化AI配置（如果使用botConfig）
+  async initializeAIConfig() {
+    if (this._needsAIConfigInit && this._botConfigForInit) {
+      try {
+        const botConfigManagerPath = resolve(process.cwd(), 'backend/src/services/bots/bot-config-manager.js');
+        const { resolveAIConfig } = await import(`file://${botConfigManagerPath}`);
+        const aiConfig = resolveAIConfig(this._botConfigForInit, this.config);
+        this.aiProvider = aiConfig.provider;
+        this.aiModel = aiConfig.model;
+        this.aiApiKey = aiConfig.api_key;
+        this.aiTemperature = aiConfig.temperature;
+        this.aiMaxTokens = aiConfig.max_tokens;
+        this._needsAIConfigInit = false;
+      } catch (e) {
+        console.error('加载AI配置失败，使用默认配置:', e.message);
+        this.aiProvider = 'deepseek';
+        this.aiModel = 'deepseek-chat';
+        this.aiApiKey = this.config.ai?.api_key || '';
+        this.aiTemperature = 0.7;
+        this.aiMaxTokens = 2000;
+      }
+    }
+  }
+
   async run() {
     try {
+      // 初始化AI配置（如果使用botConfig）
+      await this.initializeAIConfig();
+      
       if (!this.aiApiKey) {
         console.error('缺少 AI API Key');
         return;
       }
-      const ok = await this.initializeExchange();
-      if (!ok) {
-        // 离线模式也进行一次循环，以便前端与对话有数据可用
-        console.warn('进入离线模式：使用本地伪数据生成提示与对话');
-      } else {
-        // 初始化成功后立即更新账户状态（获取交易所的实际余额）
-        await this.updateAccountState();
-        this.saveState(); // 保存初始状态
+      
+      // 如果有executor，不需要initializeExchange；否则需要向后兼容
+      let ok = true;
+      if (!this.executor) {
+        ok = await this.initializeExchange();
+        if (!ok) {
+          // 离线模式也进行一次循环，以便前端与对话有数据可用
+          console.warn('进入离线模式：使用本地伪数据生成提示与对话');
+        }
       }
+      
+      // 更新账户状态
+      await this.updateAccountState();
+      await this.saveState(); // 保存初始状态（现在是async）
+      
       await this.runTradingCycle();
-      console.log(`AI交易系统v2运行完成 (env=${this.tradingEnv}, ai=${this.aiProvider}:${this.aiModel})`);
+      console.log(`AI交易系统v2运行完成 (env=${this.tradingEnv}, ai=${this.aiProvider}:${this.aiModel}, botId=${this.botId || 'default'})`);
     } catch (e) {
       console.error('系统运行失败:', e.message);
       process.exit(1);
@@ -943,7 +1136,54 @@ class AITradingSystemV2 {
 }
 
 async function main() {
-  const sys = new AITradingSystemV2();
+  // 支持从环境变量创建executor和promptManager
+  const botId = process.env.BOT_ID;
+  const tradingMode = process.env.TRADING_MODE || 'binance-demo';
+  const promptMode = process.env.PROMPT_MODE || 'env-shared';
+  
+  let executor = null;
+  let promptManager = null;
+  let botConfig = null;
+  
+  // 如果提供了BOT_ID，尝试加载Bot配置并创建executor和promptManager
+  if (botId) {
+    try {
+      const botConfigManagerPath = resolve(process.cwd(), 'backend/src/services/bots/bot-config-manager.js');
+      const botConfigModule = await import(`file://${botConfigManagerPath}`);
+      const { botConfigManager } = botConfigModule;
+      
+      botConfig = await botConfigManager.getBotById(botId);
+      if (botConfig) {
+        // 创建executor
+        const actualTradingMode = botConfig.tradingMode || tradingMode;
+        if (actualTradingMode === 'local-simulated') {
+          const localExecutorPath = resolve(process.cwd(), 'backend/src/services/trading/local-simulated-executor.js');
+          const { LocalSimulatedExecutor } = await import(`file://${localExecutorPath}`);
+          executor = new LocalSimulatedExecutor({ botId, env: botConfig.env });
+        } else {
+          const binanceExecutorPath = resolve(process.cwd(), 'backend/src/services/trading/binance-demo-executor.js');
+          const { BinanceDemoExecutor } = await import(`file://${binanceExecutorPath}`);
+          executor = new BinanceDemoExecutor({ env: botConfig.env });
+        }
+        
+        // 创建promptManager
+        const promptManagerPath = resolve(process.cwd(), 'backend/src/services/prompts/prompt-manager.js');
+        const { PromptManager } = await import(`file://${promptManagerPath}`);
+        promptManager = new PromptManager(botConfig);
+      }
+    } catch (e) {
+      console.warn('无法加载Bot配置，使用默认模式:', e.message);
+    }
+  }
+  
+  // 创建AI交易系统
+  const sys = new AITradingSystemV2({
+    executor,
+    promptManager,
+    botId,
+    botConfig
+  });
+  
   await sys.run();
 }
 

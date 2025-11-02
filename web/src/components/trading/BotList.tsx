@@ -6,9 +6,11 @@ import AddBotDialog from "./AddBotDialog";
 
 interface BotListProps {
   aiPresets: string[];
+  onBotSelect?: (bot: BotConfig | null) => void;
+  selectedBotId?: string | null;
 }
 
-export default function BotList({ aiPresets }: BotListProps) {
+export default function BotList({ aiPresets, onBotSelect, selectedBotId }: BotListProps) {
   const [bots, setBots] = useState<BotConfig[]>([]);
   const [botStatuses, setBotStatuses] = useState<Record<string, BotStatus>>({});
   const [loading, setLoading] = useState(true);
@@ -108,17 +110,69 @@ export default function BotList({ aiPresets }: BotListProps) {
 
   async function handleDeleteBot(botId: string) {
     try {
-      const r = await fetch(`/api/nof1/bots/${botId}`, {
+      setError(null);
+      setLoading(true);
+      
+      // 确保Bot已停止
+      try {
+        const stopRes = await fetch(`/api/nof1/bots/${encodeURIComponent(botId)}/stop`, { 
+          method: 'POST' 
+        });
+        // 即使停止失败也继续删除流程
+        if (!stopRes.ok) {
+          console.log('停止Bot失败（可能已停止）:', await stopRes.text());
+        }
+      } catch (e) {
+        // 忽略停止错误（Bot可能已经停止）
+        console.log('停止Bot时出错（可能已停止）:', e);
+      }
+      
+      // 删除Bot
+      const r = await fetch(`/api/nof1/bots/${encodeURIComponent(botId)}`, {
         method: 'DELETE'
       });
+      
       if (!r.ok) {
         const err = await r.json();
-        throw new Error(err.error || '删除Bot失败');
+        throw new Error(err.error || `删除Bot失败 (HTTP ${r.status})`);
       }
-      await loadBots();
-      await loadBotStatuses();
+      
+      const result = await r.json();
+      console.log('Bot删除成功:', result);
+      
+      // 立即从本地状态中移除（乐观更新）
+      setBots(prev => {
+        const filtered = prev.filter(b => b.id !== botId);
+        console.log(`从列表中移除Bot: ${botId}, 剩余: ${filtered.length}`);
+        return filtered;
+      });
+      setBotStatuses(prev => {
+        const next = { ...prev };
+        delete next[botId];
+        return next;
+      });
+      
+      // 重新加载以确保与服务器同步（双重验证）
+      try {
+        await Promise.all([loadBots(), loadBotStatuses()]);
+      } catch (e) {
+        console.error('重新加载Bot列表失败:', e);
+        // 即使重新加载失败，本地状态已经更新，所以继续
+      }
+      
+      setError(null);
     } catch (e: any) {
-      setError(e?.message || String(e));
+      const errorMsg = e?.message || String(e);
+      console.error('删除Bot失败:', errorMsg);
+      setError(errorMsg);
+      // 即使出错也尝试重新加载，确保UI同步
+      try {
+        await loadBots();
+      } catch (reloadErr) {
+        console.error('重新加载失败:', reloadErr);
+      }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -156,25 +210,25 @@ export default function BotList({ aiPresets }: BotListProps) {
   }
 
   return (
-    <div className="p-4">
-      <div className="mb-4 flex items-center justify-between">
-        <div className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>
-          交易Bot列表 ({bots.length})
+    <div className="p-2">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
+          交易Bot ({bots.length})
         </div>
         <button
-          className="rounded px-3 py-1.5 text-xs"
+          className="rounded px-2 py-1 text-[10px]"
           style={{ 
             background: 'var(--btn-active-bg)', 
             color: 'var(--btn-active-fg)' 
           }}
           onClick={() => setShowAddDialog(true)}
         >
-          + 添加Bot
+          + 添加
         </button>
       </div>
 
       {error && (
-        <div className="mb-3 rounded border px-3 py-2 text-xs" style={{ 
+        <div className="mb-2 rounded border px-2 py-1 text-[10px]" style={{ 
           borderColor: 'var(--chip-border)', 
           color: 'var(--danger)' 
         }}>
@@ -183,12 +237,12 @@ export default function BotList({ aiPresets }: BotListProps) {
       )}
 
       {bots.length === 0 ? (
-        <div className="text-center py-8">
-          <div className="text-xs mb-3" style={{ color: 'var(--muted-text)' }}>
+        <div className="text-center py-4">
+          <div className="text-[10px] mb-2" style={{ color: 'var(--muted-text)' }}>
             还没有创建任何Bot
           </div>
           <button
-            className="rounded px-4 py-2 text-xs"
+            className="rounded px-3 py-1.5 text-[10px]"
             style={{ 
               background: 'var(--btn-active-bg)', 
               color: 'var(--btn-active-fg)' 
@@ -199,7 +253,7 @@ export default function BotList({ aiPresets }: BotListProps) {
           </button>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {bots.map(bot => (
             <BotControlPanel
               key={bot.id}
@@ -210,6 +264,7 @@ export default function BotList({ aiPresets }: BotListProps) {
               onStop={handleStopBot}
               onDelete={handleDeleteBot}
               onStatusChange={(status) => bot.id && handleStatusChange(bot.id, status)}
+              onEditPrompt={(bot) => onBotSelect && onBotSelect(bot)}
             />
           ))}
         </div>
