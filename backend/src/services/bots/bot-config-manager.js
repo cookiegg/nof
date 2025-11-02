@@ -52,30 +52,64 @@ function loadConfig() {
 }
 
 /**
- * 解析Bot的AI配置（从preset读取）
+ * 解析Bot的AI配置（直接从botConfig读取，统一使用百炼API）
  */
-export function resolveAIConfig(botConfig, globalConfig = null) {
+export async function resolveAIConfig(botConfig, globalConfig = null) {
   const config = globalConfig || loadConfig();
-  const presetName = botConfig.aiPreset;
   
-  if (!presetName) {
-    throw new Error('Bot配置缺少aiPreset字段');
+  // 验证必填字段
+  if (!botConfig.model) {
+    throw new Error('Bot配置缺少model字段');
   }
   
-  const preset = config.ai?.presets?.[presetName];
-  if (!preset) {
-    throw new Error(`AI preset '${presetName}' 在config.json中不存在`);
+  // 验证模型是否支持（同步方式，避免阻塞）
+  try {
+    // 使用动态导入，但同步验证（如果导入失败只记录警告）
+    import('../ai/model-config.js').then(({ isValidModel }) => {
+      if (!isValidModel(botConfig.model)) {
+        console.warn(`[BotConfigManager] 不支持的模型: ${botConfig.model}`);
+      }
+    }).catch(() => {
+      // 忽略导入错误，不阻止继续
+    });
+  } catch (e) {
+    // 忽略验证错误
   }
   
-  // 从preset读取，支持环境变量展开
-  const apiKey = expandEnvMaybe(preset.api_key || config.ai?.api_key || '');
+  // 优先使用 bot 配置中的 dashscopeApiKey
+  let apiKey = '';
+  if (botConfig.dashscopeApiKey) {
+    // 直接从环境变量获取（dashscopeApiKey 是环境变量名，如 'DASHSCOPE_API_KEY_1'）
+    apiKey = expandEnvMaybe(`\${${botConfig.dashscopeApiKey}}`);
+  }
+  
+  // 如果 bot 没有指定 dashscopeApiKey，尝试从配置中获取默认值
+  if (!apiKey) {
+    // 尝试使用第一个可用的 DASHSCOPE_API_KEY
+    let index = 1;
+    while (index <= 10) { // 最多检查10个
+      const envName = `DASHSCOPE_API_KEY_${index}`;
+      const keyValue = process.env[envName];
+      if (keyValue && keyValue.trim()) {
+        apiKey = keyValue.trim();
+        break;
+      }
+      index++;
+    }
+    
+    // 如果还是没有，使用配置中的默认值（可能为空，会在调用时报错）
+    if (!apiKey) {
+      apiKey = expandEnvMaybe(config.ai?.api_key || '');
+    }
+  }
   
   return {
-    provider: preset.provider || config.ai?.provider || 'deepseek',
-    model: preset.model || config.ai?.model || 'deepseek-chat',
+    provider: 'dashscope',
+    model: botConfig.model,
     api_key: apiKey,
-    temperature: preset.temperature ?? config.ai?.temperature ?? 0.7,
-    max_tokens: preset.max_tokens ?? config.ai?.max_tokens ?? 2000
+    temperature: config.ai?.temperature ?? 0.7,
+    max_tokens: config.ai?.max_tokens ?? 2000,
+    enable_thinking: botConfig.enableThinking ?? false
   };
 }
 
@@ -156,8 +190,8 @@ class BotConfigManager {
     if (!botConfig.env) {
       throw new Error('Bot env是必需的');
     }
-    if (!botConfig.aiPreset) {
-      throw new Error('Bot aiPreset是必需的');
+    if (!botConfig.model) {
+      throw new Error('Bot model是必需的');
     }
     if (!botConfig.intervalMinutes) {
       throw new Error('Bot intervalMinutes是必需的');
@@ -178,10 +212,15 @@ class BotConfigManager {
       botConfig.promptMode = 'env-shared';
     }
 
-    // 验证AI preset是否存在
-    const config = loadConfig();
-    if (!config.ai?.presets?.[botConfig.aiPreset]) {
-      throw new Error(`AI preset '${botConfig.aiPreset}' 在config.json中不存在`);
+    // 验证模型是否支持
+    try {
+      const { isValidModel } = await import('../ai/model-config.js');
+      if (!isValidModel(botConfig.model)) {
+        throw new Error(`不支持的模型: ${botConfig.model}`);
+      }
+    } catch (e) {
+      // 如果导入失败，只记录警告，不阻止创建
+      console.warn('[BotConfigManager] 无法验证模型:', e.message);
     }
 
     bots.push(botConfig);
@@ -208,11 +247,15 @@ class BotConfigManager {
       updated.tradingMode = inferTradingMode(updates.env);
     }
 
-    // 如果aiPreset改变，验证新preset是否存在
-    if (updates.aiPreset) {
-      const config = loadConfig();
-      if (!config.ai?.presets?.[updates.aiPreset]) {
-        throw new Error(`AI preset '${updates.aiPreset}' 在config.json中不存在`);
+    // 如果model改变，验证新模型是否支持
+    if (updates.model) {
+      try {
+        const { isValidModel } = await import('../ai/model-config.js');
+        if (!isValidModel(updates.model)) {
+          throw new Error(`不支持的模型: ${updates.model}`);
+        }
+      } catch (e) {
+        console.warn('[BotConfigManager] 无法验证模型:', e.message);
       }
     }
 

@@ -73,33 +73,33 @@ export default function PromptEditorPanel() {
             if (botsRes.ok) {
               const botsData = await botsRes.json();
               const bots = botsData.bots || [];
-              // 查找运行的bot
-              if (sj?.running && sj?.env) {
-                const runningBot = bots.find((b: BotConfig) => 
-                  b.env === sj.env && 
-                  (b.aiPreset === sj.ai || (!sj.ai && !b.aiPreset))
-                );
-                if (runningBot) {
-                  setBot(runningBot);
-                  setPromptEnv(runningBot.env);
-                  if (runningBot.promptMode === 'bot-specific') {
-                    await loadBotPrompts(runningBot.id!);
+                // 查找运行的bot
+                if (sj?.running && sj?.env) {
+                  const runningBot = bots.find((b: BotConfig) => 
+                    b.env === sj.env && 
+                    (b.model === sj.model || (!sj.model && !b.model))
+                  );
+                  if (runningBot) {
+                    setBot(runningBot);
+                    setPromptEnv(runningBot.env);
+                    if (runningBot.promptMode === 'bot-specific') {
+                      await loadBotPrompts(runningBot.id!);
+                    } else {
+                      await loadPrompts(runningBot.env);
+                    }
                   } else {
-                    await loadPrompts(runningBot.env);
+                    // 创建临时bot配置（向后兼容）
+                    const existingBot: BotConfig = {
+                      id: `bot-${sj.env}-${sj.model || 'qwen3-plus'}-${sj.intervalMinutes || 3}`,
+                      env: sj.env as BotConfig['env'],
+                      model: sj.model || 'qwen3-plus',
+                      intervalMinutes: sj.intervalMinutes || 3,
+                      promptMode: 'env-shared'
+                    };
+                    setBot(existingBot);
+                    setPromptEnv(sj.env);
+                    await loadPrompts(sj.env);
                   }
-                } else {
-                  // 创建临时bot配置（向后兼容）
-                  const existingBot: BotConfig = {
-                    id: `bot-${sj.env}-${sj.ai || 'default'}-${sj.intervalMinutes || 3}`,
-                    env: sj.env as BotConfig['env'],
-                    aiPreset: sj.ai || 'deepseek',
-                    intervalMinutes: sj.intervalMinutes || 3,
-                    promptMode: 'env-shared'
-                  };
-                  setBot(existingBot);
-                  setPromptEnv(sj.env);
-                  await loadPrompts(sj.env);
-                }
               } else if (bots.length > 0) {
                 // 显示第一个bot
                 setBot(bots[0]);
@@ -121,7 +121,7 @@ export default function PromptEditorPanel() {
                 const existingBot: BotConfig = {
                   id: `bot-${sj.env}-${sj.ai || 'default'}-${sj.intervalMinutes || 3}`,
                   env: sj.env as BotConfig['env'],
-                  aiPreset: sj.ai || 'deepseek',
+                  model: sj.model || 'qwen3-plus',
                   intervalMinutes: sj.intervalMinutes || 3,
                   promptMode: 'env-shared'
                 };
@@ -448,7 +448,7 @@ export default function PromptEditorPanel() {
           <BotControlPanel
             bot={bot}
             status={botStatus || undefined}
-            aiPresets={aiPresetKeys}
+            models={['qwen3-max', 'qwen3-plus', 'glm-4.6', 'deepseek-v3.2-exp', 'deepseek-v3.1']}
             onStart={handleStartBot}
             onStop={handleStopBot}
             onStatusChange={setBotStatus}
@@ -475,7 +475,7 @@ export default function PromptEditorPanel() {
       {/* 添加Bot对话框 */}
       <AddBotDialog
         open={showAddDialog}
-        aiPresets={aiPresetKeys}
+        models={['qwen3-max', 'qwen3-plus', 'glm-4.6', 'deepseek-v3.2-exp', 'deepseek-v3.1']}
         onClose={() => setShowAddDialog(false)}
         onAdd={handleAddBot}
       />

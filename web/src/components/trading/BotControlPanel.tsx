@@ -4,11 +4,13 @@ import { useState, useEffect } from "react";
 export interface BotConfig {
   id?: string;
   env: 'demo-futures' | 'demo-spot' | 'futures' | 'spot';
-  aiPreset: string;
+  model: string; // 模型名称，如 'qwen3-plus', 'deepseek-v3.2-exp' 等
   intervalMinutes: number;
   name?: string;
   tradingMode?: 'binance-demo' | 'local-simulated';
   promptMode?: 'env-shared' | 'bot-specific';
+  dashscopeApiKey?: string; // 环境变量名，如 'DASHSCOPE_API_KEY_1'
+  enableThinking?: boolean; // 是否启用思考模式
 }
 
 export interface BotStatus {
@@ -24,7 +26,7 @@ export interface BotStatus {
 interface BotControlPanelProps {
   bot: BotConfig;
   status?: BotStatus;
-  aiPresets: string[];
+  models: string[];
   onStart: (config: BotConfig) => Promise<void>;
   onStop: (botId: string) => Promise<void>;
   onDelete?: (botId: string) => Promise<void>;
@@ -35,7 +37,7 @@ interface BotControlPanelProps {
 export default function BotControlPanel({
   bot,
   status,
-  aiPresets,
+  models,
   onStart,
   onStop,
   onDelete,
@@ -43,7 +45,7 @@ export default function BotControlPanel({
   onEditPrompt
 }: BotControlPanelProps) {
   const [env, setEnv] = useState(bot.env);
-  const [aiPreset, setAiPreset] = useState(bot.aiPreset);
+  const [model, setModel] = useState(bot.model);
   const [intervalMinutes, setIntervalMinutes] = useState(bot.intervalMinutes);
   const [starting, setStarting] = useState(false);
   const [stopping, setStopping] = useState(false);
@@ -52,7 +54,7 @@ export default function BotControlPanel({
   // 当bot配置改变时更新本地状态
   useEffect(() => {
     setEnv(bot.env);
-    setAiPreset(bot.aiPreset);
+    setModel(bot.model);
     setIntervalMinutes(bot.intervalMinutes);
   }, [bot]);
 
@@ -84,7 +86,7 @@ export default function BotControlPanel({
       const config: BotConfig = {
         ...bot,
         env,
-        aiPreset,
+        model,
         intervalMinutes
       };
       await onStart(config);
@@ -188,12 +190,12 @@ export default function BotControlPanel({
             color: 'var(--foreground)',
             opacity: canEdit ? 1 : 0.6
           }}
-          value={aiPreset}
-          onChange={(e) => setAiPreset(e.target.value)}
+          value={model}
+          onChange={(e) => setModel(e.target.value)}
           disabled={!canEdit}
         >
-          {aiPresets.map(k => (
-            <option key={k} value={k}>{k}</option>
+          {models.map(m => (
+            <option key={m} value={m}>{m}</option>
           ))}
         </select>
         

@@ -217,7 +217,7 @@ export default function PromptStudioChatPanel() {
       {/* 多Bot交易控制区：固定在顶部，可滚动 */}
       <div className="flex-shrink-0 mb-3" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
         <BotList 
-          aiPresets={aiPresetKeys} 
+          models={['qwen3-max', 'qwen3-plus', 'glm-4.6', 'deepseek-v3.2-exp', 'deepseek-v3.1']}
           onBotSelect={setSelectedBot}
           selectedBotId={selectedBot?.id || null}
         />

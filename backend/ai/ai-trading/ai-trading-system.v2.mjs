@@ -101,19 +101,38 @@ class AITradingSystemV2 {
         }
       }
     } else {
-      // 向后兼容：从环境变量或参数读取
+      // 向后兼容：从环境变量或参数读取（统一使用百炼API）
       const argEnv = getArg('--env');
-      const argAi = getArg('--ai');
+      const argModel = process.env.MODEL || getArg('--model');
       
       this.tradingEnv = (argEnv && typeof argEnv === 'string') ? argEnv : (this.config.trading_env || 'demo-futures');
       this.isFutures = this.tradingEnv === 'demo-futures' || this.tradingEnv === 'futures';
       
-      const aiPreset = (argAi && this.config.ai?.presets?.[argAi]) ? this.config.ai.presets[argAi] : null;
-      this.aiProvider = (aiPreset?.provider || this.config.ai?.provider || 'deepseek');
-      this.aiModel = (aiPreset?.model || this.config.ai?.model || 'deepseek-chat');
-      this.aiApiKey = expandEnvMaybe(aiPreset?.api_key || this.config.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '');
-      this.aiTemperature = (aiPreset?.temperature ?? this.config.ai?.temperature ?? 0.7);
-      this.aiMaxTokens = (aiPreset?.max_tokens ?? this.config.ai?.max_tokens ?? 2000);
+      // 统一使用百炼API
+      this.aiProvider = 'dashscope';
+      this.aiModel = argModel || 'qwen3-plus';
+      
+      // 获取API Key：优先使用指定的环境变量名，否则使用第一个可用的
+      const dashscopeApiKeyEnv = process.env.DASHSCOPE_API_KEY_ENV;
+      if (dashscopeApiKeyEnv) {
+        this.aiApiKey = process.env[dashscopeApiKeyEnv] || '';
+      } else {
+        // 尝试使用第一个可用的 DASHSCOPE_API_KEY
+        let index = 1;
+        while (index <= 10) {
+          const envName = `DASHSCOPE_API_KEY_${index}`;
+          const keyValue = process.env[envName];
+          if (keyValue && keyValue.trim()) {
+            this.aiApiKey = keyValue.trim();
+            break;
+          }
+          index++;
+        }
+      }
+      
+      this.aiTemperature = (this.config.ai?.temperature ?? 0.7);
+      this.aiMaxTokens = (this.config.ai?.max_tokens ?? 2000);
+      this.aiEnableThinking = process.env.ENABLE_THINKING === 'true';
     }
 
     this.exchange = null; // 保留用于向后兼容
@@ -721,32 +740,30 @@ class AITradingSystemV2 {
 
   async callDeepSeekAPI(userPrompt) {
     try {
+      // 使用百炼统一 API 客户端
+      const bailianClientPath = resolve(process.cwd(), 'backend/src/services/ai/bailian-client.js');
+      const { callBailianAPI } = await import(`file://${bailianClientPath}`);
+      
       const apiKey = this.aiApiKey;
       const model = this.aiModel;
       const temperature = this.aiTemperature;
       const max_tokens = this.aiMaxTokens;
+      const enable_thinking = this.aiEnableThinking || false;
       const systemContent = this.buildSystemPrompt();
 
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: systemContent },
-            { role: 'user', content: userPrompt }
-          ],
-          stream: false,
-          temperature,
-          max_tokens
-        })
+      const messages = [
+        { role: 'system', content: systemContent },
+        { role: 'user', content: userPrompt }
+      ];
+
+      const result = await callBailianAPI(apiKey, model, messages, {
+        enable_thinking: enable_thinking,
+        temperature: temperature,
+        max_tokens: max_tokens,
+        stream: false
       });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      const data = await response.json();
-      return data.choices?.[0]?.message?.content || null;
+
+      return result.content || null;
     } catch (e) {
       console.error('AI 调用失败:', e.message);
       return null;
@@ -1084,20 +1101,22 @@ class AITradingSystemV2 {
       try {
         const botConfigManagerPath = resolve(process.cwd(), 'backend/src/services/bots/bot-config-manager.js');
         const { resolveAIConfig } = await import(`file://${botConfigManagerPath}`);
-        const aiConfig = resolveAIConfig(this._botConfigForInit, this.config);
+        const aiConfig = await resolveAIConfig(this._botConfigForInit, this.config);
         this.aiProvider = aiConfig.provider;
         this.aiModel = aiConfig.model;
         this.aiApiKey = aiConfig.api_key;
         this.aiTemperature = aiConfig.temperature;
         this.aiMaxTokens = aiConfig.max_tokens;
+        this.aiEnableThinking = aiConfig.enable_thinking || false;
         this._needsAIConfigInit = false;
       } catch (e) {
         console.error('加载AI配置失败，使用默认配置:', e.message);
-        this.aiProvider = 'deepseek';
-        this.aiModel = 'deepseek-chat';
+        this.aiProvider = 'dashscope';
+        this.aiModel = 'qwen3-plus';
         this.aiApiKey = this.config.ai?.api_key || '';
         this.aiTemperature = 0.7;
         this.aiMaxTokens = 2000;
+        this.aiEnableThinking = false;
       }
     }
   }
