@@ -2,25 +2,40 @@
 import { useState } from "react";
 import type { BotConfig } from "./BotControlPanel";
 
+interface ApiKeyInfo {
+  envName: string;
+  available: boolean;
+}
+
 interface AddBotDialogProps {
   open: boolean;
-  aiPresets: string[];
+  aiPresets?: string[]; // 保留以兼容，但不再使用
+  models: string[];
+  apiKeys?: ApiKeyInfo[];
   onClose: () => void;
   onAdd: (bot: BotConfig) => void;
 }
 
+const THINKING_MODELS = ['glm-4.6', 'deepseek-v3.2-exp', 'deepseek-v3.1'];
+
 export default function AddBotDialog({
   open,
   aiPresets,
+  models = [],
+  apiKeys = [],
   onClose,
   onAdd
 }: AddBotDialogProps) {
   const [env, setEnv] = useState<BotConfig['env']>('demo-futures');
-  const [aiPreset, setAiPreset] = useState<string>('');
+  const [model, setModel] = useState<string>('');
+  const [dashscopeApiKey, setDashscopeApiKey] = useState<string>('');
+  const [enableThinking, setEnableThinking] = useState<boolean>(false);
   const [intervalMinutes, setIntervalMinutes] = useState<number>(3);
   const [name, setName] = useState<string>('');
   const [promptMode, setPromptMode] = useState<'env-shared' | 'bot-specific'>('env-shared');
   const [nameError, setNameError] = useState<string>('');
+  
+  const supportsThinking = model && THINKING_MODELS.includes(model);
 
   if (!open) return null;
 
@@ -46,23 +61,32 @@ export default function AddBotDialog({
       return;
     }
     
+    // 验证模型必填
+    if (!model || !model.trim()) {
+      return; // 模型选择器会阻止提交
+    }
+    
     // 生成bot ID（如果未提供名称）
-    const botId = name || `${env}-${aiPreset || 'default'}-${intervalMinutes}`;
+    const botId = name || `${env}-${model}-${intervalMinutes}`;
     
     const bot: BotConfig = {
       id: botId,
       env,
-      aiPreset: aiPreset || 'deepseek', // 默认使用deepseek preset
+      model: model.trim(),
       intervalMinutes,
       name: name || undefined,
-      promptMode
+      promptMode,
+      dashscopeApiKey: dashscopeApiKey || undefined,
+      enableThinking: enableThinking && supportsThinking ? true : undefined
     };
     
     onAdd(bot);
     
     // 重置表单
     setEnv('demo-futures');
-    setAiPreset('');
+    setModel('');
+    setDashscopeApiKey('');
+    setEnableThinking(false);
     setIntervalMinutes(3);
     setName('');
     setPromptMode('env-shared');
@@ -147,7 +171,7 @@ export default function AddBotDialog({
 
           <div className="mb-3">
             <label className="block text-xs mb-1" style={{ color: 'var(--muted-text)' }}>
-              AI模型预设 *
+              AI模型 *
             </label>
             <select
               className="w-full rounded border px-2 py-1 text-xs"
@@ -156,16 +180,61 @@ export default function AddBotDialog({
                 background: 'var(--panel-bg)', 
                 color: 'var(--foreground)' 
               }}
-              value={aiPreset}
-              onChange={(e) => setAiPreset(e.target.value)}
+              value={model}
+              onChange={(e) => {
+                setModel(e.target.value);
+                if (!THINKING_MODELS.includes(e.target.value)) {
+                  setEnableThinking(false);
+                }
+              }}
               required
             >
-              <option value="">请选择...</option>
-              {aiPresets.map(k => (
-                <option key={k} value={k}>{k}</option>
+              <option value="">请选择模型...</option>
+              {models.map(m => (
+                <option key={m} value={m}>{m}</option>
               ))}
             </select>
           </div>
+
+          {supportsThinking && (
+            <div className="mb-3">
+              <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--muted-text)' }}>
+                <input
+                  type="checkbox"
+                  checked={enableThinking}
+                  onChange={(e) => setEnableThinking(e.target.checked)}
+                  className="rounded"
+                />
+                <span>启用思考模式（{model} 支持思考模式，可提高回答质量）</span>
+              </label>
+            </div>
+          )}
+
+          {apiKeys.length > 0 && (
+            <div className="mb-3">
+              <label className="block text-xs mb-1" style={{ color: 'var(--muted-text)' }}>
+                API Key（可选，用于独立管理）
+              </label>
+              <select
+                className="w-full rounded border px-2 py-1 text-xs"
+                style={{ 
+                  borderColor: 'var(--panel-border)', 
+                  background: 'var(--panel-bg)', 
+                  color: 'var(--foreground)' 
+                }}
+                value={dashscopeApiKey}
+                onChange={(e) => setDashscopeApiKey(e.target.value)}
+              >
+                <option value="">使用预设中的 API Key</option>
+                {apiKeys.map(k => (
+                  <option key={k.envName} value={k.envName}>{k.envName}</option>
+                ))}
+              </select>
+              <div className="mt-1 text-[10px]" style={{ color: 'var(--muted-text)', opacity: 0.7 }}>
+                提示：选择 API Key 后，Bot 启动时会占用该 Key，停止时会自动释放
+              </div>
+            </div>
+          )}
 
           <div className="mb-3">
             <label className="block text-xs mb-1" style={{ color: 'var(--muted-text)' }}>

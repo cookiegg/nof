@@ -4,18 +4,27 @@ import type { BotConfig, BotStatus } from "./BotControlPanel";
 import BotControlPanel from "./BotControlPanel";
 import AddBotDialog from "./AddBotDialog";
 
+interface ApiKeyInfo {
+  envName: string;
+  available: boolean;
+  allocatedTo?: string;
+}
+
 interface BotListProps {
-  aiPresets: string[];
+  aiPresets?: string[]; // 保留以兼容，但不再使用
+  models?: string[];
   onBotSelect?: (bot: BotConfig | null) => void;
   selectedBotId?: string | null;
 }
 
-export default function BotList({ aiPresets, onBotSelect, selectedBotId }: BotListProps) {
+export default function BotList({ aiPresets, models: propsModels, onBotSelect, selectedBotId }: BotListProps) {
   const [bots, setBots] = useState<BotConfig[]>([]);
   const [botStatuses, setBotStatuses] = useState<Record<string, BotStatus>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [apiKeys, setApiKeys] = useState<ApiKeyInfo[]>([]);
+  const [models, setModels] = useState<string[]>(propsModels || ['qwen3-max', 'qwen3-plus', 'glm-4.6', 'deepseek-v3.2-exp', 'deepseek-v3.1']);
 
   // 加载所有Bots
   async function loadBots() {
@@ -42,14 +51,36 @@ export default function BotList({ aiPresets, onBotSelect, selectedBotId }: BotLi
     }
   }
 
+  // 加载 API Keys
+  async function loadApiKeys() {
+    try {
+      const r = await fetch('/api/nof1/api-keys', { cache: 'no-store' });
+      if (r.ok) {
+        const data = await r.json();
+        setApiKeys(data.apiKeys || []);
+      }
+    } catch (e) {
+      console.error('加载 API Keys 失败:', e);
+    }
+  }
+
   // 初始加载
   useEffect(() => {
     async function init() {
       setLoading(true);
-      await Promise.all([loadBots(), loadBotStatuses()]);
+      await Promise.all([loadBots(), loadBotStatuses(), loadApiKeys()]);
       setLoading(false);
     }
     init();
+  }, []);
+
+  // 轮询 API Keys 状态（每5秒，以便及时更新占用状态）
+  useEffect(() => {
+    const interval = setInterval(() => {
+      loadApiKeys();
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // 轮询Bot状态（每5秒）
@@ -132,12 +163,35 @@ export default function BotList({ aiPresets, onBotSelect, selectedBotId }: BotLi
         method: 'DELETE'
       });
       
+      // 先读取响应文本（Response只能读取一次）
+      const responseText = await r.text();
+      const contentType = r.headers.get('content-type');
+      const hasJsonContent = contentType && contentType.includes('application/json');
+      
       if (!r.ok) {
-        const err = await r.json();
-        throw new Error(err.error || `删除Bot失败 (HTTP ${r.status})`);
+        let errorMsg = `删除Bot失败 (HTTP ${r.status})`;
+        if (hasJsonContent && responseText.trim()) {
+          try {
+            const err = JSON.parse(responseText);
+            errorMsg = err.error || errorMsg;
+          } catch (e) {
+            // 解析失败，使用默认错误信息
+            console.warn('解析错误响应失败:', e);
+          }
+        }
+        throw new Error(errorMsg);
       }
       
-      const result = await r.json();
+      // 成功响应，尝试解析JSON
+      let result = { ok: true, deletedBotId: botId }; // 默认值
+      if (hasJsonContent && responseText.trim()) {
+        try {
+          result = JSON.parse(responseText);
+        } catch (e) {
+          // JSON解析失败，但删除可能已成功，使用默认值继续
+          console.warn('解析成功响应失败，但继续处理:', e);
+        }
+      }
       console.log('Bot删除成功:', result);
       
       // 立即从本地状态中移除（乐观更新）
@@ -259,7 +313,7 @@ export default function BotList({ aiPresets, onBotSelect, selectedBotId }: BotLi
               key={bot.id}
               bot={bot}
               status={botStatuses[bot.id]}
-              aiPresets={aiPresets}
+              models={models}
               onStart={handleStartBot}
               onStop={handleStopBot}
               onDelete={handleDeleteBot}
@@ -272,8 +326,12 @@ export default function BotList({ aiPresets, onBotSelect, selectedBotId }: BotLi
 
       <AddBotDialog
         open={showAddDialog}
-        aiPresets={aiPresets}
-        onClose={() => setShowAddDialog(false)}
+        models={models}
+        apiKeys={apiKeys.filter(k => k.available)}
+        onClose={() => {
+          setShowAddDialog(false);
+          loadApiKeys(); // 关闭时刷新 API Keys 状态
+        }}
         onAdd={handleAddBot}
       />
     </div>

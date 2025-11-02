@@ -15,7 +15,7 @@ class BotInstance {
       startedAt: null,
       intervalMinutes: config.intervalMinutes || 3,
       env: config.env,
-      ai: config.aiPreset,
+      model: config.model || '',
       lastExitCode: null,
     };
   }
@@ -35,10 +35,12 @@ class BotInstance {
       env: {
         ...process.env,
         TRADING_ENV: this.config.env,
-        AI_PRESET: this.config.aiPreset || '',
+        MODEL: this.config.model || '',
         BOT_ID: this.botId,
         TRADING_MODE: this.config.tradingMode || 'binance-demo',
         PROMPT_MODE: this.config.promptMode || 'env-shared',
+        DASHSCOPE_API_KEY_ENV: this.config.dashscopeApiKey || '',
+        ENABLE_THINKING: this.config.enableThinking ? 'true' : 'false',
       },
     });
 
@@ -182,7 +184,7 @@ class TradingRunnerService {
     const config = {
       id: tempBotId,
       env: env || 'demo-futures',
-      aiPreset: ai || '',
+      model: 'qwen3-plus', // 默认模型
       intervalMinutes,
       tradingMode: 'binance-demo',
       promptMode: 'env-shared'

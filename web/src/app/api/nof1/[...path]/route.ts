@@ -87,11 +87,46 @@ export async function POST(
   }
 }
 
+export async function DELETE(
+  req: NextRequest,
+  ctx: { params: Promise<{ path: string[] }> },
+) {
+  try {
+    const { path } = await ctx.params;
+    const subpath = (path || []).join("/");
+    const target = `${UPSTREAM}/${subpath}${req.nextUrl.search}`;
+    const upstream = await fetch(target, {
+      method: "DELETE",
+      cache: "no-store",
+      headers: {
+        accept: req.headers.get("accept") || "application/json",
+      },
+    });
+    const text = await upstream.text();
+    const ct = upstream.headers.get("content-type") || "application/json; charset=utf-8";
+    if (!upstream.ok || /text\/html/i.test(ct)) {
+      return NextResponse.json(
+        { error: "upstream_error", status: upstream.status, body: text.slice(0, 300) },
+        { status: upstream.status || 502 },
+      );
+    }
+    return new NextResponse(text, {
+      status: upstream.status,
+      headers: {
+        "content-type": ct,
+        "access-control-allow-origin": "*",
+      },
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: "proxy_fetch_failed", message: String(e?.message || e) }, { status: 502 });
+  }
+}
+
 export async function OPTIONS() {
   return new NextResponse(null, {
     headers: {
       "access-control-allow-origin": "*",
-      "access-control-allow-methods": "GET,POST,OPTIONS",
+      "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
       "access-control-allow-headers": "*",
     },
   });

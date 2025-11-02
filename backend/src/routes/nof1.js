@@ -534,10 +534,11 @@ router.post('/ai/prompt/suggest', async (req, res) => {
     let sys = '';
     let usr = '';
     let botConfig = null;
-    let aiKey = cfg.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '';
-    let provider = cfg.ai?.provider || 'deepseek';
-    let model = cfg.ai?.model || 'deepseek-chat';
+    let aiKey = cfg.ai?.api_key || '';
+    let provider = cfg.ai?.provider || 'dashscope';
+    let model = cfg.ai?.model || 'qwen3-plus';
     let temperature = cfg.ai?.temperature ?? 0.7;
+    let enable_thinking = false;
     let env = cfg.trading_env || 'demo-futures';
     
     // 如果提供了botId，加载Bot对应的Prompt和配置
@@ -547,11 +548,12 @@ router.post('/ai/prompt/suggest', async (req, res) => {
         env = botConfig.env;
         // 加载Bot的AI配置
         const { resolveAIConfig } = await import('../services/bots/bot-config-manager.js');
-        const aiConfig = resolveAIConfig(botConfig, cfg);
+        const aiConfig = await resolveAIConfig(botConfig, cfg);
         aiKey = aiConfig.api_key;
         provider = aiConfig.provider;
         model = aiConfig.model;
         temperature = aiConfig.temperature;
+        enable_thinking = aiConfig.enable_thinking || false;
         
         // 加载Bot的Prompt
         const { PromptManager } = await import('../services/prompts/prompt-manager.js');
@@ -592,26 +594,19 @@ router.post('/ai/prompt/suggest', async (req, res) => {
     const prompt = `You are a prompt engineer for a crypto trading agent. Given the JSON context below, propose improved English system and user prompts, and optional config_updates. Respond with strict JSON keys: system_prompt_en, user_prompt_en, rationale_en, config_updates.
 \n\nCONTEXT:\n${JSON.stringify(context, null, 2)}`;
 
-    const resp = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${aiKey}`
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: 'You return ONLY valid JSON. No prose.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature,
-        stream: false,
-        max_tokens: 1500
-      })
+    // 使用百炼统一 API 客户端
+    const { callBailianAPI } = await import('../services/ai/bailian-client.js');
+    const result = await callBailianAPI(aiKey, model, [
+      { role: 'system', content: 'You return ONLY valid JSON. No prose.' },
+      { role: 'user', content: prompt }
+    ], {
+      enable_thinking: enable_thinking,
+      temperature: temperature,
+      max_tokens: 1500,
+      stream: false
     });
-    if (!resp.ok) throw new Error(`upstream ${resp.status}`);
-    const data = await resp.json();
-    const content = data.choices?.[0]?.message?.content || '{}';
+    
+    const content = result.content || '{}';
     let suggestion;
     try { suggestion = JSON.parse(content); } catch (_) { suggestion = { system_prompt_en: sys, user_prompt_en: usr, rationale_en: 'Parse failed', config_updates: null }; }
     res.json({ suggestion });
@@ -631,9 +626,10 @@ router.post('/ai/prompt/ask', async (req, res) => {
     let sys = '';
     let usr = '';
     let botConfig = null;
-    let aiKey = cfg.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '';
-    let model = cfg.ai?.model || 'deepseek-chat';
+    let aiKey = cfg.ai?.api_key || '';
+    let model = cfg.ai?.model || 'qwen3-plus';
     let temperature = cfg.ai?.temperature ?? 0.4;
+    let enable_thinking = false;
     let env = cfg.trading_env || 'demo-futures';
     
     // 如果提供了botId，加载Bot对应的Prompt和配置
@@ -643,10 +639,11 @@ router.post('/ai/prompt/ask', async (req, res) => {
         env = botConfig.env;
         // 加载Bot的AI配置
         const { resolveAIConfig } = await import('../services/bots/bot-config-manager.js');
-        const aiConfig = resolveAIConfig(botConfig, cfg);
+        const aiConfig = await resolveAIConfig(botConfig, cfg);
         aiKey = aiConfig.api_key;
         model = aiConfig.model;
         temperature = aiConfig.temperature;
+        enable_thinking = aiConfig.enable_thinking || false;
         
         // 加载Bot的Prompt
         const { PromptManager } = await import('../services/prompts/prompt-manager.js');
@@ -674,14 +671,19 @@ router.post('/ai/prompt/ask', async (req, res) => {
     if (!question) return res.status(400).json({ error: 'empty_question' });
     if (!aiKey) return res.json({ answer: null, disabled: true });
     const prompt = `You are a senior prompt engineer and trading systems architect. Answer user's question based on the JSON CONTEXT. Be concise and structured.\n\nCONTEXT:\n${JSON.stringify(context, null, 2)}\n\nUSER:\n${question}`;
-    const resp = await fetch('https://api.deepseek.com/chat/completions', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${aiKey}` },
-      body: JSON.stringify({ model, messages: [ { role: 'user', content: prompt } ], temperature, stream: false, max_tokens: 1200 })
+    
+    // 使用百炼统一 API 客户端
+    const { callBailianAPI } = await import('../services/ai/bailian-client.js');
+    const result = await callBailianAPI(aiKey, model, [
+      { role: 'user', content: prompt }
+    ], {
+      enable_thinking: enable_thinking,
+      temperature: temperature,
+      max_tokens: 1200,
+      stream: false
     });
-    if (!resp.ok) throw new Error(`upstream ${resp.status}`);
-    const data = await resp.json();
-    const content = data.choices?.[0]?.message?.content || null;
+    
+    const content = result.content || null;
     res.json({ answer: content });
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) });
@@ -712,6 +714,19 @@ router.get('/ai/trading/status', async (req, res) => {
   res.json(tradingRunner.getStatus());
 });
 
+// ==================== API Key 管理 API ====================
+
+// 获取所有可用 API Keys 及其占用状态
+router.get('/api-keys', async (req, res) => {
+  try {
+    const { apiKeyManager } = await import('../services/api-key-manager.js');
+    const apiKeys = apiKeyManager.getAllApiKeys();
+    res.json({ apiKeys });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
 // ==================== Bot启动/停止API ====================
 
 // 启动指定Bot
@@ -729,9 +744,27 @@ router.post('/bots/:botId/start', async (req, res) => {
       return res.json({ message: 'Bot已在运行', status: existingStatus });
     }
 
+    // 如果 Bot 配置了 dashscopeApiKey，尝试占用该 API Key
+    if (bot.dashscopeApiKey) {
+      try {
+        const { apiKeyManager } = await import('../services/api-key-manager.js');
+        apiKeyManager.allocateApiKey(botId, bot.dashscopeApiKey);
+        console.log(`[Bot启动] Bot ${botId} 已占用 API Key: ${bot.dashscopeApiKey}`);
+      } catch (e) {
+        console.error(`[Bot启动] API Key 占用失败:`, e.message);
+        return res.status(400).json({ error: `无法占用 API Key: ${e.message}` });
+      }
+    }
+
     const status = await tradingRunner.startBot(botId, bot);
     res.json(status);
   } catch (e) {
+    // 如果启动失败，释放 API Key
+    try {
+      const { apiKeyManager } = await import('../services/api-key-manager.js');
+      apiKeyManager.releaseApiKey(req.params.botId);
+    } catch (_) {}
+    
     res.status(500).json({ error: String(e?.message || e) });
   }
 });
@@ -741,6 +774,16 @@ router.post('/bots/:botId/stop', async (req, res) => {
   try {
     const { botId } = req.params;
     const status = tradingRunner.stopBot(botId);
+    
+    // 释放 API Key
+    try {
+      const { apiKeyManager } = await import('../services/api-key-manager.js');
+      apiKeyManager.releaseApiKey(botId);
+      console.log(`[Bot停止] Bot ${botId} 已释放 API Key`);
+    } catch (e) {
+      console.warn(`[Bot停止] 释放 API Key 失败:`, e.message);
+    }
+    
     res.json(status);
   } catch (e) {
     res.status(404).json({ error: String(e?.message || e) });
@@ -1344,6 +1387,25 @@ router.get('/bots/:botId', async (req, res) => {
 router.post('/bots', async (req, res) => {
   try {
     const botConfig = req.body;
+    
+    // 如果提供了 dashscopeApiKey，验证其可用性（但不占用，占用发生在启动时）
+    if (botConfig.dashscopeApiKey) {
+      try {
+        const { apiKeyManager } = await import('../services/api-key-manager.js');
+        if (!apiKeyManager.isApiKeyAvailable(botConfig.dashscopeApiKey)) {
+          // 检查是否被其他bot占用
+          const usage = apiKeyManager.getApiKeyUsage();
+          const allocatedTo = usage[botConfig.dashscopeApiKey];
+          return res.status(400).json({ 
+            error: `API Key '${botConfig.dashscopeApiKey}' 已被占用`,
+            allocatedTo: allocatedTo || null
+          });
+        }
+      } catch (e) {
+        return res.status(400).json({ error: `API Key 验证失败: ${e.message}` });
+      }
+    }
+    
     const created = await botConfigManager.createBot(botConfig);
     
     // 如果Bot是bot-specific模式，初始化Prompt目录（从env继承）
@@ -1437,6 +1499,15 @@ router.delete('/bots/:botId', async (req, res) => {
     } catch (e) {
       // 如果Bot不在运行中，忽略错误
       console.log(`[Bot删除] Bot ${botId} 不在运行中或已移除:`, e.message);
+    }
+    
+    // 释放 API Key
+    try {
+      const { apiKeyManager } = await import('../services/api-key-manager.js');
+      apiKeyManager.releaseApiKey(botId);
+      console.log(`[Bot删除] Bot ${botId} 已释放 API Key`);
+    } catch (e) {
+      console.warn(`[Bot删除] 释放 API Key 失败:`, e.message);
     }
     
     // 获取Bot配置（需要在删除配置之前获取，用于后续操作）
