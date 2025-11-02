@@ -20,11 +20,31 @@ export default function AddBotDialog({
   const [intervalMinutes, setIntervalMinutes] = useState<number>(3);
   const [name, setName] = useState<string>('');
   const [promptMode, setPromptMode] = useState<'env-shared' | 'bot-specific'>('env-shared');
+  const [nameError, setNameError] = useState<string>('');
 
   if (!open) return null;
 
+  function handleNameChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const value = e.target.value;
+    // 自动去除空格
+    const trimmed = value.replace(/\s+/g, '');
+    if (value !== trimmed) {
+      setNameError('Bot ID不能包含空格，已自动去除');
+      setTimeout(() => setNameError(''), 3000);
+    } else {
+      setNameError('');
+    }
+    setName(trimmed);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    
+    // 验证名称（如果提供了）
+    if (name && name.trim() !== name || /\s/.test(name)) {
+      setNameError('Bot ID不能包含空格');
+      return;
+    }
     
     // 生成bot ID（如果未提供名称）
     const botId = name || `${env}-${aiPreset || 'default'}-${intervalMinutes}`;
@@ -46,6 +66,7 @@ export default function AddBotDialog({
     setIntervalMinutes(3);
     setName('');
     setPromptMode('env-shared');
+    setNameError('');
     onClose();
   }
 
@@ -78,20 +99,28 @@ export default function AddBotDialog({
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label className="block text-xs mb-1" style={{ color: 'var(--muted-text)' }}>
-              Bot名称（可选）
+              Bot名称（可选，用作Bot ID）
             </label>
             <input
               type="text"
               className="w-full rounded border px-2 py-1 text-xs"
               style={{ 
-                borderColor: 'var(--panel-border)', 
+                borderColor: nameError ? 'var(--danger)' : 'var(--panel-border)', 
                 background: 'var(--panel-bg)', 
                 color: 'var(--foreground)' 
               }}
               value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="例如：期货快速策略"
+              onChange={handleNameChange}
+              placeholder="例如：futures-quick-strategy（不要使用空格）"
             />
+            {nameError && (
+              <div className="mt-1 text-[10px]" style={{ color: 'var(--danger)' }}>
+                {nameError}
+              </div>
+            )}
+            <div className="mt-1 text-[10px]" style={{ color: 'var(--muted-text)', opacity: 0.7 }}>
+              提示：Bot ID将用作文件路径，建议使用字母、数字、连字符（-）、下划线（_），不要包含空格
+            </div>
           </div>
 
           <div className="mb-3">

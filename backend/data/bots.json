@@ -1,3 +1,20 @@
 {
-  "bots": []
+  "bots": [
+    {
+      "id": "demo-futures-deepseek-3",
+      "env": "demo-futures",
+      "aiPreset": "deepseek",
+      "intervalMinutes": 3,
+      "promptMode": "bot-specific",
+      "tradingMode": "binance-demo"
+    },
+    {
+      "id": "demo-futures-deepseek-reasoner-3",
+      "env": "demo-futures",
+      "aiPreset": "deepseek-reasoner",
+      "intervalMinutes": 3,
+      "promptMode": "bot-specific",
+      "tradingMode": "binance-demo"
+    }
+  ]
 }

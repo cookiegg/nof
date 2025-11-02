@@ -29,6 +29,7 @@ interface BotControlPanelProps {
   onStop: (botId: string) => Promise<void>;
   onDelete?: (botId: string) => Promise<void>;
   onStatusChange?: (status: BotStatus) => void;
+  onEditPrompt?: (bot: BotConfig) => void;
 }
 
 export default function BotControlPanel({
@@ -38,7 +39,8 @@ export default function BotControlPanel({
   onStart,
   onStop,
   onDelete,
-  onStatusChange
+  onStatusChange,
+  onEditPrompt
 }: BotControlPanelProps) {
   const [env, setEnv] = useState(bot.env);
   const [aiPreset, setAiPreset] = useState(bot.aiPreset);
@@ -107,9 +109,12 @@ export default function BotControlPanel({
 
   async function handleDelete() {
     if (!onDelete || !bot.id) return;
-    if (!confirm(`确定要删除Bot "${bot.name || bot.id}"吗？`)) return;
+    if (!confirm(`确定要删除Bot "${bot.name || bot.id}"吗？\n\n⚠️ 警告：此操作将永久删除Bot及其所有数据，包括：\n- Bot配置\n- 交易状态和持仓\n- 对话记录\n- Prompt文件\n\n此操作不可撤销！`)) return;
+    
     try {
+      setError(null);
       await onDelete(bot.id);
+      // 删除成功后，onDelete会更新父组件的状态
     } catch (e: any) {
       setError(e?.message || String(e));
     }
@@ -120,8 +125,27 @@ export default function BotControlPanel({
   return (
     <div className="mb-3 rounded border p-2" style={{ borderColor: 'var(--panel-border)' }}>
       <div className="mb-2 flex items-center justify-between">
-        <div className="text-[11px]" style={{ color: 'var(--muted-text)' }}>
-          {bot.name || `Bot: ${bot.env}`}
+        <div className="flex items-center gap-2">
+          <div className="text-[11px]" style={{ color: 'var(--muted-text)' }}>
+            {bot.name || `Bot: ${bot.env}`}
+          </div>
+          {bot.tradingMode && (
+            <span 
+              className="text-[9px] px-1.5 py-0.5 rounded"
+              style={{ 
+                background: bot.tradingMode === 'binance-demo' 
+                  ? 'rgba(34, 197, 94, 0.2)' 
+                  : 'rgba(251, 191, 36, 0.2)',
+                color: bot.tradingMode === 'binance-demo' 
+                  ? 'rgb(34, 197, 94)' 
+                  : 'rgb(251, 191, 36)',
+                border: `1px solid ${bot.tradingMode === 'binance-demo' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
+              }}
+              title={bot.tradingMode === 'binance-demo' ? '真实API交易（Binance Demo）' : '本地模拟交易'}
+            >
+              {bot.tradingMode === 'binance-demo' ? '真实' : '模拟'}
+            </span>
+          )}
         </div>
         {onDelete && bot.id && (
           <button
@@ -220,6 +244,21 @@ export default function BotControlPanel({
         >
           {stopping ? '停止中…' : '停止'}
         </button>
+
+        {onEditPrompt && bot.id && (
+          <button 
+            className="rounded px-2 py-1 chip-btn text-xs"
+            style={{ 
+              background: 'rgba(59, 130, 246, 0.15)',
+              color: 'rgb(59, 130, 246)',
+              border: '1px solid rgba(59, 130, 246, 0.3)'
+            }}
+            onClick={() => onEditPrompt(bot)}
+            title="编辑此Bot的Prompt"
+          >
+            编辑Prompt
+          </button>
+        )}
         
         <div className="text-[11px]" style={{ color: 'var(--muted-text)' }}>
           状态：{isRunning ? `运行中(pid=${status?.pid})` : '未运行'}
@@ -227,8 +266,21 @@ export default function BotControlPanel({
       </div>
       
       {bot.id && (
-        <div className="mt-1 text-[10px]" style={{ color: 'var(--muted-text)' }}>
-          ID: {bot.id}
+        <div className="mt-1 flex items-center justify-between text-[10px]" style={{ color: 'var(--muted-text)' }}>
+          <span>ID: {bot.id}</span>
+          {bot.promptMode && (
+            <span 
+              className="px-1.5 py-0.5 rounded"
+              style={{ 
+                background: 'rgba(59, 130, 246, 0.15)',
+                color: 'rgb(59, 130, 246)',
+                border: '1px solid rgba(59, 130, 246, 0.3)'
+              }}
+              title={bot.promptMode === 'bot-specific' ? 'Bot独立Prompt' : '环境共享Prompt'}
+            >
+              {bot.promptMode === 'bot-specific' ? '独立Prompt' : '共享Prompt'}
+            </span>
+          )}
         </div>
       )}
     </div>
