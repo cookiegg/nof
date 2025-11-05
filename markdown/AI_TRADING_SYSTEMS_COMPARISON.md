@@ -392,8 +392,8 @@ node --env-file=./backend/.env backend/ai/ai-trading/ai-trading-system.v2.mjs
 **解决方案C：检查API密钥**
 ```bash
 # 确认环境变量已设置
-echo $BINANCE_DEMO_API_KEY
-echo $BINANCE_DEMO_API_SECRET
+echo $BINANCE_API_KEY_DEMO_FUTURES
+echo $BINANCE_API_SECRET_DEMO_FUTURES
 
 # 或查看config.json
 cat backend/ai/ai-trading/config.json | jq '.exchange.binance'

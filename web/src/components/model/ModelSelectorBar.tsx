@@ -2,7 +2,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import { useLatestEquityMap } from "@/lib/api/hooks/useModelSnapshots";
-import { getModelColor, getModelIcon, getModelName } from "@/lib/model/meta";
+// Bot选择条：统一以 bot_id 展示，不依赖模型名/图标
 import { adjustLuminance } from "@/lib/ui/useDominantColors";
 import { fmtUSD } from "@/lib/utils/formatters";
 
@@ -51,8 +51,7 @@ export default function ModelSelectorBar({ activeId }: { activeId?: string }) {
 
 function renderChip(id: string, activeId?: string, equity?: number) {
   const active = activeId && id.toLowerCase() === activeId.toLowerCase();
-  const icon = getModelIcon(id);
-  const color = getModelColor(id);
+  const color = "#4d6bfe";
   // 由于此处无法直接读取 equity map，简单在父组件传入前已排序；这里展示 id 作为回退
   return (
     <Link
@@ -67,18 +66,8 @@ function renderChip(id: string, activeId?: string, equity?: number) {
       }}
     >
       <div className="flex items-center gap-1 text-[11px] opacity-90">
-        {icon ? (
-          <span
-            className="logo-chip logo-chip-sm"
-            style={{ background: color, borderColor: adjustLuminance(color, -0.2) }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={icon} alt="" className="h-3 w-3 object-contain" />
-          </span>
-        ) : (
-          <span className="inline-block h-3 w-3 rounded-full" style={{ background: color }} />
-        )}
-        <span className="truncate max-w-[12ch] sm:max-w-none">{getModelName(id)}</span>
+        <span className="inline-block h-3 w-3 rounded-full" style={{ background: color, borderColor: adjustLuminance(color, -0.2) }} />
+        <span className="truncate max-w-[20ch] sm:max-w-none" style={{ wordBreak: "break-all" }}>{id}</span>
       </div>
       {/* 次级信息：优先显示净值，回退为模型ID */}
       <div className="text-[11px] tabular-nums" style={{ color: active ? "var(--btn-active-fg)" : "var(--btn-inactive-fg)" }}>

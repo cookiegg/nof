@@ -39,8 +39,8 @@ node --env-file=./backend/.env backend/test/ai-trading/ai-trading-system.mjs
 DEEPSEEK_API_KEY_30="your_deepseek_api_key"
 
 # Binance Demo Trading API
-BINANCE_DEMO_API_KEY="your_demo_api_key"
-BINANCE_DEMO_API_SECRET="your_demo_api_secret"
+BINANCE_API_KEY_DEMO_FUTURES="your_demo_api_key"
+BINANCE_API_SECRET_DEMO_FUTURES="your_demo_api_secret"
 
 # 代理设置 (如果需要)
 HTTPS_PROXY="http://127.0.0.1:7890"

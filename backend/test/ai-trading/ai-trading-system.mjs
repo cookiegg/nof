@@ -100,10 +100,10 @@ class AITradingSystem {
       process.env.HTTP_PROXY = process.env.HTTP_PROXY || 'http://127.0.0.1:7890';
 
       if (this.isFutures) {
-        const apiKey = process.env.BINANCE_DEMO_API_KEY;
-        const secret = process.env.BINANCE_DEMO_API_SECRET;
+        const apiKey = process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = process.env.BINANCE_API_SECRET_DEMO_FUTURES;
         if (!apiKey || !secret) {
-          throw new Error('请设置BINANCE_DEMO_API_KEY和BINANCE_DEMO_API_SECRET环境变量');
+          throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES和BINANCE_API_SECRET_DEMO_FUTURES环境变量');
         }
         console.log('🔧 初始化Binance USDM Demo (Futures)...');
         console.log('🔑 API Key:', apiKey.substring(0, 8) + '...');

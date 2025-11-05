@@ -15,6 +15,7 @@ export const endpoints = {
   leaderboard: () => local("/leaderboard"),
   analytics: () => local("/analytics"),
   conversations: () => local("/conversations"),
+  runtimeBots: () => local("/runtime/bots"),
 };
 
 export { fetcher };

@@ -1,13 +1,134 @@
 {
   "startTime": "2025-11-01T07:50:03.177Z",
-  "invocationCount": 632,
-  "positions": [],
-  "lastUpdate": "2025-11-01T12:15:16.449Z",
+  "invocationCount": 657,
+  "positions": [
+    {
+      "symbol": "BNB",
+      "quantity": -0.05,
+      "entry_price": 940.51,
+      "current_price": 940.97,
+      "liquidation_price": 1123.12281055,
+      "unrealized_pnl": -0.023,
+      "leverage": 5,
+      "exit_plan": {
+        "profit_target": 1034.5610000000001,
+        "stop_loss": 893.4844999999999,
+        "invalidation_condition": "price_below_stop_loss"
+      },
+      "confidence": 0.8,
+      "risk_usd": 47.0255,
+      "sl_oid": null,
+      "tp_oid": null,
+      "wait_for_fill": false,
+      "entry_oid": null,
+      "notional_usd": 47.0485
+    }
+  ],
+  "lastUpdate": "2025-11-05T10:43:02.302Z",
   "tradingEnabled": true,
-  "accountValue": 4669.87760788,
-  "availableCash": 4669.87760788,
-  "totalReturn": -53.301223921200005,
+  "accountValue": 4970.11101356,
+  "availableCash": 4960.72472376,
+  "totalReturn": 6.475903016402487,
   "trades": [
+    {
+      "timestamp": "2025-11-05T10:43:01.674Z",
+      "side": "SELL",
+      "symbol": "BNB",
+      "quantity": 0.05,
+      "price": 940.51,
+      "orderId": "843786838",
+      "environment": "demo.binance.com",
+      "accountValue": 4970.28430278,
+      "totalReturn": 6.479615433717139
+    },
+    {
+      "timestamp": "2025-11-05T10:34:21.906Z",
+      "side": "BUY",
+      "symbol": "BNB",
+      "quantity": 0.105,
+      "price": 944.18,
+      "orderId": "843596148",
+      "environment": "demo.binance.com",
+      "accountValue": 4970.56295238,
+      "totalReturn": 6.485585012204259
+    },
+    {
+      "timestamp": "2025-11-05T10:31:01.397Z",
+      "side": "BUY",
+      "symbol": "BNB",
+      "quantity": 0.5,
+      "price": 944.44,
+      "orderId": "843523462",
+      "environment": "demo.binance.com",
+      "accountValue": 4971.55048438,
+      "totalReturn": 6.506741151608536
+    },
+    {
+      "timestamp": "2025-11-05T10:25:00.862Z",
+      "side": "BUY",
+      "symbol": "BNB",
+      "quantity": 0.1,
+      "price": 944.44,
+      "orderId": "843393085",
+      "environment": "demo.binance.com",
+      "accountValue": 4972.16699398,
+      "totalReturn": 6.519948787453939
+    },
+    {
+      "timestamp": "2025-11-05T10:16:04.267Z",
+      "side": "BUY",
+      "symbol": "SOL",
+      "quantity": 2,
+      "price": 156.23,
+      "orderId": "1214805027",
+      "environment": "demo.binance.com",
+      "accountValue": 4978.98765799,
+      "totalReturn": 6.666069539617181
+    },
+    {
+      "timestamp": "2025-11-05T10:13:01.042Z",
+      "side": "BUY",
+      "symbol": "ETH",
+      "quantity": 0.5,
+      "price": 3290.8421,
+      "orderId": "6667160060",
+      "environment": "demo.binance.com",
+      "accountValue": 4979.49431621,
+      "totalReturn": 6.676923802499432
+    },
+    {
+      "timestamp": "2025-11-05T10:07:02.130Z",
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.014,
+      "price": 101912.29286,
+      "orderId": "8634881615",
+      "environment": "demo.binance.com",
+      "accountValue": 4986.33695508,
+      "totalReturn": 6.823515327459459
+    },
+    {
+      "timestamp": "2025-11-05T10:04:19.581Z",
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.015,
+      "price": 101906.37333,
+      "orderId": "8634476020",
+      "environment": "demo.binance.com",
+      "accountValue": 4989.74624459,
+      "totalReturn": 6.8965533699159005
+    },
+    {
+      "timestamp": "2025-11-05T09:40:42.167Z",
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.001,
+      "price": 101938.9,
+      "orderId": "8630895133",
+      "environment": "demo.binance.com",
+      "accountValue": 4995.33462569,
+      "totalReturn": 7.016274624108998
+    },
     {
       "timestamp": "2025-11-01T12:15:15.936Z",
       "side": "SELL",

@@ -165,7 +165,8 @@ class AITradingSystemV2 {
         writeFileSync(this.conversationsFile, JSON.stringify(this.conversations, null, 2), 'utf8');
       }
       if (!existsSync(this.stateFile)) {
-        await this.saveState();
+        // 构造函数内不能使用 await，这里改为非阻塞调用
+        this.saveState().catch(() => {});
       }
     } catch (_) {}
 
@@ -267,8 +268,8 @@ class AITradingSystemV2 {
   sanitizeState() {
     const s = this.state || {};
     // 核心数值字段保证为数字
-    s.accountValue = Number.isFinite(Number(s.accountValue)) ? Number(s.accountValue) : 10000;
-    s.availableCash = Number.isFinite(Number(s.availableCash)) ? Number(s.availableCash) : 10000;
+    s.accountValue = Number.isFinite(Number(s.accountValue)) ? Number(s.accountValue) : 0;
+    s.availableCash = Number.isFinite(Number(s.availableCash)) ? Number(s.availableCash) : 0;
     s.totalReturn = Number.isFinite(Number(s.totalReturn)) ? Number(s.totalReturn) : 0;
     s.invocationCount = Number.isFinite(Number(s.invocationCount)) ? Number(s.invocationCount) : 0;
     // 结构字段
@@ -327,8 +328,8 @@ class AITradingSystemV2 {
       startTime: new Date().toISOString(),
       invocationCount: 0,
       totalReturn: 0,
-      accountValue: 10000,
-      availableCash: 10000,
+      accountValue: 0,
+      availableCash: 0,
       positions: [],
       lastUpdate: new Date().toISOString(),
       tradingEnabled: true
@@ -393,20 +394,31 @@ class AITradingSystemV2 {
 
       const envKey = this.tradingEnv;
       const isDemoFutures = envKey === 'demo-futures';
-      const isDemoSpot = envKey === 'demo-spot';
+      const isDemoSpot = (envKey === 'test-spot' || envKey === 'demo-spot');
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         if (httpsProxy) this.exchange.httpsProxy = httpsProxy.endsWith('/') ? httpsProxy : `${httpsProxy}/`;
         this.exchange.enableDemoTrading(true);
         await this.exchange.fetchBalance();
       } else if (isDemoSpot || envKey === 'spot') {
-        const apiKey = this.config.exchange?.binance?.spot_testnet?.api_key || process.env.BINANCE_SPOT_TEST_API_KEY;
-        const secret = this.config.exchange?.binance?.spot_testnet?.api_secret || process.env.BINANCE_SPOT_TEST_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_SPOT_TEST_API_KEY/SECRET或在config.json配置');
+        // demo-spot: 优先使用 spot_testnet，如果没有则回退到 futures_demo（共享同一个API Key）
+        let apiKey = this.config.exchange?.binance?.spot_testnet?.api_key || process.env.BINANCE_SPOT_TEST_API_KEY;
+        let secret = this.config.exchange?.binance?.spot_testnet?.api_secret || process.env.BINANCE_SPOT_TEST_API_SECRET;
+        
+        // 如果spot_testnet未配置，回退到futures_demo（允许共享API Key）
+        if (!apiKey || !secret) {
+          apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+          secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+          if (apiKey && secret) {
+            console.log('[AITradingSystem] demo-spot 使用 futures_demo 的API配置（API Key共享）');
+          }
+        }
+        
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_SPOT_TEST_API_KEY/SECRET或BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binance({ apiKey, secret, enableRateLimit: true });
         if (httpsProxy) this.exchange.httpsProxy = httpsProxy.endsWith('/') ? httpsProxy : `${httpsProxy}/`;
         if (typeof this.exchange.setSandboxMode === 'function') this.exchange.setSandboxMode(true);
@@ -786,13 +798,33 @@ class AITradingSystemV2 {
       };
       const normalizeSymbol = (s) => this.normalizeBaseSymbol(s);
       const d = rawObj.trading_decision ? rawObj.trading_decision : rawObj;
-      return {
+      
+      // 解析 quantity，处理 null、undefined、0、空字符串等情况
+      let quantity = undefined;
+      if (d.quantity !== undefined && d.quantity !== null && d.quantity !== '') {
+        const qtyNum = Number(d.quantity);
+        if (!isNaN(qtyNum) && qtyNum > 0) {
+          quantity = qtyNum;
+        }
+      }
+      
+      const decision = {
         action: normalizeAction(d.action),
         symbol: normalizeSymbol(d.symbol),
-        quantity: d.quantity !== undefined ? Number(d.quantity) : undefined,
+        quantity: quantity,
         reasoning: d.reasoning || rawObj.reasoning,
         leverage: d.leverage !== undefined ? Number(d.leverage) : undefined
       };
+      
+      // 记录解析结果，帮助调试
+      if (decision.action === 'sell' || decision.action === 'buy') {
+        console.log(`[AI解析] 交易决策: action=${decision.action}, symbol=${decision.symbol}, quantity=${quantity}, leverage=${decision.leverage || 'N/A'}`);
+        if (!quantity) {
+          console.warn(`[AI解析] ⚠️ ${decision.action} 操作缺少 quantity 字段，AI返回的原始数据:`, JSON.stringify(d, null, 2));
+        }
+      }
+      
+      return decision;
     } catch (_) {
       return { action: 'hold', reasoning: '解析失败，保持当前持仓' };
     }
@@ -931,18 +963,27 @@ class AITradingSystemV2 {
         // 使用注入的executor更新账户状态
         const accountState = await this.executor.updateAccountState();
         this.state.accountValue = accountState.accountValue || this.state.accountValue;
+        if (!this.state.initialAccountValue || this.state.initialAccountValue <= 0) {
+          this.state.initialAccountValue = this.state.accountValue || 0;
+        }
         this.state.availableCash = accountState.availableCash || this.state.availableCash;
         this.state.positions = accountState.positions || [];
         
         // 计算总收益
-        const initialValue = this.state.initialAccountValue || 10000;
-        this.state.totalReturn = ((this.state.accountValue - initialValue) / initialValue) * 100;
+        const initialValue = Number(this.state.initialAccountValue) || 0;
+        this.state.totalReturn = initialValue > 0
+          ? ((this.state.accountValue - initialValue) / initialValue) * 100
+          : 0;
       } else if (this.exchange) {
         // 向后兼容：使用旧的exchange方式
         const balance = await this.exchange.fetchBalance();
-        this.state.accountValue = balance.USDT?.total || 10000;
-        this.state.availableCash = balance.USDT?.free || 10000;
-        this.state.totalReturn = ((this.state.accountValue - 10000) / 10000) * 100;
+        this.state.accountValue = balance.USDT?.total || 0;
+        if (!this.state.initialAccountValue || this.state.initialAccountValue <= 0) {
+          this.state.initialAccountValue = this.state.accountValue || 0;
+        }
+        this.state.availableCash = balance.USDT?.free || 0;
+        const base = Number(this.state.initialAccountValue) || 0;
+        this.state.totalReturn = base > 0 ? ((this.state.accountValue - base) / base) * 100 : 0;
       }
       if (this.isFutures && this.exchange && !this.executor) {
         const positions = await this.exchange.fetchPositions();
@@ -1012,7 +1053,7 @@ class AITradingSystemV2 {
     } catch (_) {}
   }
 
-  saveConversation(userPrompt, aiResponse, decision) {
+  async saveConversation(userPrompt, aiResponse, decision) {
     // 解析AI响应中的JSON
     let aiParsed = null;
     try {
@@ -1182,7 +1223,7 @@ async function main() {
         } else {
           const binanceExecutorPath = resolve(process.cwd(), 'backend/src/services/trading/binance-demo-executor.js');
           const { BinanceDemoExecutor } = await import(`file://${binanceExecutorPath}`);
-          executor = new BinanceDemoExecutor({ env: botConfig.env });
+          executor = new BinanceDemoExecutor({ env: botConfig.env, botId });
         }
         
         // 创建promptManager

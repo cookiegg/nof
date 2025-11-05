@@ -422,7 +422,7 @@ export default function PromptEditorPanel() {
                   value={promptEnv}
                   onChange={(e) => setPromptEnv(e.target.value)}>
             <option value="demo-futures">demo-futures (期货演示)</option>
-            <option value="demo-spot">demo-spot (现货演示)</option>
+            <option value="test-spot">test-spot (现货测试网)</option>
             <option value="futures">futures (期货生产)</option>
             <option value="spot">spot (现货生产)</option>
           </select>

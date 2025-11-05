@@ -11,6 +11,7 @@ import * as spot from './spot.js';
 const envHandlers = {
   'demo-futures': demoFutures,
   'demo-spot': demoSpot,
+  'test-spot': demoSpot,
   'futures': futures,
   'spot': spot,
 };

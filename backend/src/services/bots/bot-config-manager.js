@@ -117,7 +117,7 @@ export async function resolveAIConfig(botConfig, globalConfig = null) {
  * 推断tradingMode
  */
 export function inferTradingMode(env) {
-  if (env === 'demo-futures' || env === 'demo-spot') {
+  if (env === 'demo-futures' || env === 'test-spot' || env === 'demo-spot') {
     return 'binance-demo';
   }
   if (env === 'futures' || env === 'spot') {
@@ -142,8 +142,33 @@ class BotConfigManager {
       await fs.mkdir(path.dirname(this.botsFile), { recursive: true });
       await fs.access(this.botsFile);
     } catch {
-      // 文件不存在，创建初始文件
-      await fs.writeFile(this.botsFile, JSON.stringify({ bots: [] }, null, 2), 'utf8');
+      // 文件不存在，创建初始文件，预置两个默认的 1 类 demo 交易 bot（demo-futures 与 demo-spot）
+      const nowId = Date.now();
+      const defaults = [
+        {
+          id: 'demo-futures-default',
+          name: 'demo-futures-default',
+          env: 'demo-futures',
+          model: 'qwen3-plus',
+          intervalMinutes: 3,
+          promptMode: 'bot-specific',
+          tradingMode: 'binance-demo',
+          botClass: 'demo-real',
+          createdAt: nowId
+        },
+        {
+          id: 'test-spot-default',
+          name: 'test-spot-default',
+          env: 'test-spot',
+          model: 'qwen3-plus',
+          intervalMinutes: 3,
+          promptMode: 'bot-specific',
+          tradingMode: 'binance-demo',
+          botClass: 'demo-real',
+          createdAt: nowId
+        }
+      ];
+      await fs.writeFile(this.botsFile, JSON.stringify({ bots: defaults }, null, 2), 'utf8');
     }
   }
 
@@ -164,17 +189,74 @@ class BotConfigManager {
 
   /**
    * 获取所有Bot配置
+   * 自动迁移旧格式（aiPreset -> model）
    */
   async getAllBots() {
-    return await this._loadBots();
+    const bots = await this._loadBots();
+    let needsSave = false;
+    
+    // 迁移旧格式的bot：aiPreset -> model
+    for (const bot of bots) {
+      if (bot.aiPreset && !bot.model) {
+        // 将旧的aiPreset映射到对应的model
+        const presetToModel = {
+          'deepseek': 'deepseek-v3.2-exp', // 默认使用v3.2-exp
+          'qwen': 'qwen3-plus',
+          'glm': 'glm-4.6'
+        };
+        const oldPreset = bot.aiPreset;
+        bot.model = presetToModel[oldPreset] || 'qwen3-plus';
+        delete bot.aiPreset; // 移除旧字段
+        needsSave = true;
+        console.log(`[BotConfigManager] 自动迁移Bot ${bot.id}: aiPreset "${oldPreset}" -> model "${bot.model}"`);
+      }
+      // 设置 botClass（1/2/3 类标识）：
+      // demo-real: env 为 demo-futures/demo-spot 且 非 local-simulated
+      // demo-sim:  env 为 demo-futures/demo-spot 且 为 local-simulated
+      // live-real: env 为 futures/spot 且 非 local-simulated
+      if (!bot.botClass) {
+        const isDemo = bot.env === 'demo-futures' || bot.env === 'test-spot' || bot.env === 'demo-spot';
+        const isLive = bot.env === 'futures' || bot.env === 'spot';
+        if (isDemo) {
+          bot.botClass = bot.tradingMode === 'local-simulated' ? 'demo-sim' : 'demo-real';
+        } else if (isLive) {
+          bot.botClass = bot.tradingMode === 'local-simulated' ? 'demo-sim' : 'live-real';
+        }
+        if (bot.botClass) needsSave = true;
+      }
+    }
+    
+    if (needsSave) {
+      await this._saveBots(bots);
+    }
+    
+    return bots;
   }
 
   /**
    * 根据ID获取Bot配置
+   * 自动迁移旧格式（aiPreset -> model）
    */
   async getBotById(botId) {
     const bots = await this._loadBots();
-    return bots.find(b => b.id === botId) || null;
+    const bot = bots.find(b => b.id === botId);
+    
+    // 如果找到了bot且有aiPreset但没有model，进行迁移
+    if (bot && bot.aiPreset && !bot.model) {
+      const presetToModel = {
+        'deepseek': 'deepseek-v3.2-exp',
+        'qwen': 'qwen3-plus',
+        'glm': 'glm-4.6'
+      };
+      const oldPreset = bot.aiPreset;
+      bot.model = presetToModel[oldPreset] || 'qwen3-plus';
+      delete bot.aiPreset;
+      // 保存迁移后的配置
+      await this._saveBots(bots);
+      console.log(`[BotConfigManager] 自动迁移Bot ${botId}: aiPreset "${oldPreset}" -> model "${bot.model}"`);
+    }
+    
+    return bot || null;
   }
 
   /**
@@ -205,6 +287,29 @@ class BotConfigManager {
     // 自动推断tradingMode
     if (!botConfig.tradingMode) {
       botConfig.tradingMode = inferTradingMode(botConfig.env);
+    }
+
+    // 业务规则（来自 bot_design.md）：
+    // - 同一交易类型（env=demo-futures 或 demo-spot）仅允许存在一个“真实 demo 交易 bot”（非 local-simulated）。
+    // - 当已存在同类型真实 demo bot 时，后续创建的同类型 bot 自动降级为本地模拟(local-simulated)。
+    const isDemoEnv = botConfig.env === 'demo-futures' || botConfig.env === 'test-spot' || botConfig.env === 'demo-spot';
+    const isLiveEnv = botConfig.env === 'futures' || botConfig.env === 'spot';
+    if (isDemoEnv || isLiveEnv) {
+      const hasReal = bots.some(b => (b.env === botConfig.env) && (b.tradingMode !== 'local-simulated'));
+      if (hasReal) {
+        botConfig.tradingMode = 'local-simulated';
+        // 标记来源，便于前端提示（非强依赖字段）
+        botConfig._autoDowngraded = true;
+      }
+    }
+
+    // 补充 botClass 标识（1 类=demo-real，2 类=demo-sim，3 类=live-real）
+    if (!botConfig.botClass) {
+      if (isDemoEnv) {
+        botConfig.botClass = botConfig.tradingMode === 'local-simulated' ? 'demo-sim' : 'demo-real';
+      } else if (isLiveEnv) {
+        botConfig.botClass = botConfig.tradingMode === 'local-simulated' ? 'demo-sim' : 'live-real';
+      }
     }
 
     // 默认promptMode

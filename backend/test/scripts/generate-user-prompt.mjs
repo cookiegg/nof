@@ -19,12 +19,12 @@ class UserPromptGenerator {
       process.env.HTTPS_PROXY = process.env.HTTPS_PROXY || 'http://127.0.0.1:7890';
       process.env.HTTP_PROXY = process.env.HTTP_PROXY || 'http://127.0.0.1:7890';
 
-      const apiKey = process.env.BINANCE_DEMO_API_KEY;
-      const secret = process.env.BINANCE_DEMO_API_SECRET;
+      const apiKey = process.env.BINANCE_API_KEY_DEMO_FUTURES;
+      const secret = process.env.BINANCE_API_SECRET_DEMO_FUTURES;
       const testnet = process.env.BINANCE_TESTNET === 'true';
 
       if (!apiKey || !secret) {
-        throw new Error('请设置BINANCE_DEMO_API_KEY和BINANCE_DEMO_API_SECRET环境变量');
+        throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES和BINANCE_API_SECRET_DEMO_FUTURES环境变量');
       }
 
       this.exchange = new ccxt.binanceusdm({

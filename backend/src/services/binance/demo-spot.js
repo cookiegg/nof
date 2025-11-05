@@ -7,8 +7,8 @@ import * as baseSpot from './base-spot.js';
  */
 
 function createExchange() {
-  const apiKey = process.env.BINANCE_DEMO_API_KEY || '';
-  const secret = process.env.BINANCE_DEMO_API_SECRET || '';
+  const apiKey = process.env.BINANCE_API_KEY_DEMO_FUTURES || '';
+  const secret = process.env.BINANCE_API_SECRET_DEMO_FUTURES || '';
   
   const ex = new ccxt.binance({
     apiKey,

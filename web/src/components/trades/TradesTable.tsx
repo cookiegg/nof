@@ -1,5 +1,5 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useEffect } from "react";
 import { useTrades } from "@/lib/api/hooks/useTrades";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { fmtUSD } from "@/lib/utils/formatters";
@@ -8,14 +8,39 @@ import { SkeletonRow } from "@/components/ui/Skeleton";
 import { getModelName, getModelColor } from "@/lib/model/meta";
 import { ModelLogoChip } from "@/components/shared/ModelLogo";
 import type { TradeRow } from "@/lib/api/hooks/useTrades";
+import { useLocale } from "@/store/useLocale";
 
 export default function TradesTable() {
   const { trades, isLoading, isError } = useTrades();
   const search = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
 
+  // 统一使用 bot_id 作为筛选键，沿用 query 参数名 "model"
   const qModel = (search.get("model") || "ALL").toLowerCase();
+  // 若未选择特定bot（model参数缺失或为ALL），默认选中第一个运行中的bot_id
+  // 仅在首次挂载时触发一次
+  useEffect(() => {
+    (async () => {
+      try {
+        const cur = (search.get('model') || 'ALL').toLowerCase();
+        if (!cur || cur === 'all') {
+          const res = await fetch('/api/nof1/runtime/bots');
+          if (!res.ok) return;
+          const j = await res.json();
+          const first = Array.isArray(j?.bots) && j.bots.length ? j.bots[0]?.bot_id : null;
+          if (first) {
+            const params = new URLSearchParams(search.toString());
+            params.set('model', first);
+            router.replace(`${pathname}?${params.toString()}`);
+          }
+        }
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const all = useMemo(() => {
     const arr = [...trades];
@@ -29,15 +54,19 @@ export default function TradesTable() {
   }, [trades]);
 
   const rows = useMemo(() => {
-    return all.filter((t) =>
-      qModel === "all" ? true : (t.model_id || "").toLowerCase() === qModel,
-    );
+    return all.filter((t) => {
+      if (qModel === "all") return true;
+      // 统一使用 bot_id 进行过滤；向后兼容：若无 bot_id 则退化到 model_id
+      const bid = ((t as any).bot_id || t.model_id || "").toLowerCase();
+      return bid === qModel;
+    });
   }, [all, qModel]);
 
   const models = useMemo(() => {
-    const ids = Array.from(new Set(trades.map((t) => t.model_id))).filter(
-      Boolean,
-    ) as string[];
+    // 统一使用 bot_id 作为选项；向后兼容：若无 bot_id 则退化到 model_id
+    const ids = Array.from(
+      new Set(trades.map((t) => (t as any).bot_id || t.model_id))
+    ).filter(Boolean) as string[];
     return ids.sort((a, b) => a.localeCompare(b));
   }, [trades]);
 
@@ -62,7 +91,7 @@ export default function TradesTable() {
             className="font-semibold"
             style={{ color: "var(--foreground)" }}
           >
-            筛选：
+            {t("筛选：", "Filter:")}
           </span>
           <select
             className="rounded border px-2 py-1 text-xs"
@@ -74,10 +103,10 @@ export default function TradesTable() {
             value={search.get("model") || "ALL"}
             onChange={(e) => setQuery("model", e.target.value)}
           >
-            <option value="ALL">全部模型</option>
+            <option value="ALL">{t("全部 Bot", "All Bots")}</option>
             {models.map((m) => (
               <option key={m} value={m}>
-                {getModelName(m)}
+                {m}
               </option>
             ))}
           </select>
@@ -86,12 +115,12 @@ export default function TradesTable() {
           className="text-xs font-semibold tabular-nums ui-sans"
           style={{ color: "var(--muted-text)" }}
         >
-          展示最近 100 笔成交
+          {t("展示最近 100 笔成交", "Showing latest 100 trades")}
         </div>
       </div>
 
       <ErrorBanner
-        message={isError ? "成交记录数据源暂时不可用，请稍后重试。" : undefined}
+        message={isError ? t("成交记录数据源暂时不可用，请稍后重试。", "Trade data source temporarily unavailable, please try again later.") : undefined}
       />
 
       {/* List */}
@@ -113,7 +142,7 @@ export default function TradesTable() {
             <TradeItem
               key={
                 (t as any).id ??
-                `${t.model_id || 'default'}-${(t.symbol || 'sym').toUpperCase()}-${t.side || 'side'}-${
+                `${(t as any).bot_id || t.model_id || 'default'}-${(t.symbol || 'sym').toUpperCase()}-${t.side || 'side'}-${
                   t.exit_time || t.entry_time || 'time'
                 }-${idx}`
               }
@@ -122,7 +151,7 @@ export default function TradesTable() {
           ))
         ) : (
           <div className="p-3 text-xs" style={{ color: "var(--muted-text)" }}>
-            暂无数据
+            {t("暂无数据", "No data")}
           </div>
         )}
       </div>
@@ -137,18 +166,20 @@ export default function TradesTable() {
   }
 }
 
-function TradeItem({ t }: { t: TradeRow }) {
-  const sideColor = t.side === "long" ? "#16a34a" : "#ef4444"; // green-600 / red-500
-  const modelColor = getModelColor(t.model_id || "");
-  const symbol = (t.symbol || "").toUpperCase();
-  const qty = t.quantity;
+function TradeItem({ t: trade }: { t: TradeRow }) {
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
+  const sideColor = trade.side === "long" ? "#16a34a" : "#ef4444"; // green-600 / red-500
+  const modelColor = getModelColor(trade.model_id || "");
+  const symbol = (trade.symbol || "").toUpperCase();
+  const qty = trade.quantity;
   const absQty = Math.abs(qty ?? 0);
-  const entry = t.entry_price;
-  const exit = t.exit_price;
+  const entry = trade.entry_price;
+  const exit = trade.exit_price;
   const notionalIn = absQty * (entry ?? 0);
   const notionalOut = absQty * (exit ?? 0);
-  const hold = humanHold(t.entry_time, t.exit_time);
-  const when = humanTime(t.exit_time || t.entry_time);
+  const hold = humanHold(trade.entry_time, trade.exit_time, locale);
+  const when = humanTime(trade.exit_time || trade.entry_time);
 
   return (
     <div className="px-3 py-3">
@@ -159,12 +190,12 @@ function TradeItem({ t }: { t: TradeRow }) {
             style={{ color: "var(--foreground)" }}
           >
             <span className="mr-1 align-middle">
-              <ModelLogoChip modelId={t.model_id} size="sm" />
+              <ModelLogoChip modelId={(trade as any).bot_id || trade.model_id} size="sm" />
             </span>
-            <b style={{ color: modelColor }}>{getModelName(t.model_id)}</b>
-            <span> 完成了一笔 </span>
-            <b style={{ color: sideColor }}>{sideZh(t.side)}</b>
-            <span> 交易，标的 </span>
+            <b style={{ color: modelColor }}>{(trade as any).bot_id || trade.model_id}</b>
+            <span> {t("完成了一笔", "completed a")} </span>
+            <b style={{ color: sideColor }}>{sideZh(trade.side, locale)}</b>
+            <span> {t("交易，标的", "trade on")} </span>
             <span className="inline-flex items-center gap-1 font-semibold">
               <CoinIcon symbol={symbol} />
               <span>{symbol}!</span>
@@ -184,15 +215,15 @@ function TradeItem({ t }: { t: TradeRow }) {
         style={{ color: "var(--foreground)" }}
       >
         <div>
-          价格：{fmtPrice(entry)} → {fmtPrice(exit)}
+          {t("价格：", "Price:")}{fmtPrice(entry)} → {fmtPrice(exit)}
         </div>
         <div>
-          数量：<span className="tabular-nums">{fmtNumber(qty, 2)}</span>
+          {t("数量：", "Quantity:")}<span className="tabular-nums">{fmtNumber(qty, 2)}</span>
         </div>
         <div>
-          名义金额：{fmtUSD(notionalIn)} → {fmtUSD(notionalOut)}
+          {t("名义金额：", "Notional:")}{fmtUSD(notionalIn)} → {fmtUSD(notionalOut)}
         </div>
-        <div>持有时长：{hold}</div>
+        <div>{t("持有时长：", "Holding:")}{hold}</div>
       </div>
 
       <div className="mt-2 flex items-baseline gap-2">
@@ -200,13 +231,13 @@ function TradeItem({ t }: { t: TradeRow }) {
           className="ui-sans text-[12px] sm:text-sm"
           style={{ color: "var(--muted-text)" }}
         >
-          净盈亏：
+          {t("净盈亏：", "Net P&L:")}
         </span>
         <span
           className="terminal-text tabular-nums text-[13px] sm:text-sm font-semibold"
-          style={{ color: pnlColor(t.realized_net_pnl) }}
+          style={{ color: pnlColor(trade.realized_net_pnl) }}
         >
-          {fmtUSD(t.realized_net_pnl)}
+          {fmtUSD(trade.realized_net_pnl)}
         </span>
       </div>
     </div>
@@ -257,7 +288,7 @@ function humanTime(sec?: number) {
   return `${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function humanHold(entry?: number, exit?: number) {
+function humanHold(entry?: number, exit?: number, locale: "zh" | "en" = "zh") {
   if (!entry) return "—";
   const a = entry > 1e12 ? entry : entry * 1000;
   const b = exit ? (exit > 1e12 ? exit : exit * 1000) : Date.now();
@@ -265,6 +296,9 @@ function humanHold(entry?: number, exit?: number) {
   const m = Math.floor(ms / 60000);
   const h = Math.floor(m / 60);
   const mm = m % 60;
+  if (locale === "en") {
+    return h ? `${h}h ${mm}m` : `${mm}m`;
+  }
   return h ? `${h}小时${mm}分` : `${mm}分`;
 }
 
@@ -285,6 +319,9 @@ function fmtNumber(n?: number | null, digits = 2) {
   return `${sign}${v}`;
 }
 
-function sideZh(s?: string) {
+function sideZh(s?: string, locale: "zh" | "en" = "zh") {
+  if (locale === "en") {
+    return s === "long" ? "Long" : s === "short" ? "Short" : String(s ?? "—");
+  }
   return s === "long" ? "做多" : s === "short" ? "做空" : String(s ?? "—");
 }

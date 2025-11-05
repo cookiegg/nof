@@ -99,8 +99,8 @@ Sharpe Ratio: XX.XX
 ### 1. 环境设置
 ```bash
 # 设置环境变量
-export BINANCE_DEMO_API_KEY="your_api_key"
-export BINANCE_DEMO_API_SECRET="your_secret"
+export BINANCE_API_KEY_DEMO_FUTURES="your_api_key"
+export BINANCE_API_SECRET_DEMO_FUTURES="your_secret"
 export BINANCE_TESTNET=true
 export HTTPS_PROXY="http://127.0.0.1:7890"
 export HTTP_PROXY="http://127.0.0.1:7890"

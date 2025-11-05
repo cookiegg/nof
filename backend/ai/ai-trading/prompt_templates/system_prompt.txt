@@ -23,6 +23,8 @@ You are an expert crypto trader agent. Operate strictly within the provided exch
 
 ## OUTPUT FORMAT REQUIREMENT
 
+Note: Any example numeric values shown in this prompt are placeholders only. You must not invent or assume actual account balances, cash, returns, or metrics. Return the required JSON structure, and only provide numeric values when explicitly supported by the provided data/context.
+
 **YOU MUST THINK STEP-BY-STEP** before making your decision.
 
 **YOU MUST RETURN STRICT JSON** (no markdown fences, no extra text).
@@ -59,8 +61,8 @@ Return exactly one top-level JSON object:
     }
   ],
   "account_management": {
-    "current_value": 10000,
-    "available_cash": 10000,
+    "current_value": 0,
+    "available_cash": 0,
     "total_return": 0,
     "sharpe_ratio": 0,
     "recommendations": ["optional guidance"]

@@ -12,6 +12,7 @@ import { useSearchParams } from "next/navigation";
 import { getModelColor, getModelName } from "@/lib/model/meta";
 import { ModelLogoChip } from "@/components/shared/ModelLogo";
 import CoinIcon from "@/components/shared/CoinIcon";
+import { useLocale } from "@/store/useLocale";
 
 type SortKey =
   | "symbol"
@@ -22,6 +23,8 @@ type SortKey =
   | "side";
 
 export function PositionsPanel() {
+  const locale = useLocale((s) => s.locale);
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   // remove theme branching; rely on CSS variables
   const { positionsByModel, isLoading, isError } = usePositions();
   const { data: totalsData } = useAccountTotals();
@@ -42,7 +45,7 @@ export function PositionsPanel() {
         }}
       >
         <div className={`mb-2 text-sm`} style={{ color: "var(--muted-text)" }}>
-          加载持仓中…
+          {t('加载持仓中…','Loading positions…')}
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
@@ -59,7 +62,7 @@ export function PositionsPanel() {
   if (!positionsByModel.length) {
     return (
       <div className={`text-sm`} style={{ color: "var(--muted-text)" }}>
-        暂无持仓。
+        {t('暂无持仓。','No open positions.')}
       </div>
     );
   }
@@ -67,7 +70,7 @@ export function PositionsPanel() {
   return (
     <div className="space-y-3">
       <ErrorBanner
-        message={isError ? "上游持仓接口暂时不可用，请稍后重试。" : undefined}
+        message={isError ? t('上游持仓接口暂时不可用，请稍后重试。','Positions data unavailable. Please try again later.') : undefined}
       />
       <PositionsFilter
         models={positionsByModel.map((m) => m.id)}
@@ -93,8 +96,8 @@ export function PositionsPanel() {
             }));
             const dir = sortDir === "asc" ? 1 : -1;
             return arr.sort((a, b) => {
-              const av = sortKey === "side" ? a.side : a[sortKey];
-              const bv = sortKey === "side" ? b.side : b[sortKey];
+              const av = sortKey === "side" ? a.side : (a as any)[sortKey];
+              const bv = sortKey === "side" ? b.side : (b as any)[sortKey];
               if (av == null && bv == null) return 0;
               if (av == null) return 1;
               if (bv == null) return -1;
@@ -164,14 +167,14 @@ export function PositionsPanel() {
                     className={`ui-sans text-sm font-semibold`}
                     style={{ color: "var(--foreground)" }}
                   >
-                    {getModelName(m.id)}
+                    {m.id}
                   </div>
                 </div>
                 <div
                   className={`ui-sans text-[11px]`}
                   style={{ color: "var(--muted-text)" }}
                 >
-                  未实现盈亏合计：
+                  {t('未实现盈亏合计：','Total Unrealized PnL: ')}
                   <span
                     className={
                       totalUnreal >= 0 ? "text-green-400" : "text-red-400"
@@ -186,22 +189,22 @@ export function PositionsPanel() {
                 style={{ color: "var(--muted-text)" }}
               >
                 <div>
-                  净值：<span className="tabular-nums">{fmtUSD(equity)}</span>
+                  {t('净值：','Equity: ')}<span className="tabular-nums">{fmtUSD(equity)}</span>
                 </div>
                 <div>
-                  已实现盈亏：
+                  {t('已实现盈亏：','Realized PnL: ')}
                   <span className="tabular-nums">{fmtUSD(realizedPnL)}</span>
                 </div>
                 <div>
-                  可用现金≈
+                  {t('可用现金≈','Available: ')}
                   <span className="tabular-nums">{fmtUSD(availableCash)}</span>
                 </div>
                 <div>
-                  风险金额合计：
+                  {t('风险金额合计：','Risk (sum): ')}
                   <span className="tabular-nums">{fmtUSD(sumRisk)}</span>
                 </div>
                 <div>
-                  平均置信度：
+                  {t('平均置信度：','Avg. Confidence: ')}
                   <span className="tabular-nums">
                     {avgConf ? (avgConf * 100).toFixed(1) + "%" : "—"}
                   </span>
@@ -220,12 +223,12 @@ export function PositionsPanel() {
                       className={clsx("border-b")}
                       style={{ borderColor: "var(--panel-border)" }}
                     >
-                      <th className="py-1.5 pr-3">方向</th>
-                      <th className="py-1.5 pr-3">币种</th>
-                      <th className="py-1.5 pr-3">杠杆</th>
-                      <th className="py-1.5 pr-3">名义金额</th>
-                      <th className="py-1.5 pr-3">退出计划</th>
-                      <th className="py-1.5 pr-3">未实现盈亏</th>
+                      <th className="py-1.5 pr-3">{t('方向','Side')}</th>
+                      <th className="py-1.5 pr-3">{t('币种','Symbol')}</th>
+                      <th className="py-1.5 pr-3">{t('杠杆','Lev')}</th>
+                      <th className="py-1.5 pr-3">{t('名义金额','Notional')}</th>
+                      <th className="py-1.5 pr-3">{t('退出计划','Exit Plan')}</th>
+                      <th className="py-1.5 pr-3">{t('未实现盈亏','Unrealized PnL')}</th>
                     </tr>
                   </thead>
                   <tbody style={{ color: "var(--foreground)" }}>
@@ -233,8 +236,8 @@ export function PositionsPanel() {
                       const isLong = p.quantity > 0;
                       // 优先使用 notional_usd 字段，如果不存在则计算
                       const notional =
-                        p.notional_usd ??
-                        Math.abs(p.quantity) * (p.current_price ?? 0);
+                        (p as any).notional_usd ??
+                        Math.abs(p.quantity) * ((p as any).current_price ?? 0);
                       return (
                         <tr
                           key={i}
@@ -248,30 +251,31 @@ export function PositionsPanel() {
                             className="py-1.5 pr-3"
                             style={{ color: isLong ? "#16a34a" : "#ef4444" }}
                           >
-                            {isLong ? "做多" : "做空"}
+                            {isLong ? t('做多','LONG') : t('做空','SHORT')}
                           </td>
                           <td className="py-1.5 pr-3">
                             <span className="inline-flex items-center gap-1">
                               <CoinIcon symbol={p.symbol} size={16} />
                               <span className="ui-sans">
-                                {p.symbol?.toUpperCase()}
+                                {(p as any).symbol?.toUpperCase()
+                                }
                               </span>
                             </span>
                           </td>
-                          <td className="py-1.5 pr-3">{p.leverage}x</td>
+                          <td className="py-1.5 pr-3">{(p as any).leverage}x</td>
                           <td className="py-1.5 pr-3 tabular-nums">
                             {fmtUSD(notional)}
                           </td>
                           <td className="py-1.5 pr-3">
-                            <ExitPlanPeek plan={p.exit_plan} />
+                            <ExitPlanPeek plan={(p as any).exit_plan} />
                           </td>
                           <td
                             className={clsx(
                               "py-1.5 pr-3 tabular-nums",
-                              pnlClass(p.unrealized_pnl),
+                              pnlClass((p as any).unrealized_pnl),
                             )}
                           >
-                            {fmtUSD(p.unrealized_pnl)}
+                            {fmtUSD((p as any).unrealized_pnl)}
                           </td>
                         </tr>
                       );
@@ -287,6 +291,8 @@ export function PositionsPanel() {
 }
 
 function ExitPlanPeek({ plan }: { plan?: any }) {
+  const locale = useLocale((s) => s.locale);
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement | null>(null);
@@ -346,7 +352,7 @@ function ExitPlanPeek({ plan }: { plan?: any }) {
         }}
         onClick={() => setOpen((v) => !v)}
       >
-        查看
+        {t('查看','View')}
       </button>
       {open &&
         pos &&
@@ -365,19 +371,19 @@ function ExitPlanPeek({ plan }: { plan?: any }) {
               color: "var(--foreground)",
             }}
           >
-            <div className="ui-sans mb-1 font-semibold">退出计划</div>
+            <div className="ui-sans mb-1 font-semibold">{t('退出计划','Exit Plan')}</div>
             <div className="terminal-text text-xs leading-relaxed">
               <div>
-                目标价：
+                {t('目标价：','Target: ')}
                 <span className="tabular-nums">
                   {plan.profit_target ?? "—"}
                 </span>
               </div>
               <div>
-                止损价：
+                {t('止损价：','Stop: ')}
                 <span className="tabular-nums">{plan.stop_loss ?? "—"}</span>
               </div>
-              <div>失效条件：</div>
+              <div>{t('失效条件：','Invalidation:')}</div>
               <div className="whitespace-pre-wrap">
                 {plan.invalidation_condition || "—"}
               </div>

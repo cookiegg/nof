@@ -6,6 +6,7 @@ import { useAccountTotals } from "@/lib/api/hooks/useAccountTotals";
 import { fmtUSD, pnlClass } from "@/lib/utils/formatters";
 import { getModelName } from "@/lib/model/meta";
 import CoinIcon from "@/components/shared/CoinIcon";
+import { useLocale } from "@/store/useLocale";
 
 function fmtTime(sec?: number) {
   if (!sec) return "—";
@@ -27,6 +28,8 @@ function fmtNumber(n?: number | null, digits = 2) {
 export default function ModelOpenPositions({ modelId }: { modelId: string }) {
   const { positionsByModel } = usePositions();
   const { data: totalsData } = useAccountTotals();
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   const model = positionsByModel.find((m) => m.id === modelId);
   const positionsRaw = Object.values(model?.positions || {});
   const positions = useMemo(() =>
@@ -43,10 +46,10 @@ export default function ModelOpenPositions({ modelId }: { modelId: string }) {
     return (
       <div>
         <div className="ui-sans mb-2 text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-          当前持仓 · {getModelName(modelId)}
+          {t("当前持仓", "Current Positions")} · {modelId}
         </div>
         <div className={`text-sm`} style={{ color: "var(--muted-text)" }}>
-          暂无持仓。
+          {t("暂无持仓。", "No positions.")}
         </div>
       </div>
     );
@@ -55,10 +58,10 @@ export default function ModelOpenPositions({ modelId }: { modelId: string }) {
     <div>
       <div className="ui-sans mb-2 flex items-center justify-between">
         <div className="text-sm font-semibold" style={{ color: "var(--foreground)" }}>
-          当前持仓 · {getModelName(modelId)}
+          {t("当前持仓", "Current Positions")} · {modelId}
         </div>
         <div className="text-xs" style={{ color: "var(--muted-text)" }}>
-          未实现盈亏合计：
+          {t("未实现盈亏合计：", "Total Unrealized P&L:")}
           <span className={totalUnreal >= 0 ? "text-green-400" : "text-red-400"}>
             {fmtUSD(totalUnreal)}
           </span>
@@ -72,17 +75,17 @@ export default function ModelOpenPositions({ modelId }: { modelId: string }) {
             style={{ background: "var(--panel-bg)", color: "var(--muted-text)" }}
           >
             <tr className={clsx("border-b")} style={{ borderColor: "var(--panel-border)" }}>
-              <th className="py-1.5 pr-3">入场时间</th>
-              <th className="py-1.5 pr-3">币种</th>
-              <th className="py-1.5 pr-3">入场价</th>
-              <th className="py-1.5 pr-3">方向</th>
-              <th className="py-1.5 pr-3">数量</th>
-              <th className="py-1.5 pr-3">杠杆</th>
-              <th className="py-1.5 pr-3">强平价</th>
-              <th className="py-1.5 pr-3">保证金</th>
-              <th className="py-1.5 pr-3">名义金额</th>
-              <th className="py-1.5 pr-3">未实现盈亏</th>
-              <th className="py-1.5 pr-3">退出计划</th>
+              <th className="py-1.5 pr-3">{t("入场时间", "Entry Time")}</th>
+              <th className="py-1.5 pr-3">{t("币种", "Symbol")}</th>
+              <th className="py-1.5 pr-3">{t("入场价", "Entry Price")}</th>
+              <th className="py-1.5 pr-3">{t("方向", "Side")}</th>
+              <th className="py-1.5 pr-3">{t("数量", "Quantity")}</th>
+              <th className="py-1.5 pr-3">{t("杠杆", "Leverage")}</th>
+              <th className="py-1.5 pr-3">{t("强平价", "Liquidation Price")}</th>
+              <th className="py-1.5 pr-3">{t("保证金", "Margin")}</th>
+              <th className="py-1.5 pr-3">{t("名义金额", "Notional")}</th>
+              <th className="py-1.5 pr-3">{t("未实现盈亏", "Unrealized P&L")}</th>
+              <th className="py-1.5 pr-3">{t("退出计划", "Exit Plan")}</th>
             </tr>
           </thead>
           <tbody style={{ color: "var(--foreground)" }}>
@@ -106,7 +109,9 @@ export default function ModelOpenPositions({ modelId }: { modelId: string }) {
                     </span>
                   </td>
                   <td className="py-1.5 pr-3 tabular-nums">{fmtUSD(p.entry_price)}</td>
-                  <td className="py-1.5 pr-3" style={{ color: isLong ? "#16a34a" : "#ef4444" }}>{isLong ? "做多" : "做空"}</td>
+                  <td className="py-1.5 pr-3" style={{ color: isLong ? "#16a34a" : "#ef4444" }}>
+                    {isLong ? (locale === "zh" ? "做多" : "LONG") : (locale === "zh" ? "做空" : "SHORT")}
+                  </td>
                   <td className="py-1.5 pr-3 tabular-nums">{fmtNumber(Math.abs(p.quantity), 2)}</td>
                   <td className="py-1.5 pr-3">{p.leverage}X</td>
                   <td className="py-1.5 pr-3 tabular-nums">{fmtUSD(p.liquidation_price)}</td>
@@ -115,7 +120,7 @@ export default function ModelOpenPositions({ modelId }: { modelId: string }) {
                   <td className={clsx("py-1.5 pr-3 tabular-nums", pnlClass(p.unrealized_pnl))}>
                     {fmtUSD(p.unrealized_pnl)}
                   </td>
-                  <td className="py-1.5 pr-3">{renderExitPlan(p.exit_plan)}</td>
+                  <td className="py-1.5 pr-3">{renderExitPlan(p.exit_plan, locale)}</td>
                 </tr>
               );
             })}
@@ -126,12 +131,19 @@ export default function ModelOpenPositions({ modelId }: { modelId: string }) {
   );
 }
 
-function renderExitPlan(plan?: any) {
+function renderExitPlan(plan?: any, locale: "zh" | "en" = "zh") {
   if (!plan || !(plan.profit_target || plan.stop_loss || plan.invalidation_condition))
     return <span style={{ color: "var(--muted-text)" }}>—</span> as any;
+  if (locale === "zh") {
+    return (
+      <span className="ui-sans text-[11px]" style={{ color: "var(--muted-text)" }}>
+        目标 {plan.profit_target ?? "—"}，止损 {plan.stop_loss ?? "—"}
+      </span>
+    ) as any;
+  }
   return (
     <span className="ui-sans text-[11px]" style={{ color: "var(--muted-text)" }}>
-      目标 {plan.profit_target ?? "—"}，止损 {plan.stop_loss ?? "—"}
+      Target {plan.profit_target ?? "—"}, Stop {plan.stop_loss ?? "—"}
     </span>
   ) as any;
 }

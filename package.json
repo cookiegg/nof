@@ -1,6 +1,8 @@
 {
   "dependencies": {
-    "ccxt": "^4.5.13",
+    "@binance/derivatives-trading-usds-futures": "^14.0.0",
+    "@binance/spot": "^22.0.0",
+    "ccxt": "^4.5.15",
     "http-proxy-agent": "^7.0.2",
     "https-proxy-agent": "^7.0.6"
   }
