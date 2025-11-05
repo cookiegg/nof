@@ -52,7 +52,7 @@ function benchDailyReturns(rows: TotalsRow[]) {
 function modelDailyEquityFromTrades(
   trades: TradesRow[],
   id: string,
-  base = 10000,
+  base = 1,
 ) {
   const agg = new Map<string, number>(); // day -> sum pnl
   for (const t of trades) {

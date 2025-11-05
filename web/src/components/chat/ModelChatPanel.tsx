@@ -12,14 +12,37 @@ import { ModelLogoChip } from "@/components/shared/ModelLogo";
 // theme handled via CSS variables
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useLocale } from "@/store/useLocale";
 
 export default function ModelChatPanel() {
   const { items, isLoading, isError } = useConversations();
   const search = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
+  const locale = useLocale((s) => s.locale);
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
+  // 统一使用 bot_id 作为筛选键，沿用 query 参数名 "model"
   const qModel = (search.get("model") || "ALL").trim();
   // use CSS variables for colors instead of theme branching
+  // 若未选择特定bot（model参数缺失或为ALL），默认选中第一个运行中的bot_id
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!qModel || qModel === 'ALL') {
+          const res = await fetch('/api/nof1/runtime/bots');
+          if (!res.ok) return;
+          const j = await res.json();
+          const first = Array.isArray(j?.bots) && j.bots.length ? j.bots[0]?.bot_id : null;
+          if (first) {
+            const params = new URLSearchParams(search.toString());
+            params.set('model', first);
+            router.replace(`${pathname}?${params.toString()}`);
+          }
+        }
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Flat list across all models, sorted by time desc
   const list = useMemo(() => {
@@ -32,8 +55,9 @@ export default function ModelChatPanel() {
       llm_response?: any;
     }[] = [];
     for (const it of items) {
-      const id = (it as any).model_id;
-      if (!id) continue;
+      // 统一使用 bot_id；向后兼容：若无 bot_id 则退化到 model_id
+      const botId = (it as any).bot_id || (it as any).model_id;
+      if (!botId) continue;
       const ts = (it as any).timestamp || (it as any).inserted_at || 0;
       const content =
         (it as any).cot_trace_summary || (it as any).summary || "";
@@ -41,7 +65,7 @@ export default function ModelChatPanel() {
       const cot_trace = (it as any).cot_trace || {};
       const llm_response = (it as any).llm_response || {};
       arr.push({
-        model_id: id,
+        model_id: botId, // 以 bot_id 作为显示与筛选标识
         timestamp: ts,
         content,
         user_prompt,
@@ -110,19 +134,19 @@ export default function ModelChatPanel() {
   if (isLoading)
     return (
       <div className={`text-xs`} style={{ color: "var(--muted-text)" }}>
-        加载模型对话中…
+        {t('加载模型对话中…','Loading conversations…')}
       </div>
     );
   if (isError)
     return (
       <div className={`text-xs`} style={{ color: "red" }}>
-        模型对话接口暂不可用，请稍后重试。
+        {t('模型对话接口暂不可用，请稍后重试。','Conversations API unavailable. Please try again later.')}
       </div>
     );
   if (!list.length)
     return (
       <div className={`text-xs`} style={{ color: "var(--muted-text)" }}>
-        暂无模型对话。
+        {t('暂无模型对话。','No conversations.')}
       </div>
     );
 
@@ -134,7 +158,11 @@ export default function ModelChatPanel() {
         models={[
           "ALL",
           ...Array.from(
-            new Set(items.map((i: any) => i?.model_id).filter(Boolean)),
+            new Set(
+              items
+                .map((i: any) => i?.bot_id || i?.model_id)
+                .filter(Boolean)
+            ),
           ),
         ]}
       />
@@ -180,12 +208,14 @@ function FilterBar({
 }) {
   // theme vars only
   const uniq = Array.from(new Set(models));
+  const locale = useLocale((s) => s.locale);
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   return (
     <div
       className="mb-1 flex items-center gap-2 text-[12px]"
       style={{ color: "var(--muted-text)" }}
     >
-      <span className={`ui-sans font-semibold tracking-wide`}>筛选：</span>
+      <span className={`ui-sans font-semibold tracking-wide`}>{t('筛选：','Filter:')}</span>
       <select
         className={`rounded border px-2 py-1 text-xs`}
         style={{
@@ -198,7 +228,7 @@ function FilterBar({
       >
         {uniq.map((m) => (
           <option key={m} value={m}>
-            {m === "ALL" ? "全部模型" : m}
+            {m === "ALL" ? t('全部模型','ALL') : m}
           </option>
         ))}
       </select>
@@ -223,6 +253,8 @@ function ChatCard({
   llm_response?: any;
   history?: any[];
 }) {
+  const locale = useLocale((s) => s.locale);
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   const color = getModelColor(modelId);
   const [open, setOpen] = useState(false);
   const [openHist, setOpenHist] = useState<Record<string, boolean>>({});
@@ -239,7 +271,7 @@ function ChatCard({
           className={`ui-sans text-sm font-extrabold uppercase tracking-wide`}
           style={{ color }}
         >
-          {getModelName(modelId)}
+          {modelId}
         </div>
         <div
           className={`text-[11px] tabular-nums`}
@@ -265,14 +297,14 @@ function ChatCard({
             className={`whitespace-pre-wrap terminal-text text-xs leading-relaxed`}
             style={{ color: "var(--foreground)" }}
           >
-            {showZh && translated ? translated : content || "(no summary)"}
+            {showZh && translated ? translated : content || t("(暂无摘要)","(no summary)")}
           </div>
           <button
             className={`absolute bottom-1 right-2 text-[11px] italic`}
             style={{ color: "var(--muted-text)" }}
             onClick={() => setOpen(!open)}
           >
-            {open ? "收起" : "点击展开"}
+            {open ? t("收起","Collapse") : t("点击展开","Expand")}
           </button>
           {translated && (
             <button
@@ -280,7 +312,7 @@ function ChatCard({
               style={{ color: "var(--muted-text)" }}
               onClick={() => setShowZh((v) => !v)}
             >
-              {showZh ? "显示原文" : "显示中文"}
+              {showZh ? t("显示原文","Original") : t("显示中文","Chinese")}
             </button>
           )}
         </div>
@@ -306,7 +338,7 @@ function ChatCard({
             )}
           </Section>
           <Section title="TRADING_DECISIONS">
-            {renderDecisions(llm_response)}
+            {renderDecisions(llm_response, t)}
           </Section>
         </div>
       )}
@@ -317,7 +349,7 @@ function ChatCard({
             className={`ui-sans mb-1 text-[11px] font-semibold`}
             style={{ color: "var(--muted-text)" }}
           >
-            历史对话
+            {t("历史对话","History")}
           </div>
           <div className="space-y-2">
             {history.slice(0, 5).map((h, idx) => {
@@ -341,7 +373,7 @@ function ChatCard({
                         setOpenHist({ ...openHist, [key]: !isOpen })
                       }
                     >
-                      {isOpen ? "收起" : "点击展开"}
+                      {isOpen ? t("收起","Collapse") : t("点击展开","Expand")}
                     </button>
                   </div>
                   {isOpen && (
@@ -364,7 +396,7 @@ function ChatCard({
                         )}
                       </Section>
                       <Section title="TRADING_DECISIONS">
-                        {renderDecisions(h.llm_response)}
+                        {renderDecisions(h.llm_response, t)}
                       </Section>
                     </div>
                   )}
@@ -481,7 +513,7 @@ function normalizeMd(s?: string): string {
   return t;
 }
 
-function renderDecisions(resp: any) {
+function renderDecisions(resp: any, t: (zh: string, en: string) => string) {
   const rows = [] as any[];
   
   // 新格式：llm_response 包含 decision, decision_normalized, trading_decisions
@@ -569,7 +601,7 @@ function renderDecisions(resp: any) {
                   className="text-[11px] tabular-nums"
                   style={{ color: "var(--muted-text)" }}
                 >
-                  数量：{r.quantity ?? "—"}
+                  {t('数量：','Qty: ')}{r.quantity ?? "—"}
                 </div>
               </div>
             </div>
@@ -582,7 +614,7 @@ function renderDecisions(resp: any) {
                   background: colors.bg,
                 }}
               >
-                {signalZh(r.signal)}{" "}
+                {signalZh(r.signal, t)}{" "}
                 {r.confidence != null
                   ? `${Math.round(r.confidence * 100)}%`
                   : ""}
@@ -595,12 +627,13 @@ function renderDecisions(resp: any) {
   );
 }
 
-function signalZh(s?: string) {
+function signalZh(s?: string, t?: (zh: string, en: string) => string) {
   const k = String(s || "").toLowerCase();
-  if (k === "hold") return "持有";
-  if (k === "buy" || k === "long") return "做多";
-  if (k === "sell" || k === "short") return "做空";
-  if (k === "close_position" || k === "close" || k === "exit") return "平仓";
+  if (!t) t = (zh, en) => zh; // fallback
+  if (k === "hold") return t("持有","HOLD");
+  if (k === "buy" || k === "long") return t("做多","BUY");
+  if (k === "sell" || k === "short") return t("做空","SELL");
+  if (k === "close_position" || k === "close" || k === "exit") return t("平仓","CLOSE");
   return s ?? "—";
 }
 

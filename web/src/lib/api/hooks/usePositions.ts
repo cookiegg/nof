@@ -27,7 +27,7 @@ export interface ExitPlan {
 }
 
 export interface PositionsByModel {
-  id: string; // model id
+  id: string; // bot_id
   positions: Record<string, RawPositionRow>;
 }
 
@@ -46,12 +46,13 @@ export function usePositions() {
       AccountTotalsRow & { positions?: Record<string, RawPositionRow> }
     >();
     for (const row of rows) {
-      const id = String((row as any).model_id ?? (row as any).id ?? "");
-      if (!id) continue;
+      // 统一使用 bot_id 作为聚合键
+      const botId = String((row as any).bot_id ?? (row as any).model_id ?? (row as any).id ?? "");
+      if (!botId) continue;
       const ts = Number((row as any).timestamp ?? 0);
-      const prev = latestById.get(id);
+      const prev = latestById.get(botId);
       if (!prev || Number((prev as any).timestamp ?? 0) <= ts)
-        latestById.set(id, row as any);
+        latestById.set(botId, row as any);
     }
     return Array.from(latestById.entries()).map(([id, row]) => ({
       id,

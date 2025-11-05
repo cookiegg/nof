@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import type { BotConfig, BotStatus } from "./BotControlPanel";
 import BotControlPanel from "./BotControlPanel";
 import AddBotDialog from "./AddBotDialog";
+import { useLocale } from "@/store/useLocale";
 
 interface ApiKeyInfo {
   envName: string;
@@ -25,12 +26,14 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [apiKeys, setApiKeys] = useState<ApiKeyInfo[]>([]);
   const [models, setModels] = useState<string[]>(propsModels || ['qwen3-max', 'qwen3-plus', 'glm-4.6', 'deepseek-v3.2-exp', 'deepseek-v3.1']);
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
 
   // 加载所有Bots
   async function loadBots() {
     try {
       const r = await fetch('/api/nof1/bots', { cache: 'no-store' });
-      if (!r.ok) throw new Error('加载Bots失败');
+      if (!r.ok) throw new Error(t('加载Bots失败', 'Failed to load Bots'));
       const data = await r.json();
       setBots(data.bots || []);
     } catch (e: any) {
@@ -103,7 +106,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
         });
         if (!createRes.ok) {
           const err = await createRes.json();
-          throw new Error(err.error || '创建Bot失败');
+          throw new Error(err.error || t('创建Bot失败', 'Failed to create Bot'));
         }
         const created = await createRes.json();
         config.id = created.id;
@@ -116,7 +119,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
       });
       if (!r.ok) {
         const err = await r.json();
-        throw new Error(err.error || '启动Bot失败');
+        throw new Error(err.error || t('启动Bot失败', 'Failed to start Bot'));
       }
       await loadBotStatuses();
     } catch (e: any) {
@@ -131,7 +134,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
       });
       if (!r.ok) {
         const err = await r.json();
-        throw new Error(err.error || '停止Bot失败');
+        throw new Error(err.error || t('停止Bot失败', 'Failed to stop Bot'));
       }
       await loadBotStatuses();
     } catch (e: any) {
@@ -169,14 +172,14 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
       const hasJsonContent = contentType && contentType.includes('application/json');
       
       if (!r.ok) {
-        let errorMsg = `删除Bot失败 (HTTP ${r.status})`;
+        let errorMsg = t(`删除Bot失败 (HTTP ${r.status})`, `Failed to delete Bot (HTTP ${r.status})`);
         if (hasJsonContent && responseText.trim()) {
           try {
             const err = JSON.parse(responseText);
             errorMsg = err.error || errorMsg;
           } catch (e) {
             // 解析失败，使用默认错误信息
-            console.warn('解析错误响应失败:', e);
+            console.warn(t('解析错误响应失败:', 'Failed to parse error response:'), e);
           }
         }
         throw new Error(errorMsg);
@@ -239,7 +242,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
       });
       if (!r.ok) {
         const err = await r.json();
-        throw new Error(err.error || '创建Bot失败');
+        throw new Error(err.error || t('创建Bot失败', 'Failed to create Bot'));
       }
       await loadBots();
       setShowAddDialog(false);
@@ -258,7 +261,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
   if (loading) {
     return (
       <div className="p-4 text-center text-xs" style={{ color: 'var(--muted-text)' }}>
-        加载中...
+        {t('加载中...', 'Loading...')}
       </div>
     );
   }
@@ -267,7 +270,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
     <div className="p-2">
       <div className="mb-3 flex items-center justify-between">
         <div className="text-xs font-semibold" style={{ color: 'var(--foreground)' }}>
-          交易Bot ({bots.length})
+          {t('交易Bot', 'Trading Bots')} ({bots.length})
         </div>
         <button
           className="rounded px-2 py-1 text-[10px]"
@@ -277,7 +280,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
           }}
           onClick={() => setShowAddDialog(true)}
         >
-          + 添加
+          + {t('添加', 'Add')}
         </button>
       </div>
 
@@ -293,7 +296,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
       {bots.length === 0 ? (
         <div className="text-center py-4">
           <div className="text-[10px] mb-2" style={{ color: 'var(--muted-text)' }}>
-            还没有创建任何Bot
+            {t('还没有创建任何Bot', 'No bots created yet')}
           </div>
           <button
             className="rounded px-3 py-1.5 text-[10px]"
@@ -303,7 +306,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
             }}
             onClick={() => setShowAddDialog(true)}
           >
-            + 创建第一个Bot
+            + {t('创建第一个Bot', 'Create First Bot')}
           </button>
         </div>
       ) : (
@@ -312,7 +315,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
             <BotControlPanel
               key={bot.id}
               bot={bot}
-              status={botStatuses[bot.id]}
+              status={bot.id ? botStatuses[bot.id] : undefined}
               models={models}
               onStart={handleStartBot}
               onStop={handleStopBot}
@@ -325,6 +328,7 @@ export default function BotList({ aiPresets, models: propsModels, onBotSelect, s
       )}
 
       <AddBotDialog
+        existingBots={bots}
         open={showAddDialog}
         models={models}
         apiKeys={apiKeys.filter(k => k.available)}

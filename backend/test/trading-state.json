@@ -1,35 +1,46 @@
 {
   "startTime": "2025-10-31T09:57:56.651Z",
-  "invocationCount": 3,
-  "totalReturn": -50.004083706900005,
-  "accountValue": 4999.59162931,
-  "availableCash": 4906.77500001,
+  "invocationCount": 4,
+  "totalReturn": -53.303330273200004,
+  "accountValue": 4669.66697268,
+  "availableCash": 3962.68159374,
   "positions": [
     {
-      "symbol": "SOL",
-      "quantity": 10,
-      "entry_price": 186.45,
-      "current_price": 186.48374293,
-      "liquidation_price": 178.992,
-      "unrealized_pnl": 0.3374293,
+      "symbol": "BTC",
+      "quantity": 0.02,
+      "entry_price": 106079.4,
+      "current_price": 106103.3,
+      "liquidation_price": 71046.21591667,
+      "unrealized_pnl": 0.478,
       "leverage": 1,
       "exit_plan": {
-        "profit_target": 205.095,
-        "stop_loss": 177.12749999999997,
+        "profit_target": 116687.34,
+        "stop_loss": 100775.43,
         "invalidation_condition": "price_below_stop_loss"
       },
       "confidence": 0.8,
-      "risk_usd": 1864.5,
+      "risk_usd": 2121.5879999999997,
       "sl_oid": null,
       "tp_oid": null,
       "wait_for_fill": false,
       "entry_oid": null,
-      "notional_usd": 1864.8374293
+      "notional_usd": 2122.066
     }
   ],
-  "lastUpdate": "2025-10-31T10:00:39.695Z",
+  "lastUpdate": "2025-11-03T15:43:46.929Z",
   "tradingEnabled": true,
   "trades": [
+    {
+      "timestamp": "2025-11-03T15:43:44.632Z",
+      "side": "BUY",
+      "symbol": "BTC",
+      "quantity": 0.02,
+      "price": 106079.4,
+      "orderId": "8361431774",
+      "environment": "demo.binance.com",
+      "accountValue": 4999.59162931,
+      "totalReturn": -50.004083706900005
+    },
     {
       "timestamp": "2025-10-31T09:58:16.930Z",
       "side": "BUY",

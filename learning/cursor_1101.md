@@ -555,9 +555,9 @@ router.post('/ai/trading/start', async (req, res) => {
       const isDemoSpot = envKey === 'demo-spot';
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         this.exchange.httpsProxy = 'http://127.0.0.1:7890/';
         this.exchange.enableDemoTrading(true);
@@ -591,11 +591,11 @@ function createExchange() {
   const isDemo = env.includes('demo');
   
   const apiKey = isFutures 
-    ? (process.env.BINANCE_DEMO_API_KEY || process.env.BINANCE_API_KEY || '')
+    ? (process.env.BINANCE_API_KEY_DEMO_FUTURES || process.env.BINANCE_API_KEY || '')
     : (process.env.BINANCE_SPOT_TEST_API_KEY || process.env.BINANCE_API_KEY || '');
   
   const secret = isFutures
-    ? (process.env.BINANCE_DEMO_API_SECRET || process.env.BINANCE_API_SECRET || '')
+    ? (process.env.BINANCE_API_SECRET_DEMO_FUTURES || process.env.BINANCE_API_SECRET || '')
     : (process.env.BINANCE_SPOT_TEST_API_SECRET || process.env.BINANCE_API_SECRET || '');
   
   // 如果是期货，使用binanceusdm
@@ -816,9 +816,9 @@ router.post('/ai/trading/start', async (req, res) => {
       const isDemoSpot = envKey === 'demo-spot';
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         this.exchange.httpsProxy = 'http://127.0.0.1:7890/';
         this.exchange.enableDemoTrading(true);
@@ -848,11 +848,11 @@ function createExchange() {
   const isDemo = env.includes('demo');
   
   const apiKey = isFutures 
-    ? (process.env.BINANCE_DEMO_API_KEY || process.env.BINANCE_API_KEY || '')
+    ? (process.env.BINANCE_API_KEY_DEMO_FUTURES || process.env.BINANCE_API_KEY || '')
     : (process.env.BINANCE_SPOT_TEST_API_KEY || process.env.BINANCE_API_KEY || '');
   
   const secret = isFutures
-    ? (process.env.BINANCE_DEMO_API_SECRET || process.env.BINANCE_API_SECRET || '')
+    ? (process.env.BINANCE_API_SECRET_DEMO_FUTURES || process.env.BINANCE_API_SECRET || '')
     : (process.env.BINANCE_SPOT_TEST_API_SECRET || process.env.BINANCE_API_SECRET || '');
   
   // 如果是期货，使用binanceusdm
@@ -1117,7 +1117,7 @@ function createExchange() {
 
 **User**
 
-不过demo 环境使用的api key 是 BINANCE_DEMO_API_KEY, 而 生产环境使用的api key 是 BINANCE_LIVE_API_KEY
+不过demo 环境使用的api key 是 BINANCE_API_KEY_DEMO_FUTURES, 而 生产环境使用的api key 是 BINANCE_LIVE_API_KEY
 
 ---
 
@@ -1482,8 +1482,8 @@ import * as baseFutures from './base-futures.js';
  */
 
 function createExchange() {
-  const apiKey = process.env.BINANCE_DEMO_API_KEY || '';
-  const secret = process.env.BINANCE_DEMO_API_SECRET || '';
+  const apiKey = process.env.BINANCE_API_KEY_DEMO_FUTURES || '';
+  const secret = process.env.BINANCE_API_SECRET_DEMO_FUTURES || '';
   
   const ex = new ccxt.binanceusdm({
     apiKey,
@@ -1594,8 +1594,8 @@ import * as baseSpot from './base-spot.js';
  */
 
 function createExchange() {
-  const apiKey = process.env.BINANCE_DEMO_API_KEY || '';
-  const secret = process.env.BINANCE_DEMO_API_SECRET || '';
+  const apiKey = process.env.BINANCE_API_KEY_DEMO_FUTURES || '';
+  const secret = process.env.BINANCE_API_SECRET_DEMO_FUTURES || '';
   
   const ex = new ccxt.binance({
     apiKey,
@@ -1855,7 +1855,7 @@ backend/src/services/binance/
    - demo-spot/spot: 都使用 `ccxt.binance`，区别在于是否调用 `enableDemoTrading(true)`
 
 4. API Key 配置
-   - Demo 环境: `BINANCE_DEMO_API_KEY` / `BINANCE_DEMO_API_SECRET`
+   - Demo 环境: `BINANCE_API_KEY_DEMO_FUTURES` / `BINANCE_API_SECRET_DEMO_FUTURES`
    - 生产环境: `BINANCE_LIVE_API_KEY` / `BINANCE_LIVE_API_SECRET` (目前占位符 xxx)
 
 5. 向后兼容
@@ -2373,8 +2373,8 @@ Based on the above data, provide your trading analysis and specific recommendati
   "exchange": {
     "binance": {
       "futures_demo": {
-        "api_key": "${BINANCE_DEMO_API_KEY}",
-        "api_secret": "${BINANCE_DEMO_API_SECRET}"
+        "api_key": "${BINANCE_API_KEY_DEMO_FUTURES}",
+        "api_secret": "${BINANCE_API_SECRET_DEMO_FUTURES}"
       },
       "spot_testnet": {
         "api_key": "${BINANCE_SPOT_TEST_API_KEY}",
@@ -2735,9 +2735,9 @@ class AITradingSystemV2 {
       const isDemoSpot = envKey === 'demo-spot';
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         if (httpsProxy) this.exchange.httpsProxy = httpsProxy.endsWith('/') ? httpsProxy : `${httpsProxy}/`;
         this.exchange.enableDemoTrading(true);
@@ -10265,9 +10265,9 @@ class AITradingSystemV2 {
       const isDemoSpot = envKey === 'demo-spot';
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         if (httpsProxy) this.exchange.httpsProxy = httpsProxy.endsWith('/') ? httpsProxy : `${httpsProxy}/`;
         this.exchange.enableDemoTrading(true);
@@ -11212,9 +11212,9 @@ class AITradingSystemV2 {
       const isDemoSpot = envKey === 'demo-spot';
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         if (httpsProxy) this.exchange.httpsProxy = httpsProxy.endsWith('/') ? httpsProxy : `${httpsProxy}/`;
         this.exchange.enableDemoTrading(true);
@@ -12159,9 +12159,9 @@ class AITradingSystemV2 {
       const isDemoSpot = envKey === 'demo-spot';
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         if (httpsProxy) this.exchange.httpsProxy = httpsProxy.endsWith('/') ? httpsProxy : `${httpsProxy}/`;
         this.exchange.enableDemoTrading(true);
@@ -13112,9 +13112,9 @@ class AITradingSystemV2 {
       const isDemoSpot = envKey === 'demo-spot';
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         if (httpsProxy) this.exchange.httpsProxy = httpsProxy.endsWith('/') ? httpsProxy : `${httpsProxy}/`;
         this.exchange.enableDemoTrading(true);
@@ -14428,9 +14428,9 @@ class AITradingSystemV2 {
       const isDemoSpot = envKey === 'demo-spot';
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         if (httpsProxy) this.exchange.httpsProxy = httpsProxy.endsWith('/') ? httpsProxy : `${httpsProxy}/`;
         this.exchange.enableDemoTrading(true);

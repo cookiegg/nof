@@ -27,6 +27,17 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.key
+
+# project-specific ignores
+backend/.key
+backend/test
+web/node_modules
+learning
+markdown
+mcp
+tests
+node_modules
 
 # vercel
 .vercel

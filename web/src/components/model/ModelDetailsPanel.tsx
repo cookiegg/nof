@@ -7,6 +7,7 @@ import { useTrades } from "@/lib/api/hooks/useTrades";
 import { fmtUSD, pnlClass } from "@/lib/utils/formatters";
 import { getModelName } from "@/lib/model/meta";
 import { useTheme } from "@/store/useTheme";
+import { useLocale } from "@/store/useLocale";
 
 export default function ModelDetailsPanel({
   modelId: propModelId,
@@ -15,23 +16,28 @@ export default function ModelDetailsPanel({
 }) {
   // Use CSS variables via styles instead of theme branching
   const search = useSearchParams();
+  // 统一使用 bot_id 作为筛选键，沿用 query 参数名 "model" 以减少改动
   const urlModel = search.get("model") || undefined;
-  const modelId = (propModelId || urlModel || "").trim();
+  const modelId = (propModelId || urlModel || "").trim(); // 用作 bot_id
 
   const { data: totalsData } = useAccountTotals();
   const { positionsByModel } = usePositions();
   const { trades } = useTrades();
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
 
   const latest = useMemo(() => {
     const list: any[] =
       totalsData && (totalsData as any).accountTotals
         ? (totalsData as any).accountTotals
         : [];
-    // Find latest entry for modelId
+    // Find latest entry for modelId（这里将 modelId 视为 bot_id）
     let row: any | undefined;
     for (let i = list.length - 1; i >= 0; i--) {
       const r = list[i];
-      if (r?.model_id === modelId || r?.id === modelId) {
+      // 统一按 bot_id 匹配；向后兼容：若无 bot_id 则退化到 model_id
+      const bid = r?.bot_id || r?.model_id || r?.id;
+      if (bid === modelId) {
         row = r;
         break;
       }
@@ -48,7 +54,11 @@ export default function ModelDetailsPanel({
   const recentTrades = useMemo(
     () =>
       trades
-        .filter((t) => t.model_id === modelId)
+        .filter((t) => {
+          // 统一按 bot_id 匹配；向后兼容：若无 bot_id 则退化到 model_id
+          const bid = (t as any).bot_id || (t as any).model_id;
+          return bid === modelId;
+        })
         .slice(-5)
         .reverse(),
     [trades, modelId],
@@ -57,7 +67,7 @@ export default function ModelDetailsPanel({
   if (!modelId)
     return (
       <div className="text-xs" style={{ color: "var(--muted-text)" }}>
-        请选择模型（右上筛选的“模型”）。
+        {t("请选择Bot（右上筛选）。", "Please select a Bot (use the filter on the top right).")}
       </div>
     );
 
@@ -68,10 +78,10 @@ export default function ModelDetailsPanel({
           className={`text-sm font-semibold`}
           style={{ color: "var(--foreground)" }}
         >
-          {getModelName(modelId)}
+          {modelId}
         </div>
         <div className={`text-xs`} style={{ color: "var(--muted-text)" }}>
-          模型ID：{modelId}
+          {t("Bot ID：", "Bot ID:")}{modelId}
         </div>
       </div>
 
@@ -80,7 +90,7 @@ export default function ModelDetailsPanel({
         style={{ color: "var(--muted-text)" }}
       >
         <div>
-          净值：
+          {t("净值：", "Equity:")}
           <span className="tabular-nums">
             {fmtUSD(
               latest?.dollar_equity ?? latest?.equity ?? latest?.account_value,
@@ -88,7 +98,7 @@ export default function ModelDetailsPanel({
           </span>
         </div>
         <div>
-          累计收益：
+          {t("累计收益：", "Total Return:")}
           <span className={pnlClass(latest?.cum_pnl_pct)}>
             {latest?.cum_pnl_pct != null
               ? `${latest.cum_pnl_pct.toFixed(2)}%`
@@ -96,13 +106,13 @@ export default function ModelDetailsPanel({
           </span>
         </div>
         <div>
-          已实现盈亏：
+          {t("已实现盈亏：", "Realized P&L:")}
           <span className={pnlClass(latest?.realized_pnl)}>
             {fmtUSD(latest?.realized_pnl)}
           </span>
         </div>
         <div>
-          未实现盈亏：
+          {t("未实现盈亏：", "Unrealized P&L:")}
           <span className={pnlClass(latest?.total_unrealized_pnl)}>
             {fmtUSD(latest?.total_unrealized_pnl)}
           </span>
@@ -120,7 +130,11 @@ export default function ModelDetailsPanel({
             color: "var(--muted-text)",
           }}
         >
-          当前持仓
+          {t("当前持仓", "Current Positions")}
+        </div>
+        {/* bot_id 提示行 */}
+        <div className="px-3 py-1 text-[11px]" style={{ color: "var(--muted-text)" }}>
+          Bot: <span className="font-semibold" style={{ color: "var(--foreground)" }}>{modelId}</span>
         </div>
         <div className="max-h-64 overflow-auto">
           <table className="w-full text-left text-[11px]">
@@ -129,18 +143,20 @@ export default function ModelDetailsPanel({
                 className={`border-b`}
                 style={{ borderColor: "var(--panel-border)" }}
               >
-                <th className="py-1.5 pr-3">方向</th>
-                <th className="py-1.5 pr-3">币种</th>
-                <th className="py-1.5 pr-3">杠杆</th>
-                <th className="py-1.5 pr-3">入场价</th>
-                <th className="py-1.5 pr-3">当前价</th>
-                <th className="py-1.5 pr-3">未实现盈亏</th>
+                <th className="py-1.5 pr-3">{t("方向", "Side")}</th>
+                <th className="py-1.5 pr-3">{t("币种", "Symbol")}</th>
+                <th className="py-1.5 pr-3">{t("杠杆", "Leverage")}</th>
+                <th className="py-1.5 pr-3">{t("入场价", "Entry Price")}</th>
+                <th className="py-1.5 pr-3">{t("当前价", "Current Price")}</th>
+                <th className="py-1.5 pr-3">{t("未实现盈亏", "Unrealized P&L")}</th>
               </tr>
             </thead>
             <tbody style={{ color: "var(--foreground)" }}>
               {positions.length ? (
                 positions.map((p: any, i: number) => {
-                  const side = p.quantity > 0 ? "LONG" : "SHORT";
+                  const side = p.quantity > 0 
+                    ? (locale === "zh" ? "做多" : "LONG")
+                    : (locale === "zh" ? "做空" : "SHORT");
                   return (
                     <tr
                       key={i}
@@ -174,7 +190,7 @@ export default function ModelDetailsPanel({
                     style={{ color: "var(--muted-text)" }}
                     colSpan={6}
                   >
-                    暂无持仓
+                    {t("暂无持仓", "No positions")}
                   </td>
                 </tr>
               )}
@@ -194,7 +210,7 @@ export default function ModelDetailsPanel({
             color: "var(--muted-text)",
           }}
         >
-          最近成交
+          {t("最近成交", "Recent Trades")}
         </div>
         <div className="max-h-48 overflow-auto">
           <table className="w-full text-left text-[11px]">
@@ -203,15 +219,21 @@ export default function ModelDetailsPanel({
                 className={`border-b`}
                 style={{ borderColor: "var(--panel-border)" }}
               >
-                <th className="py-1.5 pr-3">币种</th>
-                <th className="py-1.5 pr-3">方向</th>
-                <th className="py-1.5 pr-3">杠杆</th>
-                <th className="py-1.5 pr-3">净盈亏</th>
+                <th className="py-1.5 pr-3">{t("币种", "Symbol")}</th>
+                <th className="py-1.5 pr-3">{t("方向", "Side")}</th>
+                <th className="py-1.5 pr-3">{t("杠杆", "Leverage")}</th>
+                <th className="py-1.5 pr-3">{t("净盈亏", "Net P&L")}</th>
               </tr>
             </thead>
             <tbody style={{ color: "var(--foreground)" }}>
               {recentTrades.length ? (
-                recentTrades.map((t: any) => (
+                recentTrades.map((t: any) => {
+                  const side = t.side === "long"
+                    ? (locale === "zh" ? "做多" : "LONG")
+                    : t.side === "short"
+                    ? (locale === "zh" ? "做空" : "SHORT")
+                    : (t.side?.toUpperCase() || "");
+                  return (
                   <tr
                     key={t.id}
                     className={`border-b`}
@@ -221,7 +243,7 @@ export default function ModelDetailsPanel({
                     }}
                   >
                     <td className="py-1.5 pr-3">{t.symbol}</td>
-                    <td className="py-1.5 pr-3">{t.side?.toUpperCase()}</td>
+                      <td className="py-1.5 pr-3">{side}</td>
                     <td className="py-1.5 pr-3">{t.leverage}x</td>
                     <td
                       className={`py-1.5 pr-3 tabular-nums ${pnlClass(t.realized_net_pnl)}`}
@@ -229,7 +251,8 @@ export default function ModelDetailsPanel({
                       {fmtUSD(t.realized_net_pnl)}
                     </td>
                   </tr>
-                ))
+                  );
+                })
               ) : (
                 <tr>
                   <td
@@ -237,7 +260,7 @@ export default function ModelDetailsPanel({
                     style={{ color: "var(--muted-text)" }}
                     colSpan={4}
                   >
-                    暂无成交
+                    {t("暂无成交", "No trades")}
                   </td>
                 </tr>
               )}

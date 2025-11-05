@@ -5,16 +5,18 @@ import { useState } from "react";
 import { useLeaderboard } from "@/lib/api/hooks/useLeaderboard";
 import { useAccountTotals } from "@/lib/api/hooks/useAccountTotals";
 import { usePositions } from "@/lib/api/hooks/usePositions";
-import { getModelName, getModelColor, getModelIcon } from "@/lib/model/meta";
-import { ModelLogoChip } from "@/components/shared/ModelLogo";
+// Bot榜单展示统一以 bot_id 为主，不再使用模型元数据名称/图标
 import CoinIcon from "@/components/shared/CoinIcon";
 import { fmtUSD } from "@/lib/utils/formatters";
 import { useLatestEquityMap } from "@/lib/api/hooks/useModelSnapshots";
+import { useLocale } from "@/store/useLocale";
 
 export default function LeaderboardOverview({ mode: _mode }: { mode?: "overall" | "advanced" }) {
   const [tab, setTab] = useState<"overall" | "advanced">(_mode || "overall");
   const { rows } = useLeaderboard();
   const { map: equityMap } = useLatestEquityMap();
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   const rowsWithEq = rows.map((r) => ({
     ...r,
     equity: equityMap[r.id] ?? r.equity,
@@ -62,10 +64,10 @@ export default function LeaderboardOverview({ mode: _mode }: { mode?: "overall" 
       {/* 控制区：左侧边缘对齐，位于表格上方 */}
       <div className="flex items-center gap-2">
         <TabButton active={tab === "overall"} onClick={() => setTab("overall")}>
-          总体统计
+          {t("总体统计", "Overall Stats")}
         </TabButton>
         <TabButton active={tab === "advanced"} onClick={() => setTab("advanced")}>
-          高级分析
+          {t("高级分析", "Advanced Analysis")}
         </TabButton>
       </div>
       {/* 排行榜表格 */}
@@ -74,7 +76,7 @@ export default function LeaderboardOverview({ mode: _mode }: { mode?: "overall" 
       {/* 摘要区块 */}
       <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
         <WinnerCard id={top?.id} equity={top?.equity} />
-        <SummaryCard title="总权益" value={fmtUSD(totalEquity || 0)} />
+        <SummaryCard title={t("总权益", "Total Equity")} value={fmtUSD(totalEquity || 0)} />
         <ActivePositions symbols={activeSymbols} />
       </div>
 
@@ -101,6 +103,8 @@ function TabButton({ active, onClick, children }: { active?: boolean; onClick?: 
 }
 
 function WinnerCard({ id, equity }: { id?: string; equity?: number }) {
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   return (
     <div
       className="rounded-md border p-3"
@@ -110,16 +114,15 @@ function WinnerCard({ id, equity }: { id?: string; equity?: number }) {
       }}
     >
       <div className="ui-sans text-xs" style={{ color: "var(--muted-text)" }}>
-        最佳模型
+        {t("最佳Bot", "Best Bot")}
       </div>
       <div className="mt-2 flex items-center gap-2">
-        {id ? <ModelLogoChip modelId={id} size="md" /> : null}
         <div>
           <div
             className="ui-sans text-sm"
             style={{ color: "var(--foreground)" }}
           >
-            {id ? getModelName(id) : "—"}
+            {id || "—"}
           </div>
           <div
             className="tabular-nums text-xs"
@@ -153,6 +156,8 @@ function SummaryCard({ title, value }: { title: string; value?: string }) {
 }
 
 function ActivePositions({ symbols }: { symbols: string[] }) {
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   return (
     <div
       className="rounded-md border p-3"
@@ -162,7 +167,7 @@ function ActivePositions({ symbols }: { symbols: string[] }) {
       }}
     >
       <div className="ui-sans text-xs" style={{ color: "var(--muted-text)" }}>
-        持仓概览
+        {t("持仓概览", "Positions Overview")}
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         {symbols.length ? (
@@ -180,7 +185,7 @@ function ActivePositions({ symbols }: { symbols: string[] }) {
           ))
         ) : (
           <span className="text-xs" style={{ color: "var(--muted-text)" }}>
-            暂无持仓
+            {t("暂无持仓", "No positions")}
           </span>
         )}
       </div>
@@ -188,7 +193,9 @@ function ActivePositions({ symbols }: { symbols: string[] }) {
   );
 }
 
-function Bars({ rows }: { rows: { id: string; equity: number }[] }) {
+function Bars({ rows }: { id: string; equity: number }[]) {
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   const FULL = 120; // 固定容器高度
   // 自适应刻度：向上取整到最近的 2k 档，并至少 12k
   const maxEq = Math.max(...rows.map((r) => Number(r.equity || 0)), 1);
@@ -202,15 +209,14 @@ function Bars({ rows }: { rows: { id: string; equity: number }[] }) {
       }}
     >
       <div className="ui-sans text-xs" style={{ color: "var(--muted-text)" }}>
-        账户价值
+        {t("账户价值", "Account Value")}
       </div>
       <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6 md:grid-cols-6">
         {rows.map((r) => {
-          const color = getModelColor(r.id);
+          const color = "#4d6bfe"; // 统一使用中性主题色
           const eq = Number(r.equity || 0);
           const pct = Math.max(0, Math.min(eq / SCALE, 1));
           const fill = Math.max(2, Math.round(pct * FULL));
-          const icon = getModelIcon(r.id);
           const ICON = 16; // logo 直径
           return (
             <div key={r.id} className="flex flex-col items-center gap-1">
@@ -234,24 +240,10 @@ function Bars({ rows }: { rows: { id: string; equity: number }[] }) {
                     background: color,
                   }}
                 />
-                {icon && fill >= ICON + 6 ? (
-                  <div
-                    className="absolute bottom-1 left-1/2 -translate-x-1/2 overflow-hidden rounded-sm"
-                    style={{ width: ICON, height: ICON }}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={icon}
-                      alt=""
-                      width={ICON}
-                      height={ICON}
-                      style={{ objectFit: "contain", filter: "brightness(0) invert(1)" }}
-                    />
-                  </div>
-                ) : null}
+                {/* 去除模型图标展示，保持纯色条 */}
               </div>
-              <div className="ui-sans text-[11px] text-center" style={{ color: "var(--muted-text)" }}>
-                {getModelName(r.id)}
+              <div className="ui-sans text-[11px] text-center" style={{ color: "var(--muted-text)", wordBreak: "break-all" }}>
+                {r.id}
               </div>
             </div>
           );

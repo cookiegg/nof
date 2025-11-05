@@ -70,15 +70,37 @@ export async function getPrices(symbols, createExchange) {
       }
     } else {
       for (const s of symbols) {
+        const base = s.split('/')[0];
         try {
           const t = await ex.fetchTicker(s);
           out[s] = { 
-            symbol: s.split('/')[0],
+            symbol: base,
             price: Number(t.last || t.close || 0), 
             timestamp: Number(t.timestamp || Date.now()) 
           };
+          continue;
         } catch (err) {
           console.warn(`[getPrices] 获取${s}价格失败:`, err.message);
+        }
+        // 兜底：直接调用期货公开端点，避免触发 loadMarkets/exchangeInfo
+        try {
+          const symbolId = `${base}USDT`;
+          const r = await ex.fapiPublicGetTickerPrice({ symbol: symbolId });
+          const price = Number(r?.price || 0);
+          if (price > 0) {
+            out[s] = { symbol: base, price, timestamp: Date.now() };
+            continue;
+          }
+        } catch (_) {}
+        try {
+          const symbolId = `${base}USDT`;
+          const r = await ex.fapiPublicGetPremiumIndex({ symbol: symbolId });
+          const price = Number(r?.markPrice || r?.indexPrice || 0);
+          if (price > 0) {
+            out[s] = { symbol: base, price, timestamp: Date.now() };
+          }
+        } catch (e2) {
+          console.warn(`[getPrices] 期货直连兜底 ${s} 失败:`, e2.message);
         }
       }
     }
@@ -133,8 +155,8 @@ export async function getRealTimeAccountData(createExchange) {
     let totalEquity = Number(balance.USDT?.total || 0);
     
     for (const pos of positions) {
-      const contracts = Number(pos.contracts || 0);
-      if (contracts !== 0) {
+      const contractsRaw = Number(pos.contracts || 0);
+      if (contractsRaw !== 0) {
         const symbol = String(pos.symbol || '').replace('/USDT:USDT', '').replace(':USDT', '');
         const unrealizedPnl = Number(pos.unrealizedPnl || 0);
         totalEquity += unrealizedPnl;
@@ -142,12 +164,16 @@ export async function getRealTimeAccountData(createExchange) {
         const notional = Math.abs(Number(pos.notional || 0));
         const margin = Number(pos.initialMargin || 0);
         const leverage = notional > 0 && margin > 0 ? Math.round((notional / margin) * 10) / 10 : 1;
+        // 根据 side 决定数量正负：long/buy -> 正，short/sell -> 负
+        const side = String(pos.side || '').toLowerCase();
+        const qtyAbs = Math.abs(contractsRaw);
+        const contracts = (side === 'long' || side === 'buy') ? qtyAbs : -qtyAbs;
         
         activePositions.push({
           symbol,
           quantity: contracts,
           entry_price: Number(pos.entryPrice || 0),
-          current_price: Number(pos.markPrice || pos.markPrice || 0),
+          current_price: Number(pos.markPrice || 0),
           liquidation_price: Number(pos.liquidationPrice || 0),
           unrealized_pnl: unrealizedPnl,
           leverage,

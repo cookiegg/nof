@@ -3,29 +3,22 @@
     {
       "id": "demo-futures-deepseek-3",
       "env": "demo-futures",
-      "aiPreset": "deepseek",
       "intervalMinutes": 3,
       "promptMode": "bot-specific",
-      "tradingMode": "binance-demo"
+      "tradingMode": "binance-demo",
+      "model": "deepseek-v3.2-exp",
+      "botClass": "demo-real",
+      "dashscopeApiKey": "DASHSCOPE_API_KEY_1"
     },
     {
-      "id": "demo-futures-qwen3-max-3",
-      "env": "demo-futures",
-      "aiPreset": "deepseek",
-      "intervalMinutes": 3,
-      "promptMode": "bot-specific",
-      "dashscopeApiKey": "DASHSCOPE_API_KEY_1",
-      "tradingMode": "binance-demo"
-    },
-    {
-      "id": "demo-futures-deepseek-v3.2-exp-3",
-      "env": "demo-futures",
+      "id": "test-spot-deepseek-v3.2-exp-3",
+      "env": "test-spot",
       "model": "deepseek-v3.2-exp",
       "intervalMinutes": 3,
       "promptMode": "bot-specific",
       "dashscopeApiKey": "DASHSCOPE_API_KEY_1",
-      "enableThinking": true,
-      "tradingMode": "binance-demo"
+      "tradingMode": "binance-demo",
+      "botClass": "demo-real"
     }
   ]
 }

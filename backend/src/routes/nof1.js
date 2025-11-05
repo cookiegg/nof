@@ -34,102 +34,96 @@ router.get('/crypto-prices', async (req, res) => {
 
 // Static JSON-backed endpoints
 router.get('/trades', async (req, res) => {
-  const trades = await loadJson('trades.json', { trades: [] });
-  // 优先返回真实成交（有 orderId 或 side 字段）
-  const realTrades = (trades.trades || []).filter(t => t.orderId || t.side);
-  if (realTrades.length > 0) {
-    // 转换成前端需要的格式
-    const normalized = realTrades.map((t, idx) => {
-      const ts = t.exit_time || t.timestamp || Math.floor(Date.now() / 1000);
-      const symbol = (t.symbol || 'UNKNOWN').toUpperCase().replace(/:USDT$/, '').split('/')[0];
-      const sideRaw = String(t.side || '').toUpperCase();
-      const side = (sideRaw === 'BUY' || sideRaw === 'LONG') ? 'long' : 
-                   (sideRaw === 'SELL' || sideRaw === 'SHORT') ? 'short' : 'long';
-      
-      return {
-        id: t.orderId ? String(t.orderId) : `${symbol}-${ts}-${idx}`,
-        model_id: t.model_id || 'default',
-        symbol,
-        side,
-        entry_price: Number(t.entry_price || t.price || 0),
-        exit_price: Number(t.exit_price || t.price || 0),
-        quantity: Number(t.quantity || 0),
-        leverage: Number(t.leverage || 1),
-        entry_time: Number(t.entry_time || ts - 3600),
-        exit_time: Number(ts),
-        realized_net_pnl: Number(t.realized_net_pnl || 0),
-        realized_gross_pnl: Number(t.realized_gross_pnl || t.realized_net_pnl || 0),
-        total_commission_dollars: Number(t.total_commission_dollars || t.commission || 0),
-      };
-    });
-    return res.json({ trades: normalized });
-  }
-  // 从 conversations 推导决策记录
   try {
-    const buf = await fs.readFile(CONV_FILE, 'utf8');
-    const raw = JSON.parse(buf);
-    const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
-    const out = [];
+    // 加载所有Bot配置
+    const { botConfigManager } = await import('../services/bots/bot-config-manager.js');
+    const bots = await botConfigManager.getAllBots();
     
-    for (const c of arr) {
-      const tsIso = c?.timestamp || new Date().toISOString();
-      const ts = Math.floor(new Date(tsIso).getTime() / 1000);
-      const d = c?.decision_normalized || {};
-      const action = String(d?.action || '').toLowerCase();
-      const base = (d?.symbol || '').toString().toUpperCase().replace(/:USDT$/, '');
-      const symbol = base.includes('/') ? base.split('/')[0] : base;
-      const quantity = Number.isFinite(Number(d?.quantity)) ? Number(d.quantity) : 0;
-      const leverage = Number.isFinite(Number(d?.leverage)) ? Number(d.leverage) : 1;
-      
-      if (!symbol) continue;
-      
-      // buy 表示开多仓
-      if (action === 'buy') {
-        out.push({
-          id: `${symbol}-${ts}-buy`,
-          model_id: 'default',
-          side: 'long',
-          symbol,
-          entry_time: ts,
-          entry_price: 0,
-          exit_time: ts,
-          exit_price: 0,
-          quantity,
-          leverage,
-          realized_net_pnl: 0,
-          realized_gross_pnl: 0,
-          total_commission_dollars: 0,
-        });
-      } 
-      // sell 或 close_position 表示平仓
-      else if (action === 'sell' || action === 'close_position') {
-        out.push({
-          id: `${symbol}-${ts}-close`,
-          model_id: 'default',
-          side: 'long', // 平仓假设是long
-          symbol,
-          entry_time: ts - 3600, // 假设1小时前开仓
-          entry_price: 0,
-          exit_time: ts,
-          exit_price: 0,
-          quantity,
-          leverage,
-          realized_net_pnl: 0,
-          realized_gross_pnl: 0,
-          total_commission_dollars: 0,
-        });
+    const allTrades = [];
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+    
+    // 聚合所有Bot的交易数据
+    for (const bot of bots) {
+      try {
+        const stateManager = new BotStateManager(bot.id);
+        const tradesData = await stateManager.loadTrades();
+        
+        if (Array.isArray(tradesData) && tradesData.length > 0) {
+          const normalized = tradesData.map((t, idx) => {
+            const ts = t.exit_time || t.timestamp || t.exitTime || Math.floor(Date.now() / 1000);
+            const symbol = (t.symbol || 'UNKNOWN').toUpperCase().replace(/:USDT$/, '').split('/')[0];
+            const sideRaw = String(t.side || '').toUpperCase();
+            const side = (sideRaw === 'BUY' || sideRaw === 'LONG') ? 'long' : 
+                         (sideRaw === 'SELL' || sideRaw === 'SHORT') ? 'short' : 'long';
+            
+            return {
+              id: t.orderId ? String(t.orderId) : `${bot.id}-${symbol}-${ts}-${idx}`,
+              model_id: bot.id, // 使用bot_id作为标识
+              bot_id: bot.id,
+              bot_name: bot.name || bot.id,
+              model: bot.model || '', // 保留模型信息用于显示
+              symbol,
+              side,
+              entry_price: Number(t.entry_price || t.entryPrice || t.price || 0),
+              exit_price: Number(t.exit_price || t.exitPrice || t.price || 0),
+              quantity: Number(t.quantity || 0),
+              leverage: Number(t.leverage || 1),
+              entry_time: Number(t.entry_time || t.entryTime || ts - 3600),
+              exit_time: Number(ts),
+              entry_human_time: t.entry_human_time || t.entryHumanTime || new Date(Number(t.entry_time || ts - 3600) * 1000).toISOString(),
+              exit_human_time: t.exit_human_time || t.exitHumanTime || new Date(Number(ts) * 1000).toISOString(),
+              realized_net_pnl: Number(t.realized_net_pnl || t.realizedNetPnl || 0),
+              realized_gross_pnl: Number(t.realized_gross_pnl || t.realizedGrossPnl || t.realized_net_pnl || 0),
+              total_commission_dollars: Number(t.total_commission_dollars || t.totalCommissionDollars || t.commission || 0),
+            };
+          });
+          allTrades.push(...normalized);
+        }
+      } catch (e) {
+        console.warn(`[Trades API] 读取Bot ${bot.id} 交易数据失败:`, e.message);
       }
     }
     
-    if (out.length > 0) {
-      return res.json({ trades: out });
+    // 如果从Bot数据中没有获取到，尝试全局数据
+    if (allTrades.length === 0) {
+      try {
+        const trades = await loadJson('trades.json', { trades: [] });
+        const realTrades = (trades.trades || []).filter(t => t.orderId || t.side);
+        if (realTrades.length > 0) {
+          const normalized = realTrades.map((t, idx) => {
+            const ts = t.exit_time || t.timestamp || Math.floor(Date.now() / 1000);
+            const symbol = (t.symbol || 'UNKNOWN').toUpperCase().replace(/:USDT$/, '').split('/')[0];
+            const sideRaw = String(t.side || '').toUpperCase();
+            const side = (sideRaw === 'BUY' || sideRaw === 'LONG') ? 'long' : 
+                         (sideRaw === 'SELL' || sideRaw === 'SHORT') ? 'short' : 'long';
+            
+            return {
+              id: t.orderId ? String(t.orderId) : `${symbol}-${ts}-${idx}`,
+              model_id: t.model_id || t.bot_id || 'default',
+              bot_id: t.bot_id || t.model_id || 'default',
+              symbol,
+              side,
+              entry_price: Number(t.entry_price || t.price || 0),
+              exit_price: Number(t.exit_price || t.price || 0),
+              quantity: Number(t.quantity || 0),
+              leverage: Number(t.leverage || 1),
+              entry_time: Number(t.entry_time || ts - 3600),
+              exit_time: Number(ts),
+              realized_net_pnl: Number(t.realized_net_pnl || 0),
+              realized_gross_pnl: Number(t.realized_gross_pnl || t.realized_net_pnl || 0),
+              total_commission_dollars: Number(t.total_commission_dollars || t.commission || 0),
+            };
+          });
+          allTrades.push(...normalized);
+        }
+      } catch (_) {}
     }
+    
+    return res.json({ trades: allTrades });
   } catch (e) {
-    console.error('从conversations推导trades失败:', e.message);
+    console.error('[Trades API] 错误:', e);
+    res.json({ trades: [] });
   }
-  
-  // 如果都没有，返回空数组
-  return res.json({ trades: [] });
 });
 
 // conversations.json 解析 + 文件监听缓存
@@ -160,97 +154,133 @@ async function loadAndMergeConversations() {
 router.get('/conversations', async (req, res) => {
   // 返回结构化的交易对话数据，兼容前端期望的格式
   try {
-    async function readConv(filePath) {
-      const buf = await fs.readFile(filePath, 'utf8');
-      const raw = JSON.parse(buf);
-      const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
-      const items = [];
-      
-      for (const c of arr) {
-        const ts = c?.timestamp || new Date().toISOString();
-        const tsUnix = typeof ts === 'string' ? Math.floor(new Date(ts).getTime() / 1000) : ts;
+    // 加载所有Bot配置
+    const { botConfigManager } = await import('../services/bots/bot-config-manager.js');
+    const bots = await botConfigManager.getAllBots();
+    
+    const allItems = [];
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+    
+    async function readConv(filePath, botId, modelId, botName) {
+      try {
+        const buf = await fs.readFile(filePath, 'utf8');
+        const raw = JSON.parse(buf);
+        const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
+        const items = [];
         
-        // 提取决策信息用于摘要
-        const decision = c?.decision || c?.decision_normalized || {};
-        const action = String(decision?.action || 'hold').toLowerCase();
-        const symbol = decision?.symbol || '';
-        const reasoning = decision?.reasoning || '';
-        
-        // 构建对话摘要（用于列表显示）
-        let summary = '';
-        if (action === 'buy' || action === 'long') {
-          summary = `📈 买入 ${symbol}`;
-        } else if (action === 'sell' || action === 'short') {
-          summary = `📉 卖出 ${symbol}`;
-        } else if (action === 'close_position' || action === 'close') {
-          summary = `🔚 平仓 ${symbol}`;
-        } else {
-          summary = `⏸️ 保持观望`;
+        for (const c of arr) {
+          const ts = c?.timestamp || new Date().toISOString();
+          const tsUnix = typeof ts === 'string' ? Math.floor(new Date(ts).getTime() / 1000) : ts;
+          
+          // 提取决策信息用于摘要
+          const decision = c?.decision || c?.decision_normalized || {};
+          const action = String(decision?.action || 'hold').toLowerCase();
+          const symbol = decision?.symbol || '';
+          const reasoning = decision?.reasoning || '';
+          
+          // 构建对话摘要（用于列表显示）
+          let summary = '';
+          if (action === 'buy' || action === 'long') {
+            summary = `📈 买入 ${symbol}`;
+          } else if (action === 'sell' || action === 'short') {
+            summary = `📉 卖出 ${symbol}`;
+          } else if (action === 'close_position' || action === 'close') {
+            summary = `🔚 平仓 ${symbol}`;
+          } else {
+            summary = `⏸️ 保持观望`;
+          }
+          
+          // 添加推理内容（完整显示）
+          if (reasoning) {
+            summary += ` - ${reasoning}`;
+          }
+          
+          // 构建结构化条目
+          items.push({
+            model_id: botId || 'default', // 使用bot_id作为标识（保持兼容性）
+            bot_id: botId || 'default',
+            bot_name: botName || botId || 'default',
+            model: modelId || '', // 保留模型信息用于显示
+            timestamp: tsUnix,
+            inserted_at: tsUnix,
+            invocationCount: c?.invocationCount || 0,
+            
+            // 摘要信息（用于列表显示）
+            cot_trace_summary: summary,
+            summary: summary,
+            
+            // 原始提示和响应
+            user_prompt: c?.userPrompt || '',
+            
+            // LLM 响应的结构化数据
+            llm_response: {
+              raw_text: c?.aiResponse || '',
+              parsed: c?.aiParsed || null,
+              decision: c?.decision || null,
+              decision_normalized: c?.decision_normalized || null,
+              trading_decisions: c?.trading_decisions || null
+            },
+            
+            // 思维链追踪（包含技术分析数据）
+            cot_trace: {
+              action: action,
+              symbol: symbol,
+              reasoning: reasoning,
+              analysis: c?.aiParsed?.analysis || null,
+              account_management: c?.aiParsed?.account_management || null,
+              chain_of_thought: c?.chain_of_thought || null
+            },
+            
+            // 账户状态
+            account: {
+              accountValue: c?.accountValue || 0,
+              totalReturn: c?.totalReturn || 0
+            },
+            
+            // 完整的原始数据（用于详细展示）
+            raw: c
+          });
+          
+          if (items.length >= 100) break;  // 限制每个Bot返回数量
         }
         
-        // 添加推理内容（完整显示）
-        if (reasoning) {
-          summary += ` - ${reasoning}`;
-        }
-        
-        // 构建结构化条目
-        items.push({
-          model_id: 'deepseek-chat',  // 默认模型ID，可以从配置读取
-          timestamp: tsUnix,
-          inserted_at: tsUnix,
-          invocationCount: c?.invocationCount || 0,
-          
-          // 摘要信息（用于列表显示）
-          cot_trace_summary: summary,
-          summary: summary,
-          
-          // 原始提示和响应
-          user_prompt: c?.userPrompt || '',
-          
-          // LLM 响应的结构化数据
-          llm_response: {
-            raw_text: c?.aiResponse || '',
-            parsed: c?.aiParsed || null,
-            decision: c?.decision || null,
-            decision_normalized: c?.decision_normalized || null,
-            trading_decisions: c?.trading_decisions || null
-          },
-          
-          // 思维链追踪（包含技术分析数据）
-          cot_trace: {
-            action: action,
-            symbol: symbol,
-            reasoning: reasoning,
-            analysis: c?.aiParsed?.analysis || null,
-            account_management: c?.aiParsed?.account_management || null,
-            chain_of_thought: c?.chain_of_thought || null
-          },
-          
-          // 账户状态
-          account: {
-            accountValue: c?.accountValue || 0,
-            totalReturn: c?.totalReturn || 0
-          },
-          
-          // 完整的原始数据（用于详细展示）
-          raw: c
-        });
-        
-        if (items.length >= 100) break;  // 限制返回数量
+        return items;
+      } catch (_) {
+        return [];
       }
-      
-      return items;
     }
 
-    // 优先读 backend/data/conversations.json；若为空则回退到 backend/test/trading-conversations.json
-    let items = [];
-    try { items = await readConv(CONV_FILE); } catch (_) {}
-    if (!items.length) {
-      const TEST_CONV = path.join(TEST_DIR, 'trading-conversations.json');
-      try { items = await readConv(TEST_CONV); } catch (_) {}
+    // 聚合所有Bot的对话数据
+    for (const bot of bots) {
+      try {
+        const stateManager = new BotStateManager(bot.id);
+        const convFile = stateManager.getConversationsFilePath();
+        const items = await readConv(convFile, bot.id, bot.model || '', bot.name || bot.id);
+        allItems.push(...items);
+      } catch (e) {
+        console.warn(`[Conversations API] 读取Bot ${bot.id} 对话数据失败:`, e.message);
+      }
     }
     
-    return res.json({ conversations: items });
+    // 如果从Bot数据中没有获取到，尝试全局数据
+    if (allItems.length === 0) {
+      try { 
+        const items = await readConv(CONV_FILE, 'default', '', 'default');
+        allItems.push(...items);
+      } catch (_) {}
+      if (!allItems.length) {
+        const TEST_CONV = path.join(TEST_DIR, 'trading-conversations.json');
+        try { 
+          const items = await readConv(TEST_CONV, 'default', '', 'default');
+          allItems.push(...items);
+        } catch (_) {}
+      }
+    }
+    
+    // 按时间戳排序（最新的在前）
+    allItems.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    
+    return res.json({ conversations: allItems });
   } catch (e) {
     console.error('Conversations API error:', e);
     return res.json({ conversations: [] });
@@ -313,10 +343,10 @@ router.get('/ai/prompts', async (req, res) => {
     let sysPath = SYS_TPL;
     let userPath = USER_TPL;
     
-    if (env && (env === 'demo-futures' || env === 'futures')) {
+  if (env && (env === 'demo-futures' || env === 'futures')) {
       sysPath = path.join(TPL_DIR, 'futures', 'system_prompt.txt');
       userPath = path.join(TPL_DIR, 'futures', 'user_prompt.hbs');
-    } else if (env && (env === 'demo-spot' || env === 'spot')) {
+    } else if (env && (env === 'test-spot' || env === 'demo-spot' || env === 'spot')) {
       sysPath = path.join(TPL_DIR, 'spot', 'system_prompt.txt');
       userPath = path.join(TPL_DIR, 'spot', 'user_prompt.hbs');
     }
@@ -342,10 +372,10 @@ router.post('/ai/prompts', async (req, res) => {
     let sysPath = SYS_TPL;
     let userPath = USER_TPL;
     
-    if (env && (env === 'demo-futures' || env === 'futures')) {
+  if (env && (env === 'demo-futures' || env === 'futures')) {
       sysPath = path.join(TPL_DIR, 'futures', 'system_prompt.txt');
       userPath = path.join(TPL_DIR, 'futures', 'user_prompt.hbs');
-    } else if (env && (env === 'demo-spot' || env === 'spot')) {
+    } else if (env && (env === 'test-spot' || env === 'demo-spot' || env === 'spot')) {
       sysPath = path.join(TPL_DIR, 'spot', 'system_prompt.txt');
       userPath = path.join(TPL_DIR, 'spot', 'user_prompt.hbs');
     }
@@ -744,16 +774,38 @@ router.post('/bots/:botId/start', async (req, res) => {
       return res.json({ message: 'Bot已在运行', status: existingStatus });
     }
 
-    // 如果 Bot 配置了 dashscopeApiKey，尝试占用该 API Key
-    if (bot.dashscopeApiKey) {
+    // 分配AI模型API Key（若未显式指定dashscopeApiKey，则自动选择一个可用Key）
       try {
         const { apiKeyManager } = await import('../services/api-key-manager.js');
-        apiKeyManager.allocateApiKey(botId, bot.dashscopeApiKey);
-        console.log(`[Bot启动] Bot ${botId} 已占用 API Key: ${bot.dashscopeApiKey}`);
-      } catch (e) {
-        console.error(`[Bot启动] API Key 占用失败:`, e.message);
-        return res.status(400).json({ error: `无法占用 API Key: ${e.message}` });
+      let keyName = bot.dashscopeApiKey;
+      if (!keyName) {
+        // 1) 从 apiKeyManager 的候选集中挑选可用的
+        const all = apiKeyManager.getAllApiKeys?.() || [];
+        const firstFree = Array.isArray(all)
+          ? all.find((k) => apiKeyManager.isApiKeyAvailable?.(k))
+          : undefined;
+        if (firstFree) keyName = firstFree;
+        // 2) 回退：从环境变量中自动发现 DASHSCOPE_API_KEY_1..10
+        if (!keyName) {
+          for (let i = 1; i <= 10; i++) {
+            const envName = `DASHSCOPE_API_KEY_${i}`;
+            if (process.env[envName]) { keyName = envName; break; }
+          }
+        }
+        // 3) 若找到可用key则写回配置（持久化），以便后续显示/释放
+        if (keyName) {
+          try { await botConfigManager.updateBot(botId, { dashscopeApiKey: keyName }); } catch (_) {}
+        }
       }
+      if (keyName) {
+        apiKeyManager.allocateApiKey(botId, keyName);
+        console.log(`[Bot启动] Bot ${botId} 已占用 API Key: ${keyName}`);
+      } else {
+        console.warn(`[Bot启动] 未找到可用的 DASHSCOPE_API_KEY，继续启动但可能无法调用模型`);
+      }
+      } catch (e) {
+      console.error(`[Bot启动] API Key 分配流程异常:`, e.message);
+      // 不阻断启动，让后续流程继续，但前端会看到无AI调用
     }
 
     const status = await tradingRunner.startBot(botId, bot);
@@ -809,6 +861,110 @@ router.get('/bots/status/all', async (req, res) => {
   try {
     const statuses = tradingRunner.getAllBotStatuses();
     res.json({ bots: statuses });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// ==================== 运行中Bot数据服务（面向前端实时看板） ====================
+
+// GET /runtime/bots → 返回正在运行的bot列表及精简状态
+router.get('/runtime/bots', async (req, res) => {
+  try {
+    const runningIds = tradingRunner.getRunningBotIds();
+    const out = [];
+    for (const botId of runningIds) {
+      const status = tradingRunner.getBotStatus(botId) || {};
+      const bot = await botConfigManager.getBotById(botId);
+      out.push({
+        bot_id: botId,
+        env: bot?.env || status.env || null,
+        model: bot?.model || status.model || '',
+        running: Boolean(status.running),
+        pid: status.pid || null,
+        startedAt: status.startedAt || null,
+        intervalMinutes: status.intervalMinutes || bot?.intervalMinutes || null,
+        tradingMode: bot?.tradingMode || null,
+        botClass: bot?.botClass || null,
+        name: bot?.name || botId
+      });
+    }
+    res.json({ bots: out });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// GET /runtime/overview → 聚合所有运行中bot的账户、持仓、最近对话/成交（轻量）
+router.get('/runtime/overview', async (req, res) => {
+  try {
+    const runningIds = tradingRunner.getRunningBotIds();
+    const limit = Math.max(0, Math.min(50, Number(req.query.limit) || 20));
+    const out = [];
+
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+
+    for (const botId of runningIds) {
+      const sm = new BotStateManager(botId);
+      const [state, conversations, trades] = await Promise.all([
+        sm.loadState(),
+        sm.loadConversations(),
+        sm.loadTrades()
+      ]);
+      const bot = await botConfigManager.getBotById(botId);
+      out.push({
+        bot_id: botId,
+        env: bot?.env || null,
+        model: bot?.model || '',
+        name: bot?.name || botId,
+        account: {
+          accountValue: Number(state?.accountValue || 0),
+          availableCash: Number(state?.availableCash || 0),
+          totalReturn: Number(state?.totalReturn || 0),
+          lastUpdate: state?.lastUpdate || null
+        },
+        positions: Array.isArray(state?.positions) ? state.positions : [],
+        conversations: (conversations || []).slice(0, limit),
+        trades: (trades || []).slice(0, limit)
+      });
+    }
+
+    res.json({ overview: out, count: out.length });
+  } catch (e) {
+    res.status(500).json({ error: String(e?.message || e) });
+  }
+});
+
+// GET /runtime/bots/:botId/summary → 单个bot摘要
+router.get('/runtime/bots/:botId/summary', async (req, res) => {
+  try {
+    const botId = req.params.botId;
+    const limit = Math.max(0, Math.min(100, Number(req.query.limit) || 20));
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+    const sm = new BotStateManager(botId);
+    const [state, conversations, trades] = await Promise.all([
+      sm.loadState(),
+      sm.loadConversations(),
+      sm.loadTrades()
+    ]);
+    const bot = await botConfigManager.getBotById(botId);
+    const status = tradingRunner.getBotStatus(botId) || {};
+    res.json({
+      bot_id: botId,
+      running: Boolean(status.running),
+      env: bot?.env || null,
+      model: bot?.model || '',
+      name: bot?.name || botId,
+      account: {
+        accountValue: Number(state?.accountValue || 0),
+        availableCash: Number(state?.availableCash || 0),
+        totalReturn: Number(state?.totalReturn || 0),
+        lastUpdate: state?.lastUpdate || null
+      },
+      positions: Array.isArray(state?.positions) ? state.positions : [],
+      conversations: (conversations || []).slice(0, limit),
+      trades: (trades || []).slice(0, limit)
+    });
   } catch (e) {
     res.status(500).json({ error: String(e?.message || e) });
   }
@@ -962,71 +1118,119 @@ router.post('/ai/trading/close-all-positions', async (req, res) => {
 // Derived endpoints
 router.get('/account-totals', async (req, res) => {
   const lastHourlyMarker = req.query.lastHourlyMarker ? Number(req.query.lastHourlyMarker) : undefined;
-  const trades = await loadJson('trades.json', { trades: [] });
-  const totals = await deriveAccountTotals(trades, lastHourlyMarker);
   
-  // 优先尝试从币安API获取实时数据
+  // 聚合所有Bot的交易数据
+  let allTrades = { trades: [] };
+  try {
+    const { botConfigManager } = await import('../services/bots/bot-config-manager.js');
+    const bots = await botConfigManager.getAllBots();
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+    
+    for (const bot of bots) {
+      try {
+        const stateManager = new BotStateManager(bot.id);
+        const tradesData = await stateManager.loadTrades();
+        if (Array.isArray(tradesData) && tradesData.length > 0) {
+        // 为每个交易添加bot_id和model_id（model_id现在存储bot_id用于兼容）
+        const tradesWithModel = tradesData.map(t => ({
+          ...t,
+          model_id: bot.id, // 使用bot_id作为标识（保持兼容性）
+          bot_id: bot.id,
+          bot_name: bot.name || bot.id,
+          model: bot.model || '' // 保留模型信息用于显示
+        }));
+          allTrades.trades.push(...tradesWithModel);
+        }
+      } catch (e) {
+        console.warn(`[AccountTotals] 读取Bot ${bot.id} 交易数据失败:`, e.message);
+      }
+    }
+    
+    // 如果从Bot数据中没有获取到，尝试全局数据
+    if (allTrades.trades.length === 0) {
+      allTrades = await loadJson('trades.json', { trades: [] });
+    }
+  } catch (e) {
+    console.warn('[AccountTotals] 聚合Bot交易数据失败，使用全局数据:', e.message);
+    allTrades = await loadJson('trades.json', { trades: [] });
+  }
+  
+  const totals = await deriveAccountTotals(allTrades, lastHourlyMarker);
+  
+  // 聚合所有Bot的账户数据和持仓
+  const botAccountData = new Map(); // bot_id -> { accountValue, positions, initialAccountValue, initialBTCPrice, bot, model }
+  
+  try {
+    const { botConfigManager } = await import('../services/bots/bot-config-manager.js');
+    const bots = await botConfigManager.getAllBots();
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+    
+    for (const bot of bots) {
+      try {
+        const stateManager = new BotStateManager(bot.id);
+        const state = await stateManager.loadState();
+        if (state) {
+          const positions = (state.positions || []).reduce((acc, p) => {
+            const symbol = String(p?.symbol || '').toUpperCase();
+            if (symbol) {
+              const notional = Number(p?.notional_usd || 0) || Math.abs(Number(p?.quantity || 0)) * Number(p?.current_price || p?.entry_price || 0);
+              acc[symbol] = {
+                symbol,
+                quantity: Number(p?.quantity || 0),
+                entry_price: Number(p?.entry_price || 0),
+                current_price: Number(p?.current_price || p?.entry_price || 0),
+                liquidation_price: Number(p?.liquidation_price || 0),
+                unrealized_pnl: Number(p?.unrealized_pnl || 0),
+                leverage: Number(p?.leverage || 1),
+                exit_plan: p?.exit_plan || null,
+                confidence: Number(p?.confidence || 0),
+                risk_usd: Number(p?.risk_usd || 0),
+                margin: Number(p?.margin || 0) || (notional / Number(p?.leverage || 1)),
+                notional_usd: notional,
+                entry_time: Number(p?.entry_time || Math.floor(Date.now() / 1000)),
+                entry_oid: Number(p?.entry_oid || 0),
+              };
+            }
+            return acc;
+          }, {});
+          
+          // 使用bot.id作为键，而不是modelId
+          botAccountData.set(bot.id, {
+            accountValue: state.accountValue || 0,
+            positions: positions,
+            initialAccountValue: state.initialAccountValue || state.accountValue || 0,
+            initialBTCPrice: state.initialBTCPrice || null,
+            bot: bot, // 保存完整的bot信息，便于后续使用
+            model: bot.model || ''
+          });
+        }
+      } catch (e) {
+        console.warn(`[AccountTotals] 读取Bot ${bot.id} 状态失败:`, e.message);
+      }
+    }
+  } catch (e) {
+    console.warn('[AccountTotals] 聚合Bot账户数据失败:', e.message);
+  }
+  
+  // 如果没有Bot数据，尝试全局数据（向后兼容）
   let latestPositions = {};
   let latestAccountValue = null;
   let initialAccountValue = null;
   let initialBTCPrice = null;
   
-  try {
-    const realTimeData = await getRealTimeAccountData();
-    if (realTimeData) {
-      latestAccountValue = realTimeData.balance;
-      // 将positions数组转为对象格式
-      for (const p of realTimeData.positions) {
-        const symbol = String(p.symbol || '').toUpperCase();
-        if (symbol) {
-          latestPositions[symbol] = {
-            symbol,
-            quantity: Number(p.quantity || 0),
-            entry_price: Number(p.entry_price || 0),
-            current_price: Number(p.current_price || 0),
-            liquidation_price: Number(p.liquidation_price || 0),
-            unrealized_pnl: Number(p.unrealized_pnl || 0),
-            leverage: Number(p.leverage || 1),
-            exit_plan: p.exit_plan || null,
-            confidence: Number(p.confidence || 0),
-            risk_usd: Number(p.risk_usd || 0),
-            margin: Number(p.margin || 0),
-            notional_usd: Number(p.notional_usd || 0),
-            entry_time: Number(p.entry_time || Math.floor(Date.now() / 1000)),
-            entry_oid: Number(p.entry_oid || 0),
-          };
-        }
-      }
-    }
-  } catch (e) {
-    console.warn('获取实时账户数据失败，降级到trading-state.json:', e.message);
-  }
-  
-  // 始终从 trading-state.json 读取初始值（用于BTC持有曲线计算）
-  try {
-    const state = await loadJson('trading-state.json', { positions: [] });
-    // 获取初始账户价值（启动时的值）
-    if (state?.initialAccountValue) {
-      initialAccountValue = Number(state.initialAccountValue);
-    } else if (state?.accountValue) {
-      // 如果没有保存初始值，使用当前值（可能是第一次启动）
-      initialAccountValue = Number(state.accountValue);
-    }
-    // 获取初始BTC价格（用于计算BTC持有曲线）
-    if (state?.initialBTCPrice) {
-      initialBTCPrice = Number(state.initialBTCPrice);
-    }
-  } catch (e) {
-    console.warn('读取 trading-state.json 失败:', e.message);
-  }
-  
-  // 如果实时数据获取失败，降级到trading-state.json
-  if (!latestAccountValue || Object.keys(latestPositions).length === 0) {
+  if (botAccountData.size === 0) {
     try {
-      // 从 trading-state.json 读取最新的账户价值和持仓
       const state = await loadJson('trading-state.json', { positions: [] });
       if (state?.accountValue) {
         latestAccountValue = Number(state.accountValue);
+      }
+      if (state?.initialAccountValue) {
+        initialAccountValue = Number(state.initialAccountValue);
+      } else if (state?.accountValue) {
+        initialAccountValue = Number(state.accountValue);
+      }
+      if (state?.initialBTCPrice) {
+        initialBTCPrice = Number(state.initialBTCPrice);
       }
       if (Array.isArray(state?.positions) && state.positions.length > 0) {
         for (const p of state.positions) {
@@ -1052,56 +1256,8 @@ router.get('/account-totals', async (req, res) => {
           }
         }
       }
-      
-      // 如果没有，从 conversations 推导
-      if (Object.keys(latestPositions).length === 0) {
-        const buf = await fs.readFile(CONV_FILE, 'utf8');
-        const raw = JSON.parse(buf);
-        const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
-        const posMap = {};
-        // 倒序遍历（最新到最旧），累计持仓
-        for (const c of arr.slice().reverse()) {
-          const d = c?.decision_normalized || {};
-          const action = String(d?.action || '').toLowerCase();
-          const base = (d?.symbol || '').toString().toUpperCase().replace(/:USDT$/, '');
-          const symbol = base.includes('/') ? base.split('/')[0] : base;
-          const qty = Number.isFinite(Number(d?.quantity)) ? Number(d.quantity) : 0;
-          
-          // 只处理buy/sell/close_position，忽略hold操作
-          if (!symbol) continue;
-          if (action === 'buy' && qty > 0) {
-            if (!posMap[symbol]) posMap[symbol] = { symbol, quantity: 0, entry_price: 0, leverage: 1 };
-            posMap[symbol].quantity += qty;
-          } else if ((action === 'sell' || action === 'close_position') && qty > 0) {
-            if (posMap[symbol]) {
-              posMap[symbol].quantity -= qty;
-              if (posMap[symbol].quantity <= 0) delete posMap[symbol];
-            }
-          }
-        }
-        // 转换为标准格式
-        for (const [symbol, p] of Object.entries(posMap)) {
-          if (p.quantity > 0) {
-            latestPositions[symbol] = {
-              symbol: p.symbol,
-              quantity: p.quantity,
-              entry_price: p.entry_price || 0,
-              current_price: 0,
-              liquidation_price: 0,
-              unrealized_pnl: 0,
-              leverage: p.leverage || 1,
-              exit_plan: null,
-              confidence: 0,
-              risk_usd: 0,
-              margin: 0,
-              entry_time: Math.floor(Date.now() / 1000),
-              entry_oid: 0,
-            };
-          }
-        }
-      }
     } catch (e) {
-      console.error('读取持仓失败:', e.message);
+      console.warn('读取全局 trading-state.json 失败:', e.message);
     }
   }
   
@@ -1113,93 +1269,196 @@ router.get('/account-totals', async (req, res) => {
     return match ? Number(match[1]) : null;
   }
 
+  // 为每个Bot生成账户时间序列（从conversations）
+  const botConversations = new Map(); // bot_id -> { conversations, bot }
+  
+  try {
+    const { botConfigManager } = await import('../services/bots/bot-config-manager.js');
+    const bots = await botConfigManager.getAllBots();
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+    
+    for (const bot of bots) {
+      try {
+        const stateManager = new BotStateManager(bot.id);
+        const conversations = await stateManager.loadConversations();
+        if (Array.isArray(conversations) && conversations.length > 0) {
+          // 使用bot.id作为键，而不是modelId
+          botConversations.set(bot.id, { conversations, bot });
+        }
+      } catch (e) {
+        console.warn(`[AccountTotals] 读取Bot ${bot.id} 对话数据失败:`, e.message);
+      }
+    }
+  } catch (e) {
+    console.warn('[AccountTotals] 聚合Bot对话数据失败:', e.message);
+  }
+  
+  // 如果没有totals数据，从Bot的conversations生成
   if (!totals || totals.length === 0) {
-    // 从 conversations 生成净值时间序列
-    try {
-      const buf = await fs.readFile(CONV_FILE, 'utf8');
-      const raw = JSON.parse(buf);
-      const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
-      const series = arr.slice().reverse().map(c => {
+    const series = [];
+    
+    // 从Bot的conversations生成时间序列
+    for (const [botId, { conversations, bot }] of botConversations.entries()) {
+      const botData = botAccountData.get(botId);
+      const botPositions = botData?.positions || {};
+      const botName = bot?.name || botId;
+      const model = bot?.model || '';
+      
+      const modelSeries = conversations.slice().reverse().map(c => {
         const ts = Math.floor(new Date(c?.timestamp || Date.now()).getTime() / 1000);
-        const equity = Number(c?.accountValue);
-        if (!Number.isFinite(equity)) return null; // 跳过无效值，返回null
-        // 从userPrompt中提取BTC价格
+        const equity = Number(c?.accountValue || botData?.accountValue || 0);
+        if (!Number.isFinite(equity)) return null;
         const btcPrice = extractBTCPrice(c?.userPrompt);
         return {
-          model_id: 'default',
+          model_id: botId, // 使用bot_id作为标识（保持兼容性）
+          bot_id: botId,
+          bot_name: botName,
+          model: model, // 保留模型信息用于显示
           timestamp: ts,
           dollar_equity: equity,
           since_inception_hourly_marker: Math.floor(ts / 3600),
-          positions: latestPositions, // 附加持仓信息
-          btc_price: btcPrice || undefined, // 附加BTC价格（如果存在）
+          positions: botPositions,
+          btc_price: btcPrice || undefined,
         };
-      }).filter(item => item !== null); // 过滤掉null值
-      if (series.length > 0) return res.json({ 
+      }).filter(item => item !== null);
+      
+      series.push(...modelSeries);
+    }
+    
+    // 如果没有Bot数据，尝试全局conversations（向后兼容）
+    if (series.length === 0) {
+      try {
+        const buf = await fs.readFile(CONV_FILE, 'utf8');
+        const raw = JSON.parse(buf);
+        const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
+        const defaultSeries = arr.slice().reverse().map(c => {
+          const ts = Math.floor(new Date(c?.timestamp || Date.now()).getTime() / 1000);
+          const equity = Number(c?.accountValue);
+          if (!Number.isFinite(equity)) return null;
+          const btcPrice = extractBTCPrice(c?.userPrompt);
+        return {
+          model_id: 'default', // 使用bot_id作为标识（保持兼容性）
+          bot_id: 'default',
+          bot_name: 'default',
+          model: '', // 保留模型信息用于显示
+          timestamp: ts,
+          dollar_equity: equity,
+          since_inception_hourly_marker: Math.floor(ts / 3600),
+          positions: latestPositions,
+          btc_price: btcPrice || undefined,
+        };
+        }).filter(item => item !== null);
+        series.push(...defaultSeries);
+      } catch (_) {}
+    }
+    
+    if (series.length > 0) {
+      // 获取初始值（从第一个Bot或全局数据）
+      let initialAcctValue = undefined;
+      let initialBTC = undefined;
+      if (botAccountData.size > 0) {
+        const firstBotData = Array.from(botAccountData.values())[0];
+        initialAcctValue = firstBotData?.initialAccountValue;
+        initialBTC = firstBotData?.initialBTCPrice;
+      } else {
+        initialAcctValue = initialAccountValue;
+        initialBTC = initialBTCPrice;
+      }
+      
+      return res.json({ 
         accountTotals: series,
-        initialAccountValue: initialAccountValue || undefined, // 如果没有则不返回，而不是返回null
-        initialBTCPrice: initialBTCPrice || undefined, // 返回初始BTC价格
-      });
-    } catch (_) {}
-    // 如果没有数据且没有初始值，返回空数组而不是伪造数据
-    if (!initialAccountValue && !latestAccountValue) {
-      return res.json({
-        accountTotals: [],
-        initialAccountValue: undefined
+        initialAccountValue: initialAcctValue || undefined,
+        initialBTCPrice: initialBTC || undefined,
       });
     }
     
-    const now = Date.now();
-    const t0 = Math.floor((now - 60_000) / 1000);
-    const t1 = Math.floor(now / 1000);
-    // 使用实际的值，如果没有初始值就使用当前值
-    const startValue = initialAccountValue || latestAccountValue || 0;
-    const currentValue = latestAccountValue || initialAccountValue || 0;
+    // 如果完全没有数据，返回空数组
     return res.json({
-      accountTotals: [
-        { model_id: 'default', timestamp: t0, dollar_equity: startValue, since_inception_hourly_marker: Math.floor(t0 / 3600), positions: latestPositions },
-        { model_id: 'default', timestamp: t1, dollar_equity: currentValue, since_inception_hourly_marker: Math.floor(t1 / 3600), positions: latestPositions },
-      ],
-      // 只有确实有初始值时才返回
-      initialAccountValue: initialAccountValue || undefined,
+      accountTotals: [],
+      initialAccountValue: undefined
     });
   }
   
   // 为现有的 totals 也附加持仓信息和更新最新净值，以及BTC价格
   if (totals && totals.length > 0) {
+    // 按bot_id分组totals（model_id现在存储的是bot_id）
+    const totalsByBot = new Map();
+    for (const item of totals) {
+      const botId = item.model_id || item.bot_id || 'default'; // model_id现在存储的是bot_id
+      if (!totalsByBot.has(botId)) {
+        totalsByBot.set(botId, []);
+      }
+      totalsByBot.get(botId).push(item);
+    }
+    
+    // 为每个bot的totals附加对应的持仓信息
+    for (const [botId, botTotals] of totalsByBot.entries()) {
+      const botData = botAccountData.get(botId);
+      const botPositions = botData?.positions || (botId === 'default' ? latestPositions : {});
+      const botAccountValue = botData?.accountValue || (botId === 'default' ? latestAccountValue : null);
+      
+      // 更新每个item的持仓信息
+      for (const item of botTotals) {
+        // 确保item有bot_id字段
+        if (!item.bot_id) {
+          item.bot_id = botId;
+        }
+        
+        // 如果这是最新的记录，附加当前持仓
+        if (item === botTotals[botTotals.length - 1]) {
+          item.positions = botPositions;
+          if (botAccountValue != null && Number.isFinite(botAccountValue)) {
+            item.dollar_equity = botAccountValue;
+            item.timestamp = Math.floor(Date.now() / 1000);
+          }
+        } else {
+          // 历史记录也可以附加持仓（可选）
+          item.positions = botPositions;
+        }
+      }
+    }
+
+    // 追加：确保运行中的每个bot至少有一条当前快照（用于前端按 bot_id 展示）
+    for (const [botId, data] of botAccountData.entries()) {
+      if (!totalsByBot.has(botId)) {
+        const nowTs = Math.floor(Date.now() / 1000);
+        totals.push({
+          model_id: botId, // 兼容前端现有逻辑
+          bot_id: botId,
+          id: botId,
+          bot_name: data?.bot?.name || botId,
+          model: data?.model || '',
+          timestamp: nowTs,
+          dollar_equity: data?.accountValue || 0,
+          equity: data?.accountValue || 0,
+          account_value: data?.accountValue || 0,
+          positions: data?.positions || {},
+          realized_pnl: 0,
+          total_unrealized_pnl: 0,
+        });
+      }
+    }
+    
     // 尝试从conversations中提取BTC价格历史
-    let btcPriceMap = new Map(); // timestamp -> btc_price
-    try {
-      const buf = await fs.readFile(CONV_FILE, 'utf8');
-      const raw = JSON.parse(buf);
-      const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
-      for (const c of arr) {
+    let btcPriceMap = new Map();
+    for (const [botId, { conversations }] of botConversations.entries()) {
+      for (const c of conversations) {
         const ts = Math.floor(new Date(c?.timestamp || Date.now()).getTime() / 1000);
         const btcPrice = extractBTCPrice(c?.userPrompt);
         if (btcPrice && !btcPriceMap.has(ts)) {
           btcPriceMap.set(ts, btcPrice);
         }
       }
-    } catch (e) {
-      console.warn('从conversations提取BTC价格失败:', e.message);
-    }
-    
-    const latest = totals[totals.length - 1];
-    latest.positions = latestPositions;
-    // 如果有最新的账户价值，更新最后一条记录的净值
-    if (latestAccountValue != null && Number.isFinite(latestAccountValue)) {
-      latest.dollar_equity = latestAccountValue;
-      latest.timestamp = Math.floor(Date.now() / 1000);
     }
     
     // 为每个totals项附加BTC价格（如果存在）
     for (const item of totals) {
       const ts = item.timestamp;
-      // 查找最接近的时间戳的BTC价格
       let closestPrice = null;
       let minDiff = Infinity;
       for (const [priceTs, price] of btcPriceMap.entries()) {
         const diff = Math.abs(priceTs - ts);
-        if (diff < minDiff && diff < 3600) { // 1小时内
+        if (diff < minDiff && diff < 3600) {
           minDiff = diff;
           closestPrice = price;
         }
@@ -1210,36 +1469,140 @@ router.get('/account-totals', async (req, res) => {
     }
     
     // 为最后一个点添加当前BTC价格（如果还没有）
-    if (!latest.btc_price) {
-      try {
-        const prices = await getPrices(['BTC/USDT']);
-        if (prices && prices['BTC/USDT'] && prices['BTC/USDT'].price) {
-          latest.btc_price = prices['BTC/USDT'].price;
+    if (totals.length > 0) {
+      const latest = totals[totals.length - 1];
+      if (!latest.btc_price) {
+        try {
+          const prices = await getPrices(['BTC/USDT']);
+          if (prices && prices['BTC/USDT'] && prices['BTC/USDT'].price) {
+            latest.btc_price = prices['BTC/USDT'].price;
+          }
+        } catch (e) {
+          console.warn('获取当前BTC价格失败:', e.message);
         }
-      } catch (e) {
-        console.warn('获取当前BTC价格失败:', e.message);
       }
     }
   }
   
+  // 获取初始值（从第一个Bot或全局数据）
+  let initialAcctValue = undefined;
+  let initialBTC = undefined;
+  if (botAccountData.size > 0) {
+    const firstBotData = Array.from(botAccountData.values())[0];
+    initialAcctValue = firstBotData?.initialAccountValue;
+    initialBTC = firstBotData?.initialBTCPrice;
+  } else {
+    initialAcctValue = initialAccountValue;
+    initialBTC = initialBTCPrice;
+  }
+  
   res.json({ 
     accountTotals: totals,
-    // 只有确实有初始值时才返回，用于图表参考线
-    initialAccountValue: initialAccountValue || undefined,
-    initialBTCPrice: initialBTCPrice || undefined, // 返回初始BTC价格
+    initialAccountValue: initialAcctValue || undefined,
+    initialBTCPrice: initialBTC || undefined,
   });
 });
 
 router.get('/leaderboard', async (req, res) => {
-  const trades = await loadJson('trades.json', { trades: [] });
-  const leaderboard = await deriveLeaderboard(trades);
-  res.json({ leaderboard });
+  try {
+    // 聚合所有Bot的交易数据
+    let allTrades = { trades: [] };
+    const { botConfigManager } = await import('../services/bots/bot-config-manager.js');
+    const bots = await botConfigManager.getAllBots();
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+    
+    for (const bot of bots) {
+      try {
+        const stateManager = new BotStateManager(bot.id);
+        const tradesData = await stateManager.loadTrades();
+        if (Array.isArray(tradesData) && tradesData.length > 0) {
+          const tradesWithModel = tradesData.map(t => ({
+            ...t,
+            model_id: bot.id, // 使用bot_id作为标识（保持兼容性）
+            bot_id: bot.id,
+            bot_name: bot.name || bot.id,
+            model: bot.model || '' // 保留模型信息用于显示
+          }));
+          allTrades.trades.push(...tradesWithModel);
+        }
+      } catch (e) {
+        console.warn(`[Leaderboard] 读取Bot ${bot.id} 交易数据失败:`, e.message);
+      }
+    }
+    
+    if (allTrades.trades.length === 0) {
+      allTrades = await loadJson('trades.json', { trades: [] });
+    }
+    
+    let leaderboard = await deriveLeaderboard(allTrades);
+
+    // 补齐：确保所有“运行中的 bot”至少占一行（即使暂无成交）
+    try {
+      const runningIds = tradingRunner.getRunningBotIds();
+      const present = new Set((leaderboard || []).map((r) => String(r.id)));
+      const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+      const addRows = [];
+      for (const botId of runningIds) {
+        if (present.has(String(botId))) continue;
+        try {
+          const sm = new BotStateManager(botId);
+          const state = await sm.loadState();
+          addRows.push({
+            id: botId,
+            equity: Number(state?.accountValue || 0),
+            return_pct: undefined,
+            num_trades: 0,
+            sharpe: undefined,
+          });
+        } catch (_) {}
+      }
+      if (addRows.length) leaderboard = [...(leaderboard || []), ...addRows];
+    } catch (_) {}
+
+    res.json({ leaderboard });
+  } catch (e) {
+    console.error('[Leaderboard] 错误:', e);
+    res.json({ leaderboard: [] });
+  }
 });
 
 router.get('/since-inception-values', async (req, res) => {
-  const trades = await loadJson('trades.json', { trades: [] });
-  const out = await deriveSinceInception(trades);
-  res.json(out);
+  try {
+    // 聚合所有Bot的交易数据
+    let allTrades = { trades: [] };
+    const { botConfigManager } = await import('../services/bots/bot-config-manager.js');
+    const bots = await botConfigManager.getAllBots();
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+    
+    for (const bot of bots) {
+      try {
+        const stateManager = new BotStateManager(bot.id);
+        const tradesData = await stateManager.loadTrades();
+        if (Array.isArray(tradesData) && tradesData.length > 0) {
+          const tradesWithModel = tradesData.map(t => ({
+            ...t,
+            model_id: bot.id, // 使用bot_id作为标识（保持兼容性）
+            bot_id: bot.id,
+            bot_name: bot.name || bot.id,
+            model: bot.model || '' // 保留模型信息用于显示
+          }));
+          allTrades.trades.push(...tradesWithModel);
+        }
+      } catch (e) {
+        console.warn(`[SinceInception] 读取Bot ${bot.id} 交易数据失败:`, e.message);
+      }
+    }
+    
+    if (allTrades.trades.length === 0) {
+      allTrades = await loadJson('trades.json', { trades: [] });
+    }
+    
+    const out = await deriveSinceInception(allTrades);
+    res.json(out);
+  } catch (e) {
+    console.error('[SinceInception] 错误:', e);
+    res.json({});
+  }
 });
 
 // 实时数据端点：直接从币安API获取
@@ -1283,77 +1646,157 @@ router.get('/realtime', async (req, res) => {
 });
 
 router.get('/positions', async (req, res) => {
-  // 优先尝试实时数据
   try {
-    const realTimeData = await getRealTimeAccountData();
-    if (realTimeData && realTimeData.positions && realTimeData.positions.length > 0) {
-      return res.json({ positions: realTimeData.positions });
-    }
-  } catch (_) {
-    // 如果失败，继续使用原有逻辑
-  }
-  
-  try {
-    const state = await loadJson('trading-state.json', { positions: [] });
-    const positions = Array.isArray(state?.positions) ? state.positions : [];
-    const norm = positions.map((p) => ({
-      symbol: String(p?.symbol || ''),
-      quantity: Number(p?.quantity || 0),
-      entry_price: Number(p?.entry_price || 0),
-      current_price: Number(p?.current_price || p?.entry_price || 0),
-      liquidation_price: Number(p?.liquidation_price || 0),
-      unrealized_pnl: Number(p?.unrealized_pnl || 0),
-      leverage: Number(p?.leverage || 1),
-      exit_plan: p?.exit_plan || null,
-      confidence: Number(p?.confidence || 0),
-      risk_usd: Number(p?.risk_usd || 0),
-    }));
-    if (norm.length > 0) return res.json({ positions: norm });
-    // 从 conversations 累计推导净持仓
+    // 加载所有Bot配置
+    const { botConfigManager } = await import('../services/bots/bot-config-manager.js');
+    const bots = await botConfigManager.getAllBots();
+    
+    // 优先尝试实时数据
     try {
-      const buf = await fs.readFile(CONV_FILE, 'utf8');
-      const raw = JSON.parse(buf);
-      const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
-      const posMap = {};
-      for (const c of arr.slice().reverse()) {
-        const d = c?.decision_normalized || {};
-        const action = String(d?.action || '').toLowerCase();
-        const base = (d?.symbol || '').toString().toUpperCase().replace(/:USDT$/, '');
-        const symbol = base.includes('/') ? base.split('/')[0] : base;
-        const qty = Number.isFinite(Number(d?.quantity)) ? Number(d.quantity) : 0;
-        if (!symbol || qty === 0) continue;
-        if (action === 'buy') {
-          if (!posMap[symbol]) posMap[symbol] = { symbol, quantity: 0, entry_price: 0, leverage: 1 };
-          posMap[symbol].quantity += qty;
-        } else if (action === 'sell' || action === 'close_position') {
-          if (posMap[symbol]) {
-            posMap[symbol].quantity -= qty;
-            if (posMap[symbol].quantity <= 0) delete posMap[symbol];
+      const realTimeData = await getRealTimeAccountData();
+      if (realTimeData && realTimeData.positions && realTimeData.positions.length > 0) {
+        // 将实时数据映射到第一个运行的Bot
+        const runningBots = bots.filter(b => {
+          const status = tradingRunner.getBotStatus(b.id);
+          return status?.running;
+        });
+        if (runningBots.length > 0) {
+          const bot = runningBots[0];
+          const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+          const stateManager = new BotStateManager(bot.id);
+          const state = await stateManager.loadState();
+          if (state?.positions) {
+            return res.json({ accountTotals: [{
+              model_id: bot.id, // 使用bot_id作为标识
+              id: bot.id,
+              bot_id: bot.id,
+              bot_name: bot.name || bot.id,
+              model: bot.model || '', // 保留模型信息用于显示
+              timestamp: Date.now() / 1000,
+              positions: state.positions.reduce((acc, p) => {
+                acc[p.symbol || ''] = {
+                  symbol: String(p?.symbol || ''),
+                  quantity: Number(p?.quantity || 0),
+                  entry_price: Number(p?.entry_price || 0),
+                  current_price: Number(p?.current_price || p?.entry_price || 0),
+                  liquidation_price: Number(p?.liquidation_price || 0),
+                  unrealized_pnl: Number(p?.unrealized_pnl || 0),
+                  leverage: Number(p?.leverage || 1),
+                  exit_plan: p?.exit_plan || null,
+                  confidence: Number(p?.confidence || 0),
+                  risk_usd: Number(p?.risk_usd || 0),
+                  entry_oid: p?.entry_oid || 0,
+                  entry_time: p?.entry_time || Date.now() / 1000,
+                  margin: Number(p?.margin || 0),
+                  notional_usd: Number(p?.notional_usd || (Math.abs(p?.quantity || 0) * (p?.current_price || p?.entry_price || 0)))
+                };
+                return acc;
+              }, {})
+            }]});
           }
         }
       }
-      const out = Object.values(posMap).map(p => ({
-        symbol: p.symbol,
-        quantity: p.quantity,
-        entry_price: p.entry_price || 0,
-        current_price: 0,
-        liquidation_price: 0,
-        unrealized_pnl: 0,
-        leverage: p.leverage || 1,
-        exit_plan: null,
-        confidence: 0,
-        risk_usd: 0,
-      }));
-      try {
-        const prev = await loadJson('trading-state.json', { startTime: new Date().toISOString(), invocationCount: 0, positions: [] });
-        await saveJson('trading-state.json', { ...prev, positions: out, lastUpdate: new Date().toISOString() });
-      } catch (_) {}
-      return res.json({ positions: out });
     } catch (_) {
-      return res.json({ positions: [] });
+      // 继续使用Bot数据聚合逻辑
     }
+    
+    // 聚合所有Bot的持仓数据
+    const accountTotals = [];
+    const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+    
+    for (const bot of bots) {
+      try {
+        const stateManager = new BotStateManager(bot.id);
+        const state = await stateManager.loadState();
+        if (state?.positions && Array.isArray(state.positions) && state.positions.length > 0) {
+          const positions = state.positions.reduce((acc, p) => {
+            acc[p.symbol || `POS_${Math.random()}`] = {
+              symbol: String(p?.symbol || ''),
+              quantity: Number(p?.quantity || 0),
+              entry_price: Number(p?.entry_price || 0),
+              current_price: Number(p?.current_price || p?.entry_price || 0),
+              liquidation_price: Number(p?.liquidation_price || 0),
+              unrealized_pnl: Number(p?.unrealized_pnl || 0),
+              leverage: Number(p?.leverage || 1),
+              exit_plan: p?.exit_plan || null,
+              confidence: Number(p?.confidence || 0),
+              risk_usd: Number(p?.risk_usd || 0),
+              entry_oid: p?.entry_oid || 0,
+              entry_time: p?.entry_time || Date.now() / 1000,
+              margin: Number(p?.margin || 0),
+              notional_usd: Number(p?.notional_usd || (Math.abs(p?.quantity || 0) * (p?.current_price || p?.entry_price || 0)))
+            };
+            return acc;
+          }, {});
+          
+          accountTotals.push({
+            model_id: bot.id, // 使用bot_id作为标识
+            id: bot.id,
+            bot_id: bot.id, // 明确标识这是bot_id
+            bot_name: bot.name || bot.id,
+            model: bot.model || '', // 保留模型信息用于显示
+            timestamp: Date.now() / 1000,
+            positions: positions,
+            dollar_equity: state.accountValue || 0,
+            equity: state.accountValue || 0,
+            account_value: state.accountValue || 0,
+            total_return: state.totalReturn || 0,
+            realized_pnl: state.realizedPnL || 0
+          });
+        }
+      } catch (e) {
+        console.warn(`[Positions API] 读取Bot ${bot.id} 数据失败:`, e.message);
+      }
+    }
+    
+    // 如果从Bot数据中没有获取到，尝试全局数据
+    if (accountTotals.length === 0) {
+      try {
+        const state = await loadJson('trading-state.json', { positions: [] });
+        const positions = Array.isArray(state?.positions) ? state.positions : [];
+        if (positions.length > 0) {
+          const posMap = positions.reduce((acc, p) => {
+            acc[p.symbol || `POS_${Math.random()}`] = {
+              symbol: String(p?.symbol || ''),
+              quantity: Number(p?.quantity || 0),
+              entry_price: Number(p?.entry_price || 0),
+              current_price: Number(p?.current_price || p?.entry_price || 0),
+              liquidation_price: Number(p?.liquidation_price || 0),
+              unrealized_pnl: Number(p?.unrealized_pnl || 0),
+              leverage: Number(p?.leverage || 1),
+              exit_plan: p?.exit_plan || null,
+              confidence: Number(p?.confidence || 0),
+              risk_usd: Number(p?.risk_usd || 0),
+              entry_oid: 0,
+              entry_time: Date.now() / 1000,
+              margin: 0,
+              notional_usd: Math.abs(p?.quantity || 0) * (p?.current_price || p?.entry_price || 0)
+            };
+            return acc;
+          }, {});
+          
+          accountTotals.push({
+            model_id: 'default', // 使用bot_id作为标识（保持兼容性）
+            id: 'default',
+            bot_id: 'default',
+            bot_name: 'default',
+            model: '', // 保留模型信息用于显示
+            timestamp: Date.now() / 1000,
+            positions: posMap,
+            dollar_equity: state.accountValue || 0,
+            equity: state.accountValue || 0,
+            account_value: state.accountValue || 0,
+            total_return: state.totalReturn || 0,
+            realized_pnl: 0
+          });
+        }
+      } catch (_) {}
+    }
+    
+    return res.json({ accountTotals });
   } catch (e) {
-    res.json({ positions: [] });
+    console.error('[Positions API] 错误:', e);
+    res.json({ accountTotals: [] });
   }
 });
 
@@ -1408,19 +1851,47 @@ router.post('/bots', async (req, res) => {
     
     const created = await botConfigManager.createBot(botConfig);
     
-    // 如果Bot是bot-specific模式，初始化Prompt目录（从env继承）
+    // 如果Bot是bot-specific模式，初始化Prompt目录
     if (created.promptMode === 'bot-specific' && created.id) {
       try {
         const { PromptManager } = await import('../services/prompts/prompt-manager.js');
         const promptManager = new PromptManager(created);
-        // 触发加载，会自动从env继承并创建目录和文件
-        await Promise.all([
-          promptManager.loadSystemPrompt(),
-          promptManager.loadUserPrompt()
-        ]);
+        
+        // 如果指定了从其他Bot复制prompt
+        const copyFromBotId = botConfig.copyPromptFromBotId;
+        if (copyFromBotId) {
+          // 验证源Bot存在
+          const sourceBot = await botConfigManager.getBotById(copyFromBotId);
+          if (!sourceBot) {
+            return res.status(400).json({ 
+              error: `源Bot '${copyFromBotId}' 不存在` 
+            });
+          }
+          
+          // 从源Bot复制prompt
+          // PromptManager 使用 bot-specific 模式时，manager 是 BotPromptManager 实例
+          if (promptManager.manager && promptManager.manager.constructor.name === 'BotPromptManager') {
+            await promptManager.manager.copyFromBot(copyFromBotId);
+          } else {
+            return res.status(500).json({ 
+              error: 'Prompt复制功能仅适用于bot-specific模式' 
+            });
+          }
+        } else {
+          // 默认：从env继承
+          await Promise.all([
+            promptManager.loadSystemPrompt(),
+            promptManager.loadUserPrompt()
+          ]);
+        }
       } catch (e) {
         console.warn(`[Bot创建] 初始化Bot Prompt目录失败 (${created.id}):`, e.message);
-        // 不影响Bot创建，只记录警告
+        // 不影响Bot创建，只记录警告，但如果是复制失败应该返回错误
+        if (botConfig.copyPromptFromBotId) {
+          return res.status(500).json({ 
+            error: `从Bot '${botConfig.copyPromptFromBotId}' 复制prompt失败: ${e.message}` 
+          });
+        }
       }
     }
     
@@ -1430,16 +1901,18 @@ router.post('/bots', async (req, res) => {
         const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
         const stateManager = new BotStateManager(created.id);
         // 创建初始状态文件
+        const initialUsdt = Number(botConfig.initialUsdt);
+        const seed = Number.isFinite(initialUsdt) && initialUsdt > 0 ? initialUsdt : undefined;
         const initialState = {
           startTime: new Date().toISOString(),
           invocationCount: 0,
           totalReturn: 0,
-          accountValue: 10000,
-          availableCash: 10000,
+          accountValue: seed ?? 0,
+          availableCash: seed ?? 0,
           positions: [],
           lastUpdate: new Date().toISOString(),
           tradingEnabled: true,
-          initialAccountValue: 10000
+          initialAccountValue: seed ?? 0
         };
         await stateManager.saveState(initialState);
         // 初始化空数组
@@ -1617,16 +2090,18 @@ router.post('/bots/:botId/init', async (req, res) => {
         const stateManager = new BotStateManager(bot.id);
         const existingState = await stateManager.loadState();
         if (!existingState) {
+          const initialUsdt = Number(bot.initialUsdt);
+          const seed = Number.isFinite(initialUsdt) && initialUsdt > 0 ? initialUsdt : 0;
           const initialState = {
             startTime: new Date().toISOString(),
             invocationCount: 0,
             totalReturn: 0,
-            accountValue: 10000,
-            availableCash: 10000,
+            accountValue: seed,
+            availableCash: seed,
             positions: [],
             lastUpdate: new Date().toISOString(),
             tradingEnabled: true,
-            initialAccountValue: 10000
+            initialAccountValue: seed
           };
           await stateManager.saveState(initialState);
           await stateManager.saveConversations([]);

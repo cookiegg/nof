@@ -11,6 +11,8 @@ import {
   ReferenceLine,
 } from "recharts";
 import { useAccountValueSeries } from "@/lib/api/hooks/useAccountValueSeries";
+import useSWR from "swr";
+import { endpoints, fetcher } from "@/lib/api/nof1";
 import { format } from "date-fns";
 import {
   getModelColor,
@@ -21,6 +23,7 @@ import {
 import { adjustLuminance } from "@/lib/ui/useDominantColors";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { SkeletonBlock } from "@/components/ui/Skeleton";
+import { useLocale } from "@/store/useLocale";
 
 type Range = "ALL" | "72H";
 type Mode = "$" | "%";
@@ -39,6 +42,9 @@ const MAX_POINTS_72H = 600;
 
 export default function AccountValueChart() {
   const { series, modelIds, isLoading, isError, initialAccountValue } = useAccountValueSeries();
+  const { data: runtime } = useSWR<{ bots: Array<{ bot_id: string; running: boolean }> }>(endpoints.runtimeBots(), fetcher, { refreshInterval: 5000 });
+  const locale = useLocale((s) => s.locale);
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   const [range, setRange] = useState<Range>("ALL");
   const [mode, setMode] = useState<Mode>("$");
   const cutoffTimeRef = useRef<number>(0);
@@ -50,6 +56,8 @@ export default function AccountValueChart() {
   const chartRef = useRef<HTMLDivElement | null>(null);
   const [shouldAnimate, setShouldAnimate] = useState(true);
   const percentBaseRef = useRef<Record<string, number>>({});
+  const [legendPage, setLegendPage] = useState(0);
+  const legendPageSize = 6;
 
   // End-logo size and dynamic right margin (to avoid clipping without huge whitespace)
   // Rendered size = base * 2/3. Targets: ~14px (<380), ~18px (<640), ~28px (<1024)
@@ -138,7 +146,7 @@ export default function AccountValueChart() {
       for (const p of sorted) {
         const row: ChartDataPoint = { timestamp: new Date(p.timestamp) };
         for (const id of nextIds) {
-          const value = (p as SeriesPoint)[id];
+          const value = (p as any)[id];
           if (typeof value === "number") {
             (row as any)[id] = value;
           }
@@ -155,7 +163,7 @@ export default function AccountValueChart() {
       if (p.timestamp < (lastTsRef.current as number)) continue;
       const row: ChartDataPoint = { timestamp: new Date(p.timestamp) };
       for (const id of nextIds) {
-        const value = (p as SeriesPoint)[id];
+        const value = (p as any)[id];
         if (typeof value === "number") {
           (row as any)[id] = value;
         }
@@ -181,6 +189,21 @@ export default function AccountValueChart() {
 
   const { data, models } = useMemo(() => {
     let points = dataRows;
+    // 仅保留运行中的 bot 数据
+    const runningIds = new Set(
+      Array.isArray(runtime?.bots) ? runtime!.bots.map((b: any) => b.bot_id) : []
+    );
+    const filteredIds = ids.filter((id) => runningIds.has(id));
+    if (filteredIds.length > 0) {
+      points = points.map((p) => {
+        const cp: ChartDataPoint = { timestamp: p.timestamp } as any;
+        for (const id of filteredIds) {
+          const v = (p as any)[id];
+          if (typeof v === 'number') (cp as any)[id] = v;
+        }
+        return cp;
+      });
+    }
     // Filter by range
     if (range === "72H" && points.length) {
       const cutoff = cutoffTimeRef.current;
@@ -192,7 +215,7 @@ export default function AccountValueChart() {
       if (Object.keys(percentBaseRef.current).length === 0 && points.length > 0) {
         for (const id of ids) {
           for (const p of points) {
-            const v = p[id];
+            const v = (p as any)[id];
             if (typeof v === "number") {
               percentBaseRef.current[id] = v;
               break;
@@ -205,7 +228,7 @@ export default function AccountValueChart() {
         const cp: ChartDataPoint = { ...p } as any;
         for (const id of ids) {
           const base = bases[id];
-          const v = p[id];
+          const v = (p as any)[id];
           if (typeof v === "number" && base) {
             cp[id] = (v / base - 1) * 100; // percent
           }
@@ -226,8 +249,25 @@ export default function AccountValueChart() {
         sampled.push(points[points.length - 1]);
       points = sampled;
     }
-    return { data: points, models: ids };
-  }, [dataRows, ids, range, mode]);
+    return { data: points, models: filteredIds.length ? filteredIds : [] };
+  }, [dataRows, ids, range, mode, runtime]);
+
+  // 轮播 legend 页
+  useEffect(() => {
+    if (!models.length) return;
+    const timer = setInterval(() => {
+      setLegendPage((p) => (p + 1) % Math.max(1, Math.ceil(models.length / legendPageSize)));
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [models]);
+
+  const pagedModels = useMemo(() => {
+    if (!models.length) return models;
+    const total = Math.max(1, Math.ceil(models.length / legendPageSize));
+    const safe = ((legendPage % total) + total) % total;
+    const start = safe * legendPageSize;
+    return models.slice(start, start + legendPageSize);
+  }, [models, legendPage]);
 
   // prefer global brand colors from meta as background for logo chips
 
@@ -399,7 +439,7 @@ export default function AccountValueChart() {
           className={`text-xs font-semibold tracking-wider`}
           style={{ color: "var(--muted-text)" }}
         >
-          账户总资产
+          {t('账户总资产','Account Value')}
         </div>
         {/* Small top-right range/unit toggles */}
         <div className="hidden sm:flex items-center gap-2 text-[11px]">
@@ -407,19 +447,19 @@ export default function AccountValueChart() {
             className={`flex overflow-hidden rounded border`}
             style={{ borderColor: "var(--chip-border)" }}
           >
-            {(["ALL", "72H"] as Range[]).map((r) => (
+            {["ALL", "72H"].map((r) => (
               <button
                 key={r}
                 className={`px-2 py-1 chip-btn`}
                 style={
-                  range === r
+                  range === (r as any)
                     ? {
                         background: "var(--btn-active-bg)",
                         color: "var(--btn-active-fg)",
                       }
                     : { color: "var(--btn-inactive-fg)" }
                 }
-                onClick={() => setRange(r)}
+                onClick={() => setRange(r as any)}
               >
                 {r}
               </button>
@@ -429,19 +469,19 @@ export default function AccountValueChart() {
             className={`flex overflow-hidden rounded border`}
             style={{ borderColor: "var(--chip-border)" }}
           >
-            {(["$", "%"] as Mode[]).map((m) => (
+            {["$", "%"].map((m) => (
               <button
                 key={m}
                 className={`px-2 py-1 chip-btn`}
                 style={
-                  mode === m
+                  mode === (m as any)
                     ? {
                         background: "var(--btn-active-bg)",
                         color: "var(--btn-active-fg)",
                       }
                     : { color: "var(--btn-inactive-fg)" }
                 }
-                onClick={() => setMode(m)}
+                onClick={() => setMode(m as any)}
               >
                 {m}
               </button>
@@ -451,10 +491,17 @@ export default function AccountValueChart() {
       </div>
       {/* Legend below chart */}
       <ErrorBanner
-        message={isError ? "账户价值数据源暂时不可用，请稍后重试。" : undefined}
+        message={isError ? t('账户价值数据源暂时不可用，请稍后重试。','Account value data unavailable. Please try again later.') : undefined}
       />
       <div className="w-full flex-1 min-h-0 flex flex-col">
-        {isLoading ? (
+        {(!runtime || (Array.isArray(runtime.bots) && runtime.bots.length === 0)) ? (
+          <div
+            className="flex h-full flex-col items-center justify-center gap-2 text-sm"
+            style={{ color: "var(--muted-text)" }}
+          >
+            <div>{t('暂无运行中的 bot，启动后将显示其账户曲线。','No running bots. Start one to see its equity curve.')}</div>
+          </div>
+        ) : isLoading ? (
           <SkeletonBlock className="h-full" />
         ) : data.length >= 2 ? (
           <>
@@ -553,7 +600,7 @@ export default function AccountValueChart() {
                         isAnimationActive={shouldAnimate}
                         animationDuration={shouldAnimate ? 400 : 0}
                         animationEasing="ease-out"
-                        name={getModelName(id)}
+                        name={id}
                         hide={active.size ? !active.has(id) : false}
                       />
                     ))}
@@ -639,7 +686,7 @@ export default function AccountValueChart() {
                               />
                             )}
                             <span className="truncate max-w-[9ch]">
-                              {getModelName(id)}
+                              {id}
                             </span>
                           </div>
                           <div
@@ -663,10 +710,10 @@ export default function AccountValueChart() {
                   <div
                     className="grid gap-2"
                     style={{
-                      gridTemplateColumns: `repeat(${models.length}, minmax(0, 1fr))`,
+                      gridTemplateColumns: `repeat(${pagedModels.length}, minmax(0, 1fr))`,
                     }}
                   >
-                    {models.map((id) => {
+                    {pagedModels.map((id) => {
                       const activeOn = active.size ? active.has(id) : true;
                       const icon = getModelIcon(id);
                       return (
@@ -716,7 +763,7 @@ export default function AccountValueChart() {
                               />
                             )}
                             <span className="truncate max-w-[9ch] sm:max-w-none">
-                              {getModelName(id)}
+                              {id}
                             </span>
                           </div>
                           <div
@@ -733,6 +780,17 @@ export default function AccountValueChart() {
                       );
                     })}
                   </div>
+                  {models.length > legendPageSize && (
+                    <div className="mt-2 flex justify-end gap-1">
+                      {Array.from({ length: Math.max(1, Math.ceil(models.length / legendPageSize)) }).map((_, i) => (
+                        <span
+                          key={i}
+                          className="inline-block h-[3px] w-[12px] rounded-sm"
+                          style={{ background: i === legendPage ? "var(--brand-accent)" : "var(--chip-border)" }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
                 {/* Range/unit toggles moved to top-right; no bottom controls */}
               </div>
@@ -743,27 +801,15 @@ export default function AccountValueChart() {
             className="flex h-full flex-col items-center justify-center gap-2 text-sm"
             style={{ color: "var(--muted-text)" }}
           >
-            <div>暂无足够的图表数据（需要至少 2 个时间点）。</div>
+            <div>{t('暂无足够的图表数据（需要至少 2 个时间点）。','Not enough data (need at least 2 points).')}</div>
             <div className="text-xs" style={{ color: "var(--muted-text)" }}>
-              建议保持页面打开几分钟，我们会按 5 秒节奏累积最新净值点。
+              {t('建议保持页面打开几分钟，我们会按 5 秒节奏累积最新净值点。','Keep the page open; we will accumulate points periodically.')}
             </div>
             <div className="text-xs" style={{ color: "var(--muted-text)" }}>
-              调试：
-              <a
-                className="underline"
-                href="/api/nof1/since-inception-values"
-                target="_blank"
-              >
-                since-inception-values
-              </a>
+              Debug:
+              <a className="underline" href="/api/nof1/since-inception-values" target="_blank">since-inception-values</a>
               ，
-              <a
-                className="underline"
-                href="/api/nof1/account-totals"
-                target="_blank"
-              >
-                account-totals
-              </a>
+              <a className="underline" href="/api/nof1/account-totals" target="_blank">account-totals</a>
             </div>
           </div>
         )}

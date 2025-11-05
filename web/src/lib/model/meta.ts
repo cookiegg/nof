@@ -16,6 +16,7 @@ export const BRAND_COLORS: Record<string, string> = {
   "grok-4": "#000000", // rgb(0, 0, 0)
   "gemini-2-5-pro": "#4285f4", // rgb(66, 133, 244)
   "gpt-5": "#10a37f", // rgb(16, 163, 127)
+  "glm-4.6": "#22c55e", // rgb(34, 197, 94) - green tone for GLM
   // common aliases for convenience
   qwen: "#8b5cf6",
   deepseek: "#4d6bfe",
@@ -36,6 +37,7 @@ const MODEL_ALIASES: Record<string, string> = {
   grok4: "grok-4",
   gemini: "gemini-2-5-pro",
   gpt5: "gpt-5",
+  glm: "glm-4.6",
 };
 
 function normalizeId(id: string): string {
@@ -72,6 +74,7 @@ function resolveCanonicalId(id: string): string | undefined {
     return "claude-sonnet-4-5";
   if (lower.includes("qwen")) return "qwen3-max";
   if (/gpt[- ]?5|gpt5/.test(lower)) return "gpt-5";
+  if (lower.includes("glm")) return "glm-4.6";
 
   return undefined;
 }
@@ -107,6 +110,12 @@ const METAS: Record<string, ModelMeta> = {
     color: BRAND_COLORS["grok-4"],
     icon: "/logos_white/Grok_logo.webp",
   },
+  "glm-4.6": {
+    id: "glm-4.6",
+    name: "GLM 4.6",
+    color: BRAND_COLORS["glm-4.6"],
+    icon: "/logos/glm_logo.svg",
+  },
   "qwen3-max": {
     id: "qwen3-max",
     name: "Qwen3 Max",
@@ -118,17 +127,7 @@ const METAS: Record<string, ModelMeta> = {
     name: "默认模型",
     color: DEFAULT_COLOR,
   },
-  "btc-hold": {
-    id: "btc-hold",
-    name: "BTC买入持有",
-    color: "#f7931a", // BTC橙色
-  },
-  buynhold_btc: {
-    id: "buynhold_btc",
-    name: "Buy&Hold BTC",
-    color: "#a3e635",
-    icon: "/logos_white/btc.png",
-  },
+  
 };
 
 function resolveBrandColor(id: string): string | undefined {

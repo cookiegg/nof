@@ -168,9 +168,9 @@ class AITradingSystemV2 {
       const isDemoSpot = envKey === 'demo-spot';
 
       if (isDemoFutures || envKey === 'futures') {
-        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
-        if (!apiKey || !secret) throw new Error('请设置BINANCE_DEMO_API_KEY/SECRET或在config.json配置');
+        const apiKey = this.config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+        const secret = this.config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
+        if (!apiKey || !secret) throw new Error('请设置BINANCE_API_KEY_DEMO_FUTURES/SECRET或在config.json配置');
         this.exchange = new ccxt.binanceusdm({ apiKey, secret, enableRateLimit: true, options: { defaultType: 'future', warnOnFetchCurrencies: false, fetchCurrencies: false, enableDemoTrading: true } });
         this.exchange.httpsProxy = 'http://127.0.0.1:7890/';
         this.exchange.enableDemoTrading(true);

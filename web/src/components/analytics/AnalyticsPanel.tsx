@@ -3,36 +3,39 @@ import { useAnalytics } from "@/lib/api/hooks/useAnalytics";
 import CoinIcon from "@/components/shared/CoinIcon";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { useTheme } from "@/store/useTheme";
+import { useLocale } from "@/store/useLocale";
 
 export default function AnalyticsPanel() {
   const { data, isLoading, isError } = useAnalytics();
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   const fee = data?.fee_pnl_moves_breakdown_table || [];
   const wl = data?.winners_losers_breakdown_table || [];
   return (
     <div className="space-y-3">
-      <ErrorBanner message={isError ? "分析数据暂不可用。" : undefined} />
+      <ErrorBanner message={isError ? t("分析数据暂不可用。", "Analytics data temporarily unavailable.") : undefined} />
       <div className="ui-sans grid grid-cols-2 gap-3 text-[11px]">
-        <Kpi label="胜率" value={fmtPct(data?.win_rate)} />
+        <Kpi label={t("胜率", "Win Rate")} value={fmtPct(data?.win_rate)} />
         <Kpi
-          label="多空比"
+          label={t("多空比", "Long/Short Ratio")}
           value={
             data?.long_short_trades_ratio != null
               ? data?.long_short_trades_ratio.toFixed(2)
               : "—"
           }
         />
-        <Kpi label="平均置信度" value={fmtPct(data?.avg_confidence)} />
-        <Kpi label="中位置信度" value={fmtPct(data?.median_confidence)} />
+        <Kpi label={t("平均置信度", "Avg Confidence")} value={fmtPct(data?.avg_confidence)} />
+        <Kpi label={t("中位置信度", "Median Confidence")} value={fmtPct(data?.median_confidence)} />
       </div>
-      <Block title="费用/盈亏分解">
+      <Block title={t("费用/盈亏分解", "Fees/P&L Breakdown")}>
         <MiniTable rows={fee} />
       </Block>
-      <Block title="赢家/输家分布">
+      <Block title={t("赢家/输家分布", "Winners/Losers Distribution")}>
         <MiniTable rows={wl} />
       </Block>
       {isLoading ? (
         <div className="text-xs" style={{ color: "var(--muted-text)" }}>
-          加载中…
+          {t("加载中…", "Loading…")}
         </div>
       ) : null}
     </div>
@@ -85,10 +88,12 @@ function Block({
 }
 
 function MiniTable({ rows }: { rows: any[] }) {
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
   if (!rows?.length)
     return (
       <div className="text-xs" style={{ color: "var(--muted-text)" }}>
-        暂无数据
+        {t("暂无数据", "No data")}
       </div>
     );
   const cols = Object.keys(rows[0] || {});

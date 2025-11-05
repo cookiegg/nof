@@ -12,6 +12,7 @@ import { fmtUSD, pnlClass, fmtPct } from "@/lib/utils/formatters";
 import ErrorBanner from "@/components/ui/ErrorBanner";
 import { SkeletonTableRow } from "@/components/ui/Skeleton";
 import clsx from "clsx";
+import { useLocale } from "@/store/useLocale";
 
 type SortKey =
   | "equity"
@@ -35,6 +36,8 @@ export default function LeaderboardTable({
   const { map: sharpeMap, stats: sharpeStats } = useSharpeMap();
   const [sortKey, setSortKey] = useState<SortKey>("equity");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
 
   const data = useMemo(() => {
     // 预计算派生指标 + 关联 analytics 字段
@@ -66,11 +69,11 @@ export default function LeaderboardTable({
     >
       <div className="mb-2">
         <h2 className={`ui-sans text-sm font-semibold`} style={{ color: "var(--foreground)" }}>
-          排行榜
+          {t("排行榜", "Leaderboard")}
         </h2>
       </div>
       <ErrorBanner
-        message={isError ? "排行榜数据源暂时不可用，请稍后重试。" : undefined}
+        message={isError ? t("排行榜数据源暂时不可用，请稍后重试。", "Leaderboard data source temporarily unavailable, please try again later.") : undefined}
       />
       <div className="overflow-x-auto">
         <table className="w-full text-left text-[11px]">
@@ -80,15 +83,15 @@ export default function LeaderboardTable({
               style={{ borderColor: "var(--panel-border)" }}
             >
               <Th label="#" />
-              <Th label="模型" />
+              <Th label={t("Bot", "Bot")} />
               <ThSort
-                label="净值"
+                label={t("净值", "Equity")}
                 active={sortKey === "equity"}
                 dir={sortDir}
                 onClick={() => toggleSort("equity")}
               />
               <ThSort
-                label="收益率"
+                label={t("收益率", "Return %")}
                 active={sortKey === "return_pct"}
                 dir={sortDir}
                 onClick={() => toggleSort("return_pct")}
@@ -96,42 +99,42 @@ export default function LeaderboardTable({
               {mode === "advanced" ? (
                 <>
                   <ThSort
-                    label="总盈亏"
+                    label={t("总盈亏", "Total P&L")}
                     active={sortKey === "total_pnl"}
                     dir={sortDir}
                     onClick={() => toggleSort("total_pnl")}
                   />
-                  <Th label="费用" />
+                  <Th label={t("费用", "Fees")} />
                   <ThSort
-                    label="胜率"
+                    label={t("胜率", "Win Rate")}
                     active={sortKey === "win_rate"}
                     dir={sortDir}
                     onClick={() => toggleSort("win_rate")}
                   />
                   <ThSort
-                    label="最大盈利"
+                    label={t("最大盈利", "Max Gain")}
                     active={sortKey === "win_dollars"}
                     dir={sortDir}
                     onClick={() => toggleSort("win_dollars")}
                   />
                   <ThSort
-                    label="最大亏损"
+                    label={t("最大亏损", "Max Loss")}
                     active={sortKey === "lose_dollars"}
                     dir={sortDir}
                     onClick={() => toggleSort("lose_dollars")}
                   />
-                  <Th label="平均置信度" />
-                  <Th label="中位置信度" />
+                  <Th label={t("平均置信度", "Avg Confidence")} />
+                  <Th label={t("中位置信度", "Median Confidence")} />
                 </>
               ) : null}
               <ThSort
-                label="交易数"
+                label={t("交易数", "Trades")}
                 active={sortKey === "num_trades"}
                 dir={sortDir}
                 onClick={() => toggleSort("num_trades")}
               />
               <ThSort
-                label="夏普"
+                label={t("夏普", "Sharpe")}
                 active={sortKey === "sharpe"}
                 dir={sortDir}
                 onClick={() => toggleSort("sharpe")}
@@ -161,21 +164,9 @@ export default function LeaderboardTable({
                   >
                     <td className="py-1 pr-2 lg:pr-3">{idx + 1}</td>
                     <td className="py-1 pr-2 lg:pr-3">
-                      <a
-                        className={`inline-flex items-center gap-2 hover:underline`}
-                        style={{ color: "inherit" }}
-                        onMouseOver={(e) => {
-                          (e.currentTarget as HTMLElement).style.color =
-                            "var(--link-hover)";
-                        }}
-                        onMouseOut={(e) => {
-                          (e.currentTarget as HTMLElement).style.color = "";
-                        }}
-                        href={`/models/${encodeURIComponent(r.id)}`}
-                      >
-                        <ModelLogoChip modelId={r.id} size="sm" />
-                        {getModelName(r.id)}
-                      </a>
+                      <span className="inline-flex items-center gap-2 ui-sans" style={{ color: "inherit" }}>
+                        <span className="font-medium" style={{ wordBreak: "break-all" }}>{r.id}</span>
+                      </span>
                     </td>
                     <td className="py-1 pr-2 lg:pr-3 tabular-nums">
                       {fmtUSD(r.equity)}
@@ -260,12 +251,12 @@ export default function LeaderboardTable({
     const s = value != null ? value : sharpeStats?.[id]?.sharpe;
     const content = (
       <div className="space-y-1">
-        <div>Sharpe：{s != null ? s.toFixed(3) : "—"}</div>
-        <div>样本天数：{n} 天</div>
-        <div>超额日收益</div>
-        <div className="pl-3">均值：{fmtPct(mean)}</div>
-        <div className="pl-3">标准差：{fmtPct(std)}</div>
-        <div className="opacity-80">{useSharpeHint()}</div>
+        <div>{t("Sharpe：", "Sharpe:")}{s != null ? s.toFixed(3) : "—"}</div>
+        <div>{t("样本天数：", "Sample Days:")}{n} {t("天", "days")}</div>
+        <div>{t("超额日收益", "Excess Daily Return")}</div>
+        <div className="pl-3">{t("均值：", "Mean:")}{fmtPct(mean)}</div>
+        <div className="pl-3">{t("标准差：", "Std Dev:")}{fmtPct(std)}</div>
+        <div className="opacity-80">{getSharpeHint(locale)}</div>
       </div>
     );
     const muted = n < 3;
@@ -286,10 +277,10 @@ export default function LeaderboardTable({
     const avg = a?.fee_pnl_moves_breakdown_table?.avg_taker_fee;
     const content = (
       <div className="space-y-1">
-        <div>费用（USD）：{fees != null ? fmtUSD(fees) : "—"}</div>
-        {avg != null ? <div>平均单笔费：{fmtUSD(avg)}</div> : null}
+        <div>{t("费用（USD）：", "Fees (USD):")}{fees != null ? fmtUSD(fees) : "—"}</div>
+        {avg != null ? <div>{t("平均单笔费：", "Avg Fee per Trade:")}{fmtUSD(avg)}</div> : null}
         <div className="opacity-80">
-          口径：已完成交易的成交手续费总额（含进/出场 taker 费）。
+          {t("口径：已完成交易的成交手续费总额（含进/出场 taker 费）。", "Scope: Total trading fees for completed trades (including entry/exit taker fees).")}
         </div>
       </div>
     );
@@ -307,10 +298,10 @@ export default function LeaderboardTable({
     const wr = rate;
     const content = (
       <div className="space-y-1">
-        <div>胜率：{wr != null ? `${wr.toFixed(1)}%` : "—"}</div>
-        <div>交易数：{trades ?? "—"}</div>
+        <div>{t("胜率：", "Win Rate:")}{wr != null ? `${wr.toFixed(1)}%` : "—"}</div>
+        <div>{t("交易数：", "Trades:")}{trades ?? "—"}</div>
         <div className="opacity-80">
-          口径：仅统计已完成交易，胜率=胜场数/（胜+负）；未平仓不计入。
+          {t("口径：仅统计已完成交易，胜率=胜场数/（胜+负）；未平仓不计入。", "Scope: Only completed trades counted. Win rate = wins / (wins + losses); open positions excluded.")}
         </div>
       </div>
     );
@@ -326,10 +317,9 @@ export default function LeaderboardTable({
   function renderReturnPct(val?: number) {
     const content = (
       <div className="space-y-1">
-        <div>收益率：{val != null ? `${val.toFixed(2)}%` : "—"}</div>
+        <div>{t("收益率：", "Return %:")}{val != null ? `${val.toFixed(2)}%` : "—"}</div>
         <div className="opacity-80">
-          口径：基于账户总权益（包含未平仓盈亏），相对初始资本
-          $10,000；公式：(Equity/Base - 1)。
+          {t("口径：基于账户总权益（含未平仓），相对各 bot 启动时的初始资本；公式：(Equity/Base - 1)。", "Scope: Based on total equity (incl. unrealized), relative to each bot's initial capital; Formula: (Equity/Base - 1).")}
         </div>
       </div>
     );
@@ -345,10 +335,9 @@ export default function LeaderboardTable({
   function renderTotalPnl(val?: number) {
     const content = (
       <div className="space-y-1">
-        <div>总盈亏：{val != null ? fmtUSD(val) : "—"}</div>
+        <div>{t("总盈亏：", "Total P&L:")}{val != null ? fmtUSD(val) : "—"}</div>
         <div className="opacity-80">
-          口径：基于账户总权益（包含未平仓盈亏），相对初始资本
-          $10,000；公式：Equity − Base。
+          {t("口径：基于账户总权益（包含未平仓盈亏），相对初始资本 $10,000；公式：Equity − Base。", "Scope: Based on total equity (including unrealized P&L), relative to initial capital $10,000; Formula: Equity − Base.")}
         </div>
       </div>
     );
@@ -362,14 +351,14 @@ export default function LeaderboardTable({
   }
 
   function renderExtreme(isWin: boolean, val?: number) {
-    const label = isWin ? "最大盈利" : "最大亏损";
+    const label = isWin ? t("最大盈利", "Max Gain") : t("最大亏损", "Max Loss");
     const content = (
       <div className="space-y-1">
         <div>
-          {label}：{val != null ? fmtUSD(val) : "—"}
+          {label}{t("：", ":")}{val != null ? fmtUSD(val) : "—"}
         </div>
         <div className="opacity-80">
-          口径：单笔净盈亏（含手续费），仅统计已完成交易。
+          {t("口径：单笔净盈亏（含手续费），仅统计已完成交易。", "Scope: Single trade net P&L (including fees), only completed trades counted.")}
         </div>
       </div>
     );
@@ -383,7 +372,7 @@ export default function LeaderboardTable({
   }
 }
 
-const BASE = 10000; // 初始资金
+// 初始资金不再硬编码；由后端提供 per-bot 的初始资本用于计算
 function withDerived(
   r: LeaderboardRow,
   a?: any,
@@ -397,8 +386,9 @@ function withDerived(
   // 从收益率与净值反推总盈亏，避免对初始资金的硬编码
   // 采用最新快照的 dollar_equity 计算净值/收益率/总盈亏
   const equity = latestEquity ?? undefined;
-  const totalPnl = equity != null ? equity - BASE : undefined;
-  const returnPct = equity != null ? ((equity - BASE) / BASE) * 100 : undefined;
+  // 由后端填充 r.total_pnl / r.return_pct 更为准确；这里仅回退显示净值
+  const totalPnl = r.total_pnl ?? undefined;
+  const returnPct = r.return_pct ?? undefined;
   return {
     ...r,
     equity: equity ?? r.equity,
@@ -419,8 +409,9 @@ function Th({ label }: { label: string }) {
   return <th className="py-1.5 pr-3 text-xs">{label}</th>;
 }
 
-function useSharpeHint() {
-  return "口径：基于已完成交易的日度超额收益（基准：BTC Buy&Hold），未年化，10%温莎化。";
+function getSharpeHint(locale: "zh" | "en") {
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
+  return t("口径：基于已完成交易的日度超额收益（基准：BTC Buy&Hold），未年化，10%温莎化。", "Scope: Based on daily excess returns of completed trades (benchmark: BTC Buy&Hold), not annualized, 10% Winsorized.");
 }
 
 function ThSort({

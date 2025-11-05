@@ -107,9 +107,78 @@ class TradingRunnerService {
       }
     }
 
+    // 启动前初始化该Bot的数据目录与种子文件（无论真实/模拟）
+    try {
+      const { BotStateManager } = await import('./trading/bot-state-manager.js');
+      const stateManager = new BotStateManager(botId);
+      const existingState = await stateManager.loadState();
+      if (!existingState) {
+        const seed = {
+          startTime: new Date().toISOString(),
+          invocationCount: 0,
+          totalReturn: 0,
+          accountValue: 0,
+          availableCash: 0,
+          positions: [],
+          lastUpdate: new Date().toISOString(),
+          tradingEnabled: true
+        };
+        await stateManager.saveState(seed);
+        await stateManager.saveConversations([]);
+        await stateManager.saveTrades([]);
+      }
+    } catch (e) {
+      console.warn(`[Runner] 预初始化Bot数据目录失败 (${botId}):`, e.message);
+    }
+
     const instance = new BotInstance(botId, botConfig);
     this.bots.set(botId, instance);
     instance.start();
+
+    // 异步预热：在子进程首次循环前，尽量写入一份实时账户快照到该 bot 的专属状态，便于前端立即显示
+    (async () => {
+      try {
+        const [{ BotStateManager }, binance] = await Promise.all([
+          import('./trading/bot-state-manager.js'),
+          import('./binance.js').catch(() => null),
+        ]);
+        const sm = new BotStateManager(botId);
+        const cur = (await sm.loadState()) || {};
+        let accountValue = Number(cur.accountValue || 0);
+        let availableCash = Number(cur.availableCash || 0);
+        let positions = Array.isArray(cur.positions) ? cur.positions : [];
+
+        if (binance && (typeof binance.getRealTimeAccountData === 'function' || typeof binance.getAccountBalance === 'function')) {
+          try {
+            // 临时切换进程的 TRADING_ENV，保证数据读取针对该 bot 的环境
+            const prevEnv = process.env.TRADING_ENV;
+            process.env.TRADING_ENV = botConfig.env;
+            const rt = typeof binance.getRealTimeAccountData === 'function'
+              ? await binance.getRealTimeAccountData()
+              : null;
+            if (!rt && typeof binance.getAccountBalance === 'function') {
+              const bal = await binance.getAccountBalance();
+              if (Number.isFinite(Number(bal))) accountValue = Number(bal);
+            }
+            process.env.TRADING_ENV = prevEnv;
+            if (rt) {
+              accountValue = Number(rt.balance || accountValue || 0);
+              availableCash = Number(rt.availableCash || availableCash || 0);
+              positions = Array.isArray(rt.positions) ? rt.positions : positions;
+            }
+          } catch (_) {}
+        }
+
+        const next = {
+          ...cur,
+          accountValue,
+          availableCash,
+          positions,
+          lastUpdate: new Date().toISOString(),
+        };
+        await sm.saveState(next);
+      } catch (_) {}
+    })();
     return instance.getStatus();
   }
 

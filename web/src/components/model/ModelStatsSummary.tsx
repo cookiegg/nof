@@ -6,12 +6,15 @@ import { usePositions } from "@/lib/api/hooks/usePositions";
 import { useTrades } from "@/lib/api/hooks/useTrades";
 import { fmtUSD } from "@/lib/utils/formatters";
 import Tooltip from "@/components/ui/Tooltip";
+import { useLocale } from "@/store/useLocale";
 
 export default function ModelStatsSummary({ modelId }: { modelId: string }) {
   const { data: totalsData } = useAccountTotals();
   const { map: analytics } = useAnalyticsMap();
   const { positionsByModel } = usePositions();
   const { trades } = useTrades();
+  const { locale } = useLocale();
+  const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
 
   const latest = useMemo(() => {
     const arr = totalsData?.accountTotals ?? [];
@@ -35,12 +38,16 @@ export default function ModelStatsSummary({ modelId }: { modelId: string }) {
   const avgConf = a?.signals_breakdown_table?.avg_confidence; // 0-1
 
   // Total P&L 与 Net Realized：
-  // - Total P&L 取 overall_pnl_with_fees（如可得）或 (realized_pnl + unrealized_pnl)
-  // 总盈亏：与排行榜口径一致 = 最新净值 − 初始资金（$10,000）
-  const BASE = 10000;
+  // - Total P&L 优先取分析接口（overall_pnl_with_fees），否则尝试用“最新净值 − 该 bot 的初始资本”（若可得）
   const latestEquity = latest?.dollar_equity ?? latest?.equity ?? latest?.account_value;
+  const analyticsTotalPnl = (a?.overall_pnl_with_fees as number) ?? undefined;
+  const baseForThisBot = (latest as any)?.initialAccountValue as number | undefined;
   const totalPnl =
-    typeof latestEquity === "number" ? latestEquity - BASE : undefined;
+    analyticsTotalPnl != null
+      ? analyticsTotalPnl
+      : typeof latestEquity === "number" && typeof baseForThisBot === "number" && baseForThisBot > 0
+        ? latestEquity - baseForThisBot
+        : undefined;
 
   // 已实现盈亏：以成交汇总求和，避免不同快照口径差异
   const netRealized = useMemo(() => {
@@ -127,53 +134,53 @@ export default function ModelStatsSummary({ modelId }: { modelId: string }) {
       <div className="rounded-md border p-4 relative" style={{ background: "var(--panel-bg)", borderColor: "var(--panel-border)" }}>
         {/* 右上角灰色小字 */}
         <div className="absolute right-3 top-2 ui-sans text-[11px] whitespace-nowrap" style={{ color: "var(--muted-text)" }}>
-          不含资金费与返佣（Does not include funding costs and rebates）
+          {t("不含资金费与返佣", "Does not include funding costs and rebates")}
         </div>
         {/* 优先展示与视觉权重更高的三项 */}
         <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-3">
           <Stat
-            label="账户总权益"
+            label={t("账户总权益", "Total Equity")}
             value={fmtUSD(totalAccountValue)}
-            tip={(<div>口径：最新快照的账户权益（含未实现盈亏）。</div>)}
+            tip={(<div>{t("口径：最新快照的账户权益（含未实现盈亏）。", "Scope: Latest snapshot of account equity (including unrealized P&L).")}</div>)}
           />
           <Stat
-            label="总盈亏"
+            label={t("总盈亏", "Total P&L")}
             value={fmtUSD(totalPnl)}
             tone="pnl"
             num={totalPnl}
-            tip={(<div>口径：优先取分析接口的总体盈亏（含手续费），否则为已实现+未实现。</div>)}
+            tip={(<div>{t("口径：优先取分析接口的总体盈亏（含手续费），否则为已实现+未实现。", "Scope: Prefer analytics API total P&L (including fees), otherwise realized + unrealized.")}</div>)}
           />
           <Stat
-            label="已实现盈亏"
+            label={t("已实现盈亏", "Realized P&L")}
             value={fmtUSD(netRealized)}
             tone="pnl"
             num={netRealized}
-            tip={(<div>口径：已平仓交易累计净盈亏。</div>)}
+            tip={(<div>{t("口径：已平仓交易累计净盈亏。", "Scope: Cumulative net P&L from closed trades.")}</div>)}
           />
         </div>
         {/* 次级信息置于下一行 */}
         <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
-          <Stat label="可用现金（估）" value={fmtUSD(availableCash)} tip={(<div>估算：账户总权益 − 当前持仓保证金。</div>)} />
-          <Stat label="手续费总计" value={fmtUSD(fees)} tip={(<div>口径：已完成交易的成交手续费总额。</div>)} />
+          <Stat label={t("可用现金（估）", "Available Cash (Est.)")} value={fmtUSD(availableCash)} tip={(<div>{t("估算：账户总权益 − 当前持仓保证金。", "Estimate: Total equity − current position margin.")}</div>)} />
+          <Stat label={t("手续费总计", "Total Fees")} value={fmtUSD(fees)} tip={(<div>{t("口径：已完成交易的成交手续费总额。", "Scope: Total trading fees for completed trades.")}</div>)} />
         </div>
       </div>
 
       {/* Part 2：更宽展示 + 中文 */}
       <div className="rounded-md border p-4" style={{ background: "var(--panel-bg)", borderColor: "var(--panel-border)" }}>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
-          <Stat label="平均杠杆" value={avgLev != null ? `${avgLev.toFixed(1)}` : "—"} tip={(<div>口径：优先取 overall_trades_overview_table.avg_convo_leverage；无则回退为 signals.avg_leverage；仍无则取最近成交均值。</div>)} />
-          <Stat label="平均置信度" value={avgConf != null ? `${(avgConf * 100).toFixed(1)}%` : "—"} tip={(<div>口径：信号置信度的算术平均。</div>)} />
-          <Stat label="最大盈利" value={fmtUSD(biggestWin)} tone="pnl" num={biggestWin} tip={(<div>口径：单笔已完成交易的最大净盈利。</div>)} />
-          <Stat label="最大亏损" value={fmtUSD(biggestLoss)} tone="pnl" num={biggestLoss} tip={(<div>口径：单笔已完成交易的最大净亏损。</div>)} />
+          <Stat label={t("平均杠杆", "Avg Leverage")} value={avgLev != null ? `${avgLev.toFixed(1)}` : "—"} tip={(<div>{t("口径：优先取 overall_trades_overview_table.avg_convo_leverage；无则回退为 signals.avg_leverage；仍无则取最近成交均值。", "Scope: Prefer overall_trades_overview_table.avg_convo_leverage; fallback to signals.avg_leverage; otherwise use recent trades mean.")}</div>)} />
+          <Stat label={t("平均置信度", "Avg Confidence")} value={avgConf != null ? `${(avgConf * 100).toFixed(1)}%` : "—"} tip={(<div>{t("口径：信号置信度的算术平均。", "Scope: Arithmetic mean of signal confidence.")}</div>)} />
+          <Stat label={t("最大盈利", "Max Gain")} value={fmtUSD(biggestWin)} tone="pnl" num={biggestWin} tip={(<div>{t("口径：单笔已完成交易的最大净盈利。", "Scope: Maximum net gain from a single completed trade.")}</div>)} />
+          <Stat label={t("最大亏损", "Max Loss")} value={fmtUSD(biggestLoss)} tone="pnl" num={biggestLoss} tip={(<div>{t("口径：单笔已完成交易的最大净亏损。", "Scope: Maximum net loss from a single completed trade.")}</div>)} />
         </div>
         <div className="mt-3">
           <div className="ui-sans text-xs" style={{ color: "var(--muted-text)" }}>
-            持有时长构成
+            {t("持有时长构成", "Holding Time Distribution")}
           </div>
           <div className="mt-1 grid grid-cols-3 gap-2 text-sm">
-            <div>多头：<span className="tabular-nums">{holdTimes.longPct.toFixed(1)}%</span></div>
-            <div>空头：<span className="tabular-nums">{holdTimes.shortPct.toFixed(1)}%</span></div>
-            <div>空仓：<span className="tabular-nums">{holdTimes.flatPct.toFixed(1)}%</span></div>
+            <div>{t("多头：", "Long:")}<span className="tabular-nums">{holdTimes.longPct.toFixed(1)}%</span></div>
+            <div>{t("空头：", "Short:")}<span className="tabular-nums">{holdTimes.shortPct.toFixed(1)}%</span></div>
+            <div>{t("空仓：", "Flat:")}<span className="tabular-nums">{holdTimes.flatPct.toFixed(1)}%</span></div>
           </div>
         </div>
       </div>

@@ -17,7 +17,7 @@ export async function deriveAccountTotals(tradesJson, lastHourlyMarker) {
   }
   const out = [];
   for (const [id, dm] of byModel) {
-    let eq = 10000; // seed
+    let eq = 0; // 使用累计P&L作为合成净值的起点，避免虚拟的 10,000 初值
     const days = Array.from(dm.keys()).sort();
     for (const k of days) {
       eq += dm.get(k) || 0;
@@ -36,7 +36,7 @@ export async function deriveLeaderboard(tradesJson) {
   for (const t of rows) {
     const id = String(t.model_id || 'default');
     const pnl = Number(t.realized_net_pnl || t.realized_gross_pnl || 0);
-    const prev = agg.get(id) || { id, equity: 10000, num_trades: 0, wins: 0, losses: 0 };
+    const prev = agg.get(id) || { id, equity: 0, num_trades: 0, wins: 0, losses: 0 };
     prev.equity += pnl;
     prev.num_trades += 1;
     if (pnl >= 0) prev.wins += 1; else prev.losses += 1;
@@ -63,7 +63,7 @@ export async function deriveSinceInception(tradesJson) {
   }
   const sinceInceptionValues = [];
   for (const [id, ts] of firstByModel) {
-    const nav = 10000 + (pnlByModel.get(id) || 0);
+    const nav = (pnlByModel.get(id) || 0); // 累计P&L作为自起始以来的 NAV 变化量
     sinceInceptionValues.push({ id, model_id: id, nav_since_inception: nav, inception_date: Math.floor(ts / 1000), num_invocations: countByModel.get(id) || 0 });
   }
   return { serverTime: Date.now(), sinceInceptionValues };

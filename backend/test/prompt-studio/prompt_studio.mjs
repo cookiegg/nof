@@ -321,8 +321,8 @@ async function main() {
   let ccxtCaps = null;
   try {
     if (isFutures) {
-      const k = config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_DEMO_API_KEY;
-      const s = config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_DEMO_API_SECRET;
+      const k = config.exchange?.binance?.futures_demo?.api_key || process.env.BINANCE_API_KEY_DEMO_FUTURES;
+      const s = config.exchange?.binance?.futures_demo?.api_secret || process.env.BINANCE_API_SECRET_DEMO_FUTURES;
       if (k && s) {
         exchange = new ccxt.binanceusdm({ apiKey: k, secret: s, enableRateLimit: true, options: { defaultType: 'future', enableDemoTrading: true } });
         exchange.httpsProxy = 'http://127.0.0.1:7890/';
