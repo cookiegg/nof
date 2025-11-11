@@ -32,12 +32,13 @@ yarn-error.log*
 
 # project-specific ignores
 backend/.key
-backend/test
-web/node_modules
-learning
-markdown
-mcp
-tests
+backend/test/
+backend/node_modules/
+web/node_modules/
+learning/
+markdown/
+mcp/
+tests/
 node_modules
 
 # vercel

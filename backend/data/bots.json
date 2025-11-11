@@ -1,13 +1,11 @@
 {
   "bots": [
     {
-      "id": "demo-futures-deepseek-v3.2-exp-1",
+      "id": "demo-futures-qwen-plus-1",
       "env": "demo-futures",
-      "model": "deepseek-v3.2-exp",
+      "model": "qwen-plus",
       "intervalMinutes": 1,
       "promptMode": "bot-specific",
-      "dashscopeApiKey": "DASHSCOPE_API_KEY_1",
-      "enableThinking": true,
       "tradingMode": "binance-demo",
       "botClass": "demo-real"
     }
