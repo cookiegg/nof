@@ -6,7 +6,7 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js"
+    "dev": "NODE_WATCH_IGNORE='**/ai/ai-trading/prompt_templates/**' node --watch src/server.js"
   },
   "dependencies": {
     "ccxt": "^4.4.37",
