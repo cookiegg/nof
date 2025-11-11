@@ -1,22 +1,35 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
-import BotList from "@/components/trading/BotList";
+import dynamic from "next/dynamic";
+import remarkGfm from "remark-gfm";
 import type { BotConfig } from "@/components/trading/BotControlPanel";
 import { useLocale } from "@/store/useLocale";
 
 type Msg = { role: 'user' | 'assistant' | 'system'; content: string };
 
-export default function PromptStudioChatPanel() {
+export default function PromptStudioChatPanel({ selectedBot }: { selectedBot: BotConfig | null }) {
+  const Markdown: any = useMemo(() =>
+    dynamic(() => import('react-markdown').then(mod => mod.default as any), { ssr: false, loading: () => null }) as any,
+  []);
   const { locale } = useLocale();
   const t = (zh: string, en: string) => (locale === "zh" ? zh : en);
+  const [showHelp, setShowHelp] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([
     { role: 'system', content: t('Prompt Studio Chat 已就绪：输入问题进行问答（问答），或点击“建议”让模型产出模板草稿。', 'Prompt Studio Chat ready: type a question to Ask, or click "Suggest" to draft prompts.') }
   ]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedBot, setSelectedBot] = useState<BotConfig | null>(null);
+  // selectedBot 由父级页面传入，以便将“交易 bot”与“Prompt Studio Chat”分栏
 
+  function onClear() {
+    setError(null);
+    setDraft(null);
+    setInput("");
+    setMessages([
+      { role: 'system', content: t('Prompt Studio Chat 已就绪：输入问题进行问答（问答），或点击“建议”让模型产出模板草稿。', 'Prompt Studio Chat ready: type a question to Ask, or click "Suggest" to draft prompts.') }
+    ]);
+  }
   async function onAsk() {
     if (!input.trim()) return;
     const q = input.trim();
@@ -229,21 +242,14 @@ export default function PromptStudioChatPanel() {
     try {
       const r = await fetch('/api/nof1/ai/capabilities/compact');
       const j = await r.json();
-      const title = t('能力（简）', 'Capabilities (compact)');
+      const title = t('可用行情数据', 'Available market data');
       setMessages((m) => [...m, { role: 'assistant', content: `${title}\n\n${JSON.stringify(j, null, 2)}` }]);
     } finally { setBusy(false); }
   }
 
   return (
     <aside className="h-full flex flex-col pr-1">
-      {/* 多Bot交易控制区：固定在顶部，可滚动 */}
-      <div className="flex-shrink-0 mb-3" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
-        <BotList 
-          models={['qwen3-max', 'qwen3-plus', 'glm-4.6', 'deepseek-v3.2-exp', 'deepseek-v3.1']}
-          onBotSelect={setSelectedBot}
-          selectedBotId={selectedBot?.id || null}
-        />
-      </div>
+      {/* 多Bot交易控制区已迁移到页面左侧独立栏位，这里移除 */}
 
       {/* Prompt Studio Chat */}
       <div className="flex-shrink-0 mb-2 flex items-center justify-between">
@@ -264,14 +270,16 @@ export default function PromptStudioChatPanel() {
         <div className="flex-shrink-0 mb-2 rounded border px-2 py-1 text-xs" style={{ borderColor: 'var(--chip-border)', color: 'var(--danger)' }}>{error}</div>
       )}
       <div className="flex-shrink-0 mb-2 flex flex-wrap gap-2 text-xs">
-        <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={onShow} disabled={busy}>{t('显示', 'show')}</button>
+        <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={onShow} disabled={busy}>{t('显示当前prompt', 'Show current prompt')}</button>
         <button className="rounded px-2 py-1 chip-btn" style={{ background: 'var(--btn-active-bg)', color: 'var(--btn-active-fg)' }} onClick={onSuggest} disabled={busy}>{t('建议', 'suggest')}</button>
         <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={onDiff} disabled={busy || !draft}>{t('对比', 'diff')}</button>
         <button className="rounded px-2 py-1 chip-btn" style={{ background: 'var(--btn-active-bg)', color: 'var(--btn-active-fg)' }} onClick={onApply} disabled={busy || !draft}>{t('应用', 'apply')}</button>
         <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={onSave} disabled={busy}>{t('保存', 'save')}</button>
         <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={onRevert} disabled={busy}>{t('回滚', 'revert')}</button>
         <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={onPlaceholders} disabled={busy}>{t('占位符', 'placeholders')}</button>
-        <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={onCapabilities} disabled={busy}>{t('能力（简）', 'cap-ccxt-compact')}</button>
+        <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={onCapabilities} disabled={busy}>{t('可用行情数据', 'Available market data')}</button>
+        <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={() => setShowHelp(true)} disabled={busy}>{t('使用说明', 'Help')}</button>
+        <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--danger)', border: '1px solid var(--chip-border)' }} onClick={onClear} disabled={busy}>{t('清空对话', 'Clear')}</button>
       </div>
       
       {/* 对话内容区：可滚动 */}
@@ -279,7 +287,15 @@ export default function PromptStudioChatPanel() {
         {messages.map((m, i) => (
           <div key={i} className="rounded border p-2" style={{ borderColor: 'var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--foreground)' }}>
             <div className="mb-1 opacity-70">{m.role}</div>
-            <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+            {m.role === 'assistant' ? (
+              // Markdown 渲染（仅对模型输出开启）
+              // 说明：需要 web 侧安装 react-markdown 依赖
+              <div className="markdown-body" style={{ lineHeight: 1.6 }}>
+                <Markdown remarkPlugins={[remarkGfm]}>{m.content || ''}</Markdown>
+              </div>
+            ) : (
+              <div style={{ whiteSpace: 'pre-wrap' }}>{m.content}</div>
+            )}
           </div>
         ))}
       </div>
@@ -291,6 +307,14 @@ export default function PromptStudioChatPanel() {
           style={{ borderColor: 'var(--panel-border)', background: 'var(--panel-bg)', color: 'var(--foreground)' }}
           value={input}
           onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              if (!busy && input.trim()) {
+                onAsk();
+              }
+            }
+          }}
           placeholder={t('提出关于模板/配置/能力的问题…', 'Ask about prompts/config/capabilities…')}
         />
         <div className="flex items-center gap-2 text-xs">
@@ -298,6 +322,81 @@ export default function PromptStudioChatPanel() {
           <button className="rounded px-2 py-1 chip-btn" style={{ color: 'var(--btn-inactive-fg)', border: '1px solid var(--chip-border)' }} onClick={onSuggest} disabled={busy}>{t('建议', 'Suggest')}</button>
         </div>
       </div>
+
+      {showHelp && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }} onClick={() => setShowHelp(false)}>
+          <div className="max-w-2xl w-[92%] sm:w-[640px] max-h-[80vh] overflow-y-auto rounded border p-4 text-xs"
+               style={{ background: 'var(--panel-bg)', borderColor: 'var(--panel-border)', color: 'var(--foreground)' }}
+               onClick={(e) => e.stopPropagation()}>
+            <div className="mb-2 flex items-center justify-between">
+              <div className="text-sm font-semibold">{t('Prompt Studio Chat 使用说明', 'Prompt Studio Chat Guide')}</div>
+              <button className="rounded px-2 py-1 chip-btn" style={{ border: '1px solid var(--chip-border)', color: 'var(--btn-inactive-fg)' }} onClick={() => setShowHelp(false)}>
+                {t('关闭', 'Close')}
+              </button>
+            </div>
+            <div style={{ whiteSpace: 'pre-wrap' }}>
+{t(`
+一、它是什么
+- 面向“提示词模板与配置”的对话式工作台：查看/生成/对比/应用/回滚 Prompt，支持按 Bot 或按环境共享管理。
+
+二、基本流程
+1) 显示当前prompt：读取当前 System/User 提示，确认基线内容。
+2) 建议：由模型生成英文模板草稿（System/User/Rationale/Config）。
+3) 对比：将草稿与当前提示做差异比对，便于审阅变更。
+4) 应用：将草稿写入对应目标（Bot 独立 或 环境共享）；自动备份。
+5) 回滚：恢复到最近一次模板备份。
+
+三、选择目标
+- 右上方选择 Bot：
+  · 独立（bot-specific）：只影响该 Bot 的专属提示。
+  · 共享（env-shared）：影响同一环境（如 test-spot / demo-futures）下的共用模板。
+
+四、辅助能力
+- 占位符：列出可用占位符键（用于在运行时注入变量）。
+- 可用行情数据：展示后端可提供的精简数据能力，便于引用。
+
+五、最佳实践
+- 以英文维护主模板，减少歧义；必要时附中文注释。
+- 先“显示当前prompt”，再“建议/对比”，最后“应用”。
+- 小步快跑：频繁备份与回滚，确保可控演进。
+
+六、常见问题
+- 看不到差异：请先点击“建议”生成草稿；或确认已选择 Bot。
+- 应用无效：检查是否选错“独立/共享”模式；或检查权限与文件写入。
+`,
+`
+What is it
+- A chat-based workspace for prompt templates/configs: view / suggest / diff / apply / revert. Supports per-Bot and env-shared management.
+
+Typical flow
+1) Show current prompt: load System/User as the baseline.
+2) Suggest: let the model draft EN templates (System/User/Rationale/Config).
+3) Diff: compare draft vs current prompts.
+4) Apply: write the draft to target (bot-specific or env-shared) with backup.
+5) Revert: restore to the latest backup.
+
+Target selection
+- Choose a Bot:
+  · bot-specific: only this bot's prompts are affected.
+  · env-shared: shared templates under the same environment (e.g., test-spot / demo-futures).
+
+Assistive tools
+- Placeholders: list available placeholder keys for runtime injection.
+- Available market data: show compact backend data capabilities.
+
+Best practices
+- Keep EN as the primary template; add CN notes if needed.
+- Do "Show" → "Suggest/Diff" → "Apply" in order.
+- Iterate safely with frequent backups and reverts.
+
+FAQ
+- No diff shown: generate a draft with "Suggest"; ensure a Bot is selected.
+- Apply not effective: confirm bot-specific/env-shared mode and file permissions.
+`)}
+            </div>
+          </div>
+        </div>
+      )}
 
     </aside>
   );

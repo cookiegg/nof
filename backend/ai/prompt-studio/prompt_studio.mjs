@@ -84,24 +84,12 @@ function renderSimple(template, context) {
   });
 }
 
-async function callDeepSeek(apiKey, model, systemPrompt, userPrompt, temperature = 0.5, maxTokens = 1500) {
-  const resp = await fetch('https://api.deepseek.com/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      stream: false,
-      temperature,
-      max_tokens: maxTokens
-    })
-  });
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const data = await resp.json();
-  return data.choices?.[0]?.message?.content ?? '';
+// 统一改为使用后端的 dashscope 调用器（百炼）
+async function callDashscope(apiKey, model, messages, options) {
+  const { callBailianAPI } = await import('../../src/services/ai/bailian-client.js');
+  const result = await callBailianAPI(apiKey, model, messages, options || {});
+  // 返回字符串内容（与原 callDeepSeek 返回一致的上层处理预期）
+  return String(result?.content ?? '');
 }
 
 function buildSuggestSystemPrompt(targetLang) {
@@ -290,9 +278,9 @@ async function main() {
   const isFutures = tradingEnv === 'demo-futures' || tradingEnv === 'futures';
 
   const aiPreset = (argAi && config.ai?.presets?.[argAi]) ? config.ai.presets[argAi] : null;
-  const aiProvider = (aiPreset?.provider || config.ai?.provider || 'deepseek');
-  const aiModel = (aiPreset?.model || config.ai?.model || 'deepseek-chat');
-  const aiApiKey = expandEnvMaybe(aiPreset?.api_key || config.ai?.api_key || process.env.DEEPSEEK_API_KEY_30 || '');
+  const aiProvider = (aiPreset?.provider || config.ai?.provider || 'dashscope');
+  const aiModel = (aiPreset?.model || config.ai?.model || 'qwen3-plus');
+  const aiApiKey = expandEnvMaybe(aiPreset?.api_key || config.ai?.api_key || '');
   const aiTemperature = (aiPreset?.temperature ?? config.ai?.temperature ?? 0.5);
   const aiMaxTokens = (aiPreset?.max_tokens ?? config.ai?.max_tokens ?? 1500);
 
@@ -474,8 +462,11 @@ async function main() {
     };
     const sys = buildSuggestSystemPrompt(userLang);
     const usr = buildSuggestUserPrompt(context);
-    console.log('🧠 正在请求建议...');
-    const raw = await callDeepSeek(aiApiKey, aiModel, sys, usr, aiTemperature, aiMaxTokens);
+    console.log('🧠 正在请求建议（dashscope）...');
+    const raw = await callDashscope(aiApiKey, aiModel, [
+      { role: 'system', content: sys },
+      { role: 'user', content: usr }
+    ], { enable_thinking: false, temperature: aiTemperature, max_tokens: aiMaxTokens, stream: false });
     let json = null;
     const match = raw.match(/\{[\s\S]*\}/);
     json = JSON.parse(match ? match[0] : raw);
@@ -507,8 +498,11 @@ async function main() {
     };
     const sys = buildAskSystemPrompt(userLang);
     const usr = buildAskUserPrompt(context, question);
-    console.log('💬 正在获取答案...');
-    const raw = await callDeepSeek(aiApiKey, aiModel, sys, usr, 0.2, 1200);
+    console.log('💬 正在获取答案（dashscope）...');
+    const raw = await callDashscope(aiApiKey, aiModel, [
+      { role: 'system', content: sys },
+      { role: 'user', content: usr }
+    ], { enable_thinking: false, temperature: 0.2, max_tokens: 1200, stream: false });
     const match = raw.match(/\{[\s\S]*\}/);
     let json = null;
     try { json = JSON.parse(match ? match[0] : raw); } catch (_) {}

@@ -1,8 +1,10 @@
 // 运行AI交易系统（统一到 backend/ai/ai-trading）
-// 用法：node --env-file=./backend/.env backend/ai/ai-trading/run-ai-trading.mjs [interval_minutes]
+// 用法：node backend/ai/ai-trading/run-ai-trading.mjs [interval_minutes]
+// 说明：若存在 backend/.env 会自动加载；否则使用进程环境变量（含根级 config.json 注入）。
 
 import { spawn } from 'child_process';
 import { join, dirname } from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -22,10 +24,16 @@ class AITradingRunner {
       console.log(`🚀 运行AI交易系统: ${scriptPath}`);
       const envArg = process.env.TRADING_ENV ? ['--env', process.env.TRADING_ENV] : [];
       const aiArg = process.env.AI_PRESET ? ['--ai', process.env.AI_PRESET] : [];
-      const child = spawn('node', ['--env-file=./backend/.env', scriptPath, ...envArg, ...aiArg], {
+      const rootCwd = join(__dirname, '..', '..', '..');
+      const envFileArg = (() => {
+        const p = join(rootCwd, 'backend', '.env');
+        return fs.existsSync(p) ? [`--env-file=${p}`] : [];
+      })();
+      const child = spawn('node', [...envFileArg, scriptPath, ...envArg, ...aiArg], {
         stdio: 'inherit',
         // 关键：将工作目录切到项目根，使 ai-trading-system 按相对路径读取 backend/ai/ai-trading/config.json
-        cwd: join(__dirname, '..', '..', '..')
+        cwd: rootCwd,
+        env: { ...process.env }
       });
       child.on('close', (code) => {
         if (code === 0) {

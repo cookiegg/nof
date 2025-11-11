@@ -1,22 +1,13 @@
 {
   "bots": [
     {
-      "id": "demo-futures-deepseek-3",
+      "id": "demo-futures-deepseek-v3.2-exp-1",
       "env": "demo-futures",
-      "intervalMinutes": 3,
-      "promptMode": "bot-specific",
-      "tradingMode": "binance-demo",
       "model": "deepseek-v3.2-exp",
-      "botClass": "demo-real",
-      "dashscopeApiKey": "DASHSCOPE_API_KEY_1"
-    },
-    {
-      "id": "test-spot-deepseek-v3.2-exp-3",
-      "env": "test-spot",
-      "model": "deepseek-v3.2-exp",
-      "intervalMinutes": 3,
+      "intervalMinutes": 1,
       "promptMode": "bot-specific",
       "dashscopeApiKey": "DASHSCOPE_API_KEY_1",
+      "enableThinking": true,
       "tradingMode": "binance-demo",
       "botClass": "demo-real"
     }
