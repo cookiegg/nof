@@ -7,7 +7,8 @@ export async function deriveAccountTotals(tradesJson, lastHourlyMarker) {
   const rows = Array.isArray(tradesJson?.trades) ? tradesJson.trades : [];
   const byModel = new Map();
   for (const t of rows) {
-    const id = String(t.model_id || 'default');
+    const id = String(t.model_id || '').trim();
+    if (!id || id === 'default') continue; // 跳过历史占位
     const exitTime = Number(t.exit_time || 0) * 1000 || Date.parse(String(t.exit_human_time || '')) || 0;
     const pnl = Number(t.realized_net_pnl || t.realized_gross_pnl || 0);
     if (!byModel.has(id)) byModel.set(id, new Map());
@@ -34,7 +35,8 @@ export async function deriveLeaderboard(tradesJson) {
   const rows = Array.isArray(tradesJson?.trades) ? tradesJson.trades : [];
   const agg = new Map();
   for (const t of rows) {
-    const id = String(t.model_id || 'default');
+    const id = String(t.model_id || '').trim();
+    if (!id || id === 'default') continue; // 跳过历史占位
     const pnl = Number(t.realized_net_pnl || t.realized_gross_pnl || 0);
     const prev = agg.get(id) || { id, equity: 0, num_trades: 0, wins: 0, losses: 0 };
     prev.equity += pnl;
@@ -55,7 +57,8 @@ export async function deriveSinceInception(tradesJson) {
   const countByModel = new Map();
   const pnlByModel = new Map();
   for (const t of rows) {
-    const id = String(t.model_id || 'default');
+    const id = String(t.model_id || '').trim();
+    if (!id || id === 'default') continue; // 跳过历史占位
     const ts = Number(t.entry_time || 0) * 1000 || Date.parse(String(t.entry_human_time || '')) || Date.now();
     if (!firstByModel.has(id) || ts < firstByModel.get(id)) firstByModel.set(id, ts);
     countByModel.set(id, (countByModel.get(id) || 0) + 1);

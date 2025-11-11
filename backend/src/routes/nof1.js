@@ -14,6 +14,13 @@ import { botConfigManager } from '../services/bots/bot-config-manager.js';
 
 export const router = express.Router();
 
+function expandEnvMaybe(value) {
+  if (typeof value !== 'string') return value;
+  const m = value.match(/^\$\{(.+)\}$/);
+  if (m) return process.env[m[1]] || '';
+  return value;
+}
+
 // Health
 router.get('/health', (req, res) => res.json({ ok: true }));
 
@@ -88,7 +95,7 @@ router.get('/trades', async (req, res) => {
     if (allTrades.length === 0) {
       try {
         const trades = await loadJson('trades.json', { trades: [] });
-        const realTrades = (trades.trades || []).filter(t => t.orderId || t.side);
+        const realTrades = (trades.trades || []).filter(t => (t.orderId || t.side));
         if (realTrades.length > 0) {
           const normalized = realTrades.map((t, idx) => {
             const ts = t.exit_time || t.timestamp || Math.floor(Date.now() / 1000);
@@ -96,11 +103,12 @@ router.get('/trades', async (req, res) => {
             const sideRaw = String(t.side || '').toUpperCase();
             const side = (sideRaw === 'BUY' || sideRaw === 'LONG') ? 'long' : 
                          (sideRaw === 'SELL' || sideRaw === 'SHORT') ? 'short' : 'long';
-            
+            const id = String(t.model_id || t.bot_id || '').trim();
+            if (!id || id === 'default') return null; // 忽略历史 default 占位
             return {
               id: t.orderId ? String(t.orderId) : `${symbol}-${ts}-${idx}`,
-              model_id: t.model_id || t.bot_id || 'default',
-              bot_id: t.bot_id || t.model_id || 'default',
+              model_id: id,
+              bot_id: id,
               symbol,
               side,
               entry_price: Number(t.entry_price || t.price || 0),
@@ -113,7 +121,7 @@ router.get('/trades', async (req, res) => {
               realized_gross_pnl: Number(t.realized_gross_pnl || t.realized_net_pnl || 0),
               total_commission_dollars: Number(t.total_commission_dollars || t.commission || 0),
             };
-          });
+          }).filter(Boolean);
           allTrades.push(...normalized);
         }
       } catch (_) {}
@@ -262,25 +270,14 @@ router.get('/conversations', async (req, res) => {
       }
     }
     
-    // 如果从Bot数据中没有获取到，尝试全局数据
-    if (allItems.length === 0) {
-      try { 
-        const items = await readConv(CONV_FILE, 'default', '', 'default');
-        allItems.push(...items);
-      } catch (_) {}
-      if (!allItems.length) {
-        const TEST_CONV = path.join(TEST_DIR, 'trading-conversations.json');
-        try { 
-          const items = await readConv(TEST_CONV, 'default', '', 'default');
-          allItems.push(...items);
-        } catch (_) {}
-      }
-    }
+    // 不再从全局/测试对话中回填“default”历史会话，保持为空即返回空
     
+    // 过滤掉历史 default 占位及无效 bot_id
+    const filtered = allItems.filter(it => it && it.bot_id && it.bot_id !== 'default');
     // 按时间戳排序（最新的在前）
-    allItems.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+    filtered.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
     
-    return res.json({ conversations: allItems });
+    return res.json({ conversations: filtered });
   } catch (e) {
     console.error('Conversations API error:', e);
     return res.json({ conversations: [] });
@@ -564,9 +561,9 @@ router.post('/ai/prompt/suggest', async (req, res) => {
     let sys = '';
     let usr = '';
     let botConfig = null;
-    let aiKey = cfg.ai?.api_key || '';
+    let aiKey = expandEnvMaybe(cfg.ai?.api_key || '');
     let provider = cfg.ai?.provider || 'dashscope';
-    let model = cfg.ai?.model || 'qwen3-plus';
+    let model = cfg.ai?.model || 'qwen-plus';
     let temperature = cfg.ai?.temperature ?? 0.7;
     let enable_thinking = false;
     let env = cfg.trading_env || 'demo-futures';
@@ -579,7 +576,7 @@ router.post('/ai/prompt/suggest', async (req, res) => {
         // 加载Bot的AI配置
         const { resolveAIConfig } = await import('../services/bots/bot-config-manager.js');
         const aiConfig = await resolveAIConfig(botConfig, cfg);
-        aiKey = aiConfig.api_key;
+        aiKey = expandEnvMaybe(aiConfig.api_key);
         provider = aiConfig.provider;
         model = aiConfig.model;
         temperature = aiConfig.temperature;
@@ -599,15 +596,87 @@ router.post('/ai/prompt/suggest', async (req, res) => {
       usr = await fs.readFile(USER_TPL, 'utf8').catch(() => '');
     }
 
+    // 如果提供了 botId，加载该 bot 的历史数据（交易、对话、账户状态）
+    let botHistory = null;
+    if (botId && botConfig) {
+      try {
+        const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+        const stateManager = new BotStateManager(botId);
+        const [state, conversations, trades] = await Promise.all([
+          stateManager.loadState().catch(() => null),
+          stateManager.loadConversations().catch(() => []),
+          stateManager.loadTrades().catch(() => [])
+        ]);
+        
+        // 限制数据量，避免上下文过大
+        const recentTrades = Array.isArray(trades) ? trades.slice(-30).map(t => ({
+          symbol: t.symbol,
+          side: t.side,
+          entry_price: t.entry_price,
+          exit_price: t.exit_price,
+          quantity: t.quantity,
+          realized_pnl: t.realized_net_pnl || t.realizedPnL || 0,
+          entry_time: t.entry_time,
+          exit_time: t.exit_time
+        })) : [];
+        
+        const recentConversations = Array.isArray(conversations) ? conversations.slice(-15).map(c => ({
+          timestamp: c.timestamp,
+          decision: c.decision || c.decision_normalized || null,
+          accountValue: c.accountValue,
+          reasoning: c.decision?.reasoning || c.decision_normalized?.reasoning || null
+        })) : [];
+        
+        botHistory = {
+          account_state: state ? {
+            accountValue: state.accountValue || 0,
+            availableCash: state.availableCash || 0,
+            totalReturn: state.totalReturn || 0,
+            initialAccountValue: state.initialAccountValue || 0,
+            positions_count: Array.isArray(state.positions) ? state.positions.length : 0,
+            lastUpdate: state.lastUpdate
+          } : null,
+          recent_trades: recentTrades,
+          recent_conversations: recentConversations,
+          trades_count: Array.isArray(trades) ? trades.length : 0,
+          conversations_count: Array.isArray(conversations) ? conversations.length : 0
+        };
+      } catch (e) {
+        console.warn(`[Prompt Studio Suggest] 加载Bot ${botId} 历史数据失败:`, e.message);
+      }
+    }
+
+    // 构建用于 prompt 工程分析的上下文（明确区分：这是 prompt 工程任务，不是交易任务）
     const context = {
+      task_type: 'prompt_engineering_suggestion', // 明确任务类型
       environment: env,
       allowed_symbols: cfg.allowed_symbols,
       data: cfg.data,
-      current_templates: { system: sys, user: usr },
+      // 注意：这里的 system/user prompt 是待分析的文本内容，不是真正的 system/user 角色
+      current_templates_for_analysis: {
+        system_prompt_text: sys, // 明确标注为文本内容
+        user_prompt_text: usr   // 明确标注为文本内容
+      },
       bot_id: botId || null,
       bot_name: botConfig?.name || null,
-      prompt_mode: botConfig?.promptMode || 'env-shared'
+      prompt_mode: botConfig?.promptMode || 'env-shared',
+      // 如果提供了 botId，包含历史数据用于分析 prompt 效果
+      bot_history: botHistory
     };
+
+    // 若未配置 aiKey，则尝试从 Key 池选择一个空闲的环境变量名作为临时使用
+    if (!aiKey) {
+      try {
+        const { apiKeyManager } = await import('../services/api-key-manager.js');
+        const all = apiKeyManager.getAllApiKeys?.() || [];
+        const firstFree = Array.isArray(all)
+          ? all.find((k) => apiKeyManager.isApiKeyAvailable?.(k))
+          : undefined;
+        if (firstFree && process.env[firstFree]) {
+          aiKey = process.env[firstFree];
+        }
+      } catch (_) {}
+    }
 
     if (!aiKey) {
       // ? key ??????????????????
@@ -621,14 +690,27 @@ router.post('/ai/prompt/suggest', async (req, res) => {
       });
     }
 
-    const prompt = `You are a prompt engineer for a crypto trading agent. Given the JSON context below, propose improved English system and user prompts, and optional config_updates. Respond with strict JSON keys: system_prompt_en, user_prompt_en, rationale_en, config_updates.
-\n\nCONTEXT:\n${JSON.stringify(context, null, 2)}`;
+    // 明确区分：这是 prompt 工程任务，不是交易决策任务
+    const systemInstruction = `You are a prompt engineer for a crypto trading agent. Your task is to ANALYZE the provided prompt templates and propose IMPROVED versions, NOT to make trading decisions.
+
+IMPORTANT: 
+- The "current_templates_for_analysis" in the context are TEXT CONTENT that you need to analyze and improve.
+- You should propose better system_prompt and user_prompt based on best practices.
+- You should NOT output trading decisions or follow the trading prompt format.
+- You MUST return ONLY valid JSON with keys: system_prompt_en, user_prompt_en, rationale_en, config_updates (optional).`;
+
+    const userQuery = `Analyze the following prompt templates and propose improved versions:
+
+CONTEXT (for prompt analysis, not for trading):
+${JSON.stringify(context, null, 2)}
+
+Propose improved English system and user prompts based on the current templates, best practices, and the trading environment. Include a rationale explaining your changes. Optionally suggest config_updates if needed.`;
 
     // 使用百炼统一 API 客户端
     const { callBailianAPI } = await import('../services/ai/bailian-client.js');
     const result = await callBailianAPI(aiKey, model, [
-      { role: 'system', content: 'You return ONLY valid JSON. No prose.' },
-      { role: 'user', content: prompt }
+      { role: 'system', content: systemInstruction },
+      { role: 'user', content: userQuery }
     ], {
       enable_thinking: enable_thinking,
       temperature: temperature,
@@ -656,8 +738,8 @@ router.post('/ai/prompt/ask', async (req, res) => {
     let sys = '';
     let usr = '';
     let botConfig = null;
-    let aiKey = cfg.ai?.api_key || '';
-    let model = cfg.ai?.model || 'qwen3-plus';
+    let aiKey = expandEnvMaybe(cfg.ai?.api_key || '');
+    let model = cfg.ai?.model || 'qwen-plus';
     let temperature = cfg.ai?.temperature ?? 0.4;
     let enable_thinking = false;
     let env = cfg.trading_env || 'demo-futures';
@@ -670,7 +752,7 @@ router.post('/ai/prompt/ask', async (req, res) => {
         // 加载Bot的AI配置
         const { resolveAIConfig } = await import('../services/bots/bot-config-manager.js');
         const aiConfig = await resolveAIConfig(botConfig, cfg);
-        aiKey = aiConfig.api_key;
+        aiKey = expandEnvMaybe(aiConfig.api_key);
         model = aiConfig.model;
         temperature = aiConfig.temperature;
         enable_thinking = aiConfig.enable_thinking || false;
@@ -689,23 +771,109 @@ router.post('/ai/prompt/ask', async (req, res) => {
       usr = await fs.readFile(USER_TPL, 'utf8').catch(() => '');
     }
     
+    // 如果提供了 botId，加载该 bot 的历史数据（交易、对话、账户状态）
+    let botHistory = null;
+    if (botId && botConfig) {
+      try {
+        const { BotStateManager } = await import('../services/trading/bot-state-manager.js');
+        const stateManager = new BotStateManager(botId);
+        const [state, conversations, trades] = await Promise.all([
+          stateManager.loadState().catch(() => null),
+          stateManager.loadConversations().catch(() => []),
+          stateManager.loadTrades().catch(() => [])
+        ]);
+        
+        // 限制数据量，避免上下文过大
+        const recentTrades = Array.isArray(trades) ? trades.slice(-30).map(t => ({
+          symbol: t.symbol,
+          side: t.side,
+          entry_price: t.entry_price,
+          exit_price: t.exit_price,
+          quantity: t.quantity,
+          realized_pnl: t.realized_net_pnl || t.realizedPnL || 0,
+          entry_time: t.entry_time,
+          exit_time: t.exit_time
+        })) : [];
+        
+        const recentConversations = Array.isArray(conversations) ? conversations.slice(-15).map(c => ({
+          timestamp: c.timestamp,
+          decision: c.decision || c.decision_normalized || null,
+          accountValue: c.accountValue,
+          reasoning: c.decision?.reasoning || c.decision_normalized?.reasoning || null
+        })) : [];
+        
+        botHistory = {
+          account_state: state ? {
+            accountValue: state.accountValue || 0,
+            availableCash: state.availableCash || 0,
+            totalReturn: state.totalReturn || 0,
+            initialAccountValue: state.initialAccountValue || 0,
+            positions_count: Array.isArray(state.positions) ? state.positions.length : 0,
+            lastUpdate: state.lastUpdate
+          } : null,
+          recent_trades: recentTrades,
+          recent_conversations: recentConversations,
+          trades_count: Array.isArray(trades) ? trades.length : 0,
+          conversations_count: Array.isArray(conversations) ? conversations.length : 0
+        };
+      } catch (e) {
+        console.warn(`[Prompt Studio Ask] 加载Bot ${botId} 历史数据失败:`, e.message);
+      }
+    }
+
+    // 构建用于 prompt 分析的上下文（明确区分：这是分析任务，不是交易任务）
     const context = {
+      task_type: 'prompt_engineering_analysis', // 明确任务类型
       environment: env,
       allowed_symbols: cfg.allowed_symbols,
       data: cfg.data,
-      current_templates: { system: sys, user: usr },
+      // 注意：这里的 system/user prompt 是待分析的文本内容，不是真正的 system/user 角色
+      current_templates_for_analysis: {
+        system_prompt_text: sys, // 明确标注为文本内容
+        user_prompt_text: usr   // 明确标注为文本内容
+      },
       bot_id: botId || null,
       bot_name: botConfig?.name || null,
-      prompt_mode: botConfig?.promptMode || 'env-shared'
+      prompt_mode: botConfig?.promptMode || 'env-shared',
+      // 如果提供了 botId，包含历史数据用于分析 prompt 效果
+      bot_history: botHistory
     };
     if (!question) return res.status(400).json({ error: 'empty_question' });
+
+    // 若未配置 aiKey，则尝试从 Key 池选择一个空闲的环境变量名作为临时使用
+    if (!aiKey) {
+      try {
+        const { apiKeyManager } = await import('../services/api-key-manager.js');
+        const all = apiKeyManager.getAllApiKeys?.() || [];
+        const firstFree = Array.isArray(all)
+          ? all.find((k) => apiKeyManager.isApiKeyAvailable?.(k))
+          : undefined;
+        if (firstFree && process.env[firstFree]) {
+          aiKey = process.env[firstFree];
+        }
+      } catch (_) {}
+    }
+
     if (!aiKey) return res.json({ answer: null, disabled: true });
-    const prompt = `You are a senior prompt engineer and trading systems architect. Answer user's question based on the JSON CONTEXT. Be concise and structured.\n\nCONTEXT:\n${JSON.stringify(context, null, 2)}\n\nUSER:\n${question}`;
+    
+    // 明确区分：这是 prompt 工程任务，不是交易决策任务
+    const systemInstruction = `You are a senior prompt engineer and trading systems architect. Your task is to ANALYZE and provide guidance about trading prompt templates, NOT to make trading decisions.
+
+IMPORTANT: The "current_templates_for_analysis" in the context are TEXT CONTENT that you need to analyze, NOT system/user prompts to be used for trading. You should provide analysis, explanations, or suggestions about these prompts, but you should NOT output trading decisions or follow the trading prompt format.
+
+Answer the user's question about prompts, configurations, or trading system capabilities in a clear, structured way.`;
+    
+    const userQuery = `CONTEXT (for analysis, not for trading):
+${JSON.stringify(context, null, 2)}
+
+USER QUESTION:
+${question}`;
     
     // 使用百炼统一 API 客户端
     const { callBailianAPI } = await import('../services/ai/bailian-client.js');
     const result = await callBailianAPI(aiKey, model, [
-      { role: 'user', content: prompt }
+      { role: 'system', content: systemInstruction },
+      { role: 'user', content: userQuery }
     ], {
       enable_thinking: enable_thinking,
       temperature: temperature,
@@ -1325,32 +1493,7 @@ router.get('/account-totals', async (req, res) => {
       series.push(...modelSeries);
     }
     
-    // 如果没有Bot数据，尝试全局conversations（向后兼容）
-    if (series.length === 0) {
-      try {
-        const buf = await fs.readFile(CONV_FILE, 'utf8');
-        const raw = JSON.parse(buf);
-        const arr = Array.isArray(raw?.conversations) ? raw.conversations : [];
-        const defaultSeries = arr.slice().reverse().map(c => {
-          const ts = Math.floor(new Date(c?.timestamp || Date.now()).getTime() / 1000);
-          const equity = Number(c?.accountValue);
-          if (!Number.isFinite(equity)) return null;
-          const btcPrice = extractBTCPrice(c?.userPrompt);
-        return {
-          model_id: 'default', // 使用bot_id作为标识（保持兼容性）
-          bot_id: 'default',
-          bot_name: 'default',
-          model: '', // 保留模型信息用于显示
-          timestamp: ts,
-          dollar_equity: equity,
-          since_inception_hourly_marker: Math.floor(ts / 3600),
-          positions: latestPositions,
-          btc_price: btcPrice || undefined,
-        };
-        }).filter(item => item !== null);
-        series.push(...defaultSeries);
-      } catch (_) {}
-    }
+    // 移除历史的“default”占位逻辑：无运行中 Bot 或无数据时返回空数组
     
     if (series.length > 0) {
       // 获取初始值（从第一个Bot或全局数据）

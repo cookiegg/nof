@@ -16,29 +16,22 @@
         "api_secret": "${BINANCE_API_SECRET_DEMO_FUTURES}"
       },
       "spot_testnet": {
-        "api_key": "${BINANCE_SPOT_TEST_API_KEY}",
-        "api_secret": "${BINANCE_SPOT_TEST_API_SECRET}"
+        "api_key": "${BINANCE_API_KEY_TEST_SPOT}",
+        "api_secret": "${BINANCE_API_SECRET_TEST_SPOT}"
       }
     }
   },
   "ai": {
-    "provider": "deepseek",
-    "model": "deepseek-chat",
-    "api_key": "${DEEPSEEK_API_KEY_30}",
+    "provider": "dashscope",
+    "model": "qwen-plus",
+    "api_key": "${DASHSCOPE_API_KEY_1}",
     "temperature": 0.7,
     "max_tokens": 2000,
     "presets": {
-      "deepseek": {
-        "provider": "deepseek",
-        "model": "deepseek-chat",
-        "api_key": "${DEEPSEEK_API_KEY_30}",
-        "temperature": 0.7,
-        "max_tokens": 2000
-      },
-      "deepseek-reasoner": {
-        "provider": "deepseek",
-        "model": "deepseek-reasoner",
-        "api_key": "${DEEPSEEK_API_KEY_30}",
+      "qwen-plus": {
+        "provider": "dashscope",
+        "model": "qwen-plus",
+        "api_key": "${DASHSCOPE_API_KEY_1}",
         "temperature": 0.7,
         "max_tokens": 2000
       }
@@ -63,7 +56,7 @@
         "user_prompt_path": "./backend/ai/ai-trading/prompt_templates/futures/user_prompt.hbs"
       }
     },
-    "demo-spot": {
+    "test-spot": {
       "allowed_symbols": [
         "BTC/USDT",
         "ETH/USDT",
@@ -111,7 +104,29 @@
     "intraday_limit": 50,
     "context_tf": "4h",
     "context_limit": 10
-  }
+  },
+  "bots": [
+    {
+      "id": "demo-futures-deepseek-v3.2-exp-1",
+      "name": "demo-futures-deepseek-v3.2-exp-1",
+      "env": "demo-futures",
+      "promptMode": "bot-specific",
+      "ai": {
+        "provider": "dashscope",
+        "api_key": "${DASHSCOPE_API_KEY_1}"
+      }
+    },
+    {
+      "id": "test-spot-deepseek-v3.1-3",
+      "name": "test-spot-deepseek-v3.1-3",
+      "env": "test-spot",
+      "promptMode": "bot-specific",
+      "ai": {
+        "provider": "dashscope",
+        "api_key": "${DASHSCOPE_API_KEY_2}"
+      }
+    }
+  ]
 }
 
 

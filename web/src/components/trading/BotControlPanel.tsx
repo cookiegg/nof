@@ -137,22 +137,41 @@ export default function BotControlPanel({
           <div className="text-[11px]" style={{ color: 'var(--muted-text)' }}>
             {bot.name || t(`Bot: ${bot.env}`, `Bot: ${bot.env}`)}
           </div>
-          {bot.tradingMode && (
-            <span 
-              className="text-[9px] px-1.5 py-0.5 rounded"
-              style={{ 
-                background: bot.tradingMode === 'binance-demo' 
-                  ? 'rgba(34, 197, 94, 0.2)' 
-                  : 'rgba(251, 191, 36, 0.2)',
-                color: bot.tradingMode === 'binance-demo' 
-                  ? 'rgb(34, 197, 94)' 
-                  : 'rgb(251, 191, 36)',
-                border: `1px solid ${bot.tradingMode === 'binance-demo' ? 'rgba(34, 197, 94, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`
-              }}
-              title={bot.tradingMode === 'binance-demo' ? t('真实API交易（Binance Demo）', 'Real API Trading (Binance Demo)') : t('本地模拟交易', 'Local Simulated Trading')}
-            >
-              {bot.tradingMode === 'binance-demo' ? t('真实', 'Real') : t('模拟', 'Simulated')}
-            </span>
+          {(
+            // 显示交易模式徽标：实盘 / 交易所模拟 / 本地模拟
+            (() => {
+              const isLiveEnv = bot.env === 'futures' || bot.env === 'spot';
+              let labelZh = '本地模拟';
+              let labelEn = 'Local Simulated';
+              let bg = 'rgba(107, 114, 128, 0.2)'; // gray-500
+              let fg = 'rgb(107, 114, 128)';
+              let bd = 'rgba(107, 114, 128, 0.3)';
+              let title = t('本地模拟交易', 'Local Simulated Trading');
+              if (isLiveEnv) {
+                labelZh = '实盘';
+                labelEn = 'Live';
+                bg = 'rgba(220, 38, 38, 0.18)'; // red-600
+                fg = 'rgb(220, 38, 38)';
+                bd = 'rgba(220, 38, 38, 0.28)';
+                title = t('实盘交易（连接生产环境）', 'Live trading (production)');
+              } else if (bot.tradingMode === 'binance-demo') {
+                labelZh = '交易所模拟';
+                labelEn = 'Exchange Simulated';
+                bg = 'rgba(34, 197, 94, 0.18)'; // green-500
+                fg = 'rgb(34, 197, 94)';
+                bd = 'rgba(34, 197, 94, 0.28)';
+                title = t('交易所模拟（Demo/Testnet）', 'Exchange-simulated (Demo/Testnet)');
+              }
+              return (
+                <span
+                  className="text-[9px] px-1.5 py-0.5 rounded"
+                  style={{ background: bg, color: fg, border: `1px solid ${bd}` }}
+                  title={title}
+                >
+                  {t(labelZh, labelEn)}
+                </span>
+              );
+            })()
           )}
         </div>
         {onDelete && bot.id && (

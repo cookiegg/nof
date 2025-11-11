@@ -2,6 +2,36 @@
   "trades": [
     {
       "model_id": "default",
+      "exit_time": 1762341013,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.05,
+      "price": 101503.402,
+      "orderId": "8644715476"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1762340645,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "BNB",
+      "quantity": 0.1,
+      "price": 937.21,
+      "orderId": "844233580"
+    },
+    {
+      "model_id": "default",
+      "exit_time": 1762340110,
+      "realized_net_pnl": 0,
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.003,
+      "price": 101340.13333,
+      "orderId": "8642288757"
+    },
+    {
+      "model_id": "default",
       "exit_time": 1762339381,
       "realized_net_pnl": 0,
       "side": "SELL",

@@ -1,0 +1,31 @@
+{
+  "env": {
+    "NEXT_PUBLIC_URL": "http://localhost:3000",
+    "DASHSCOPE_API_KEY_1": "sk-xxx",
+    "DASHSCOPE_API_KEY_2": "sk-xxx",
+    "DASHSCOPE_API_KEY_3": "sk-xxx",
+    "DASHSCOPE_API_KEY_4": "sk-xxx",
+    "DASHSCOPE_API_KEY_5": "sk-xxx",
+    "HTTPS_PROXY": "http://127.0.0.1:7890",
+    "HTTP_PROXY": "http://127.0.0.1:7890",
+    "NO_PROXY": "localhost,127.0.0.1",
+    "TRADING_ENV": "demo-futures",
+    "BINANCE_API_KEY_DEMO_FUTURES": "xxx",
+    "BINANCE_API_SECRET_DEMO_FUTURES": "xxx",
+    "BINANCE_DEMO": "true",
+    "BINANCE_DEMO_FUTURES_BASE_URL": "https://demo-fapi.binance.com",
+    "BINANCE_API_KEY_TEST_SPOT": "xxx",
+    "BINANCE_API_SECRET_TEST_SPOT": "xxx",
+    "BINANCE_TEST": "true",
+    "BINANCE_API_KEY_LIVE_SPOT": "xxx",
+    "BINANCE_API_SECRET_LIVE_SPOT": "-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----",
+    "BINANCE_SPOT_BASE_URL": "https://api.binance.com",
+    "BINANCE_API_KEY_LIVE_FUTURES": "xxx",
+    "BINANCE_PRIVATE_SECRET_LIVE_FUTURES": "-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----",
+    "BINANCE_FUTURES_BASE_URL": "https://fapi.binance.com",
+    "CRON_SECRET_KEY": "xxx",
+    "START_MONEY": "30"
+  }
+}
+
+

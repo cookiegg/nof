@@ -1,35 +1,46 @@
 {
   "startTime": "2025-11-01T07:50:03.177Z",
-  "invocationCount": 657,
-  "positions": [
-    {
-      "symbol": "BNB",
-      "quantity": -0.05,
-      "entry_price": 940.51,
-      "current_price": 940.97,
-      "liquidation_price": 1123.12281055,
-      "unrealized_pnl": -0.023,
-      "leverage": 5,
-      "exit_plan": {
-        "profit_target": 1034.5610000000001,
-        "stop_loss": 893.4844999999999,
-        "invalidation_condition": "price_below_stop_loss"
-      },
-      "confidence": 0.8,
-      "risk_usd": 47.0255,
-      "sl_oid": null,
-      "tp_oid": null,
-      "wait_for_fill": false,
-      "entry_oid": null,
-      "notional_usd": 47.0485
-    }
-  ],
-  "lastUpdate": "2025-11-05T10:43:02.302Z",
+  "invocationCount": 8411,
+  "positions": [],
+  "lastUpdate": "2025-11-11T00:39:19.391Z",
   "tradingEnabled": true,
-  "accountValue": 4970.11101356,
-  "availableCash": 4960.72472376,
-  "totalReturn": 6.475903016402487,
+  "accountValue": 10000,
+  "availableCash": 10000,
+  "totalReturn": 114.23244415648522,
   "trades": [
+    {
+      "timestamp": "2025-11-05T11:10:13.560Z",
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.05,
+      "price": 101503.402,
+      "orderId": "8644715476",
+      "environment": "demo.binance.com",
+      "accountValue": 4967.02005514,
+      "totalReturn": 6.409684658692223
+    },
+    {
+      "timestamp": "2025-11-05T11:04:05.871Z",
+      "side": "SELL",
+      "symbol": "BNB",
+      "quantity": 0.1,
+      "price": 937.21,
+      "orderId": "844233580",
+      "environment": "demo.binance.com",
+      "accountValue": 4967.57382399,
+      "totalReturn": 6.421548184115543
+    },
+    {
+      "timestamp": "2025-11-05T10:55:10.216Z",
+      "side": "SELL",
+      "symbol": "BTC",
+      "quantity": 0.003,
+      "price": 101340.13333,
+      "orderId": "8642288757",
+      "environment": "demo.binance.com",
+      "accountValue": 4968.34546628,
+      "totalReturn": 6.438079265495669
+    },
     {
       "timestamp": "2025-11-05T10:43:01.674Z",
       "side": "SELL",
