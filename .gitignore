@@ -27,12 +27,12 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.example
 .key
 .config.json
 
 # project-specific ignores
 backend/.key
-backend/test/
 backend/node_modules/
 web/node_modules/
 learning/
